@@ -100,8 +100,6 @@
         .sidebar-header {
             padding: 20px 12px;
             padding-right: 60px;
-            border-bottom: 1px solid #e5e0d8;
-            background: linear-gradient(to bottom, #f9f7f4, #f4f1ec);
             position: relative;
         }
 
@@ -191,8 +189,8 @@
         }
 
         .new-recipe-btn:focus {
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(90, 90, 90, 0.4);
+            outline: 3px solid #7a7066;
+            outline-offset: 2px;
         }
 
         /* Main content area */
@@ -687,11 +685,22 @@
 
         function loadRecipeFromURL() {
             const path = window.location.pathname;
-            // Extract ID from URL like /braised-short-rib-1234
-            const match = path.match(/-(\d+)$/);
+            console.log('Loading from URL path:', path);
+            // Extract ID from URL like /braised-short-rib-1234 or /braised-short-rib-abc123xyz
+            // Match anything after the last hyphen
+            const match = path.match(/-([a-zA-Z0-9]+)$/);
             if (match) {
                 const id = match[1];
-                loadRecipe(id, false);
+                console.log('Extracted recipe ID from URL:', id);
+                const recipe = recipes.find(r => r.id === id);
+                if (recipe) {
+                    console.log('Found recipe:', recipe.title);
+                    loadRecipe(id, false);
+                } else {
+                    console.log('Recipe not found with ID:', id);
+                }
+            } else {
+                console.log('No recipe ID in URL');
             }
         }
 
@@ -761,11 +770,14 @@
             }
             
             renderRecipeList(filterInput.value);
+            
+            // Try to load recipe from URL first
             loadRecipeFromURL();
             
+            // Only load first recipe if no URL recipe was loaded and we have recipes
             if (!currentRecipeId && recipes.length > 0) {
                 loadRecipe(recipes[0].id);
-            } else if (recipes.length === 0) {
+            } else if (recipes.length === 0 && !currentRecipeId) {
                 hideEditor();
             }
         }
