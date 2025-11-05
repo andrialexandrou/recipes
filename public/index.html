@@ -362,7 +362,7 @@
         <div id="emptyState" class="empty-state">
             Select a recipe or create a new one
         </div>
-        <div id="editorView" style="display: none; flex-direction: column; flex: 1;">
+        <div id="editorView" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
             <div class="editor-header">
                 <input 
                     type="text" 
@@ -391,9 +391,29 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <script>
+        // Firebase configuration injected by server from environment variables
+        const firebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const recipesCollection = db.collection('recipes');
+
         // Data management
-        let recipes = JSON.parse(localStorage.getItem('recipes') || '[]');
+        let recipes = [];
         let currentRecipeId = null;
         let isEditMode = true;
 
@@ -425,6 +445,9 @@
                 recipe.content.toLowerCase().includes(lowerFilter)
             );
 
+            // Sort by updatedAt descending
+            filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
             recipeList.innerHTML = filtered.map(recipe => `
                 <div 
                     class="recipe-item ${recipe.id === currentRecipeId ? 'active' : ''}" 
@@ -446,6 +469,72 @@
                     }
                 });
             });
+        }
+
+        // Load all recipes from Firebase
+        async function loadAllRecipes() {
+            try {
+                const snapshot = await recipesCollection.get();
+                recipes = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                // If Firebase is empty but localStorage has recipes, migrate them
+                if (recipes.length === 0) {
+                    await migrateFromLocalStorage();
+                }
+                
+                renderRecipeList(filterInput.value);
+                
+                if (recipes.length > 0 && !currentRecipeId) {
+                    loadRecipe(recipes[0].id);
+                } else if (recipes.length === 0) {
+                    hideEditor();
+                }
+            } catch (error) {
+                alert('Error loading recipes. Check console for details.');
+            }
+        }
+
+        // Migrate recipes from localStorage to Firebase
+        async function migrateFromLocalStorage() {
+            const localRecipes = localStorage.getItem('recipes');
+            if (!localRecipes) return;
+            
+            try {
+                const recipesToMigrate = JSON.parse(localRecipes);
+                if (recipesToMigrate.length === 0) return;
+                
+                // Batch write to Firebase
+                const batch = db.batch();
+                
+                for (const recipe of recipesToMigrate) {
+                    const newDocRef = recipesCollection.doc();
+                    batch.set(newDocRef, {
+                        title: recipe.title,
+                        content: recipe.content,
+                        createdAt: recipe.createdAt,
+                        updatedAt: recipe.updatedAt
+                    });
+                }
+                
+                await batch.commit();
+                
+                // Reload from Firebase
+                const snapshot = await recipesCollection.get();
+                recipes = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                // Clear localStorage after successful migration
+                localStorage.removeItem('recipes');
+                
+                alert(`Successfully migrated ${recipesToMigrate.length} recipes to Firebase!`);
+            } catch (error) {
+                alert('Error migrating recipes. Check console for details.');
+            }
         }
 
         // Switch to edit mode
@@ -490,28 +579,33 @@
         }
 
         // Create new recipe
-        function createNewRecipe() {
+        async function createNewRecipe() {
             const newRecipe = {
-                id: Date.now().toString(),
                 title: '',
                 content: '',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
             
-            recipes.unshift(newRecipe);
-            saveToStorage();
-            currentRecipeId = newRecipe.id;
-            titleInput.value = '';
-            markdownTextarea.value = '';
-            
-            showEditor();
-            enterEditMode();
-            renderRecipeList(filterInput.value);
+            try {
+                const docRef = await recipesCollection.add(newRecipe);
+                newRecipe.id = docRef.id;
+                recipes.unshift(newRecipe);
+                
+                currentRecipeId = newRecipe.id;
+                titleInput.value = '';
+                markdownTextarea.value = '';
+                
+                showEditor();
+                enterEditMode();
+                renderRecipeList(filterInput.value);
+            } catch (error) {
+                alert('Error creating recipe. Check console for details.');
+            }
         }
 
         // Save current recipe
-        function saveCurrentRecipe() {
+        async function saveCurrentRecipe() {
             if (!currentRecipeId) return;
 
             const recipe = recipes.find(r => r.id === currentRecipeId);
@@ -521,21 +615,34 @@
             recipe.content = markdownTextarea.value;
             recipe.updatedAt = new Date().toISOString();
 
-            saveToStorage();
-            enterViewMode();
-            renderRecipeList(filterInput.value);
+            try {
+                await recipesCollection.doc(currentRecipeId).update({
+                    title: recipe.title,
+                    content: recipe.content,
+                    updatedAt: recipe.updatedAt
+                });
+                
+                enterViewMode();
+                renderRecipeList(filterInput.value);
+            } catch (error) {
+                alert('Error saving recipe. Check console for details.');
+            }
         }
 
         // Delete current recipe
-        function deleteCurrentRecipe() {
+        async function deleteCurrentRecipe() {
             if (!currentRecipeId) return;
             if (!confirm('Delete this recipe?')) return;
 
-            recipes = recipes.filter(r => r.id !== currentRecipeId);
-            saveToStorage();
-            currentRecipeId = null;
-            hideEditor();
-            renderRecipeList(filterInput.value);
+            try {
+                await recipesCollection.doc(currentRecipeId).delete();
+                recipes = recipes.filter(r => r.id !== currentRecipeId);
+                currentRecipeId = null;
+                hideEditor();
+                renderRecipeList(filterInput.value);
+            } catch (error) {
+                alert('Error deleting recipe. Check console for details.');
+            }
         }
 
         // Show/hide editor
@@ -547,11 +654,6 @@
         function hideEditor() {
             emptyState.style.display = 'flex';
             editorView.style.display = 'none';
-        }
-
-        // Storage
-        function saveToStorage() {
-            localStorage.setItem('recipes', JSON.stringify(recipes));
         }
 
         // Utilities
@@ -617,12 +719,7 @@
         });
 
         // Initialize
-        renderRecipeList();
-        if (recipes.length === 0) {
-            hideEditor();
-        } else {
-            loadRecipe(recipes[0].id);
-        }
+        loadAllRecipes();
     </script>
 </body>
 </html>
