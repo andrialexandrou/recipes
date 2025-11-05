@@ -12,106 +12,187 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-family: 'Georgia', 'Garamond', serif;
             display: flex;
             height: 100vh;
             overflow: hidden;
+            background: #fcfbf9;
+            color: #2d2d2d;
         }
 
         /* Left sidebar */
         .sidebar {
             width: 280px;
-            background: #f5f5f5;
-            border-right: 1px solid #ddd;
+            background: #f9f7f4;
+            border-right: 1px solid #e5e0d8;
             display: flex;
             flex-direction: column;
+            transition: transform 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-280px);
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            right: 12px;
+            top: 20px;
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: 1px solid #d9d4cb;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #5a5a5a;
+            transition: all 0.2s;
+            z-index: 11;
+        }
+
+        .sidebar-toggle:hover {
+            background: #f4f1ec;
+        }
+
+        .sidebar-toggle:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(90, 90, 90, 0.3);
+        }
+
+        .floating-menu-btn {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            width: 40px;
+            height: 40px;
+            background: #f9f7f4;
+            border: 1px solid #d9d4cb;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #5a5a5a;
+            transition: all 0.2s;
+            z-index: 9;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .floating-menu-btn:hover {
+            background: #f4f1ec;
+        }
+
+        .floating-menu-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(90, 90, 90, 0.3), 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .sidebar.collapsed ~ .main-content .floating-menu-btn {
+            display: flex;
         }
 
         .sidebar-header {
-            padding: 16px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .sidebar-header h1 {
-            font-size: 20px;
-            margin-bottom: 12px;
+            padding: 20px 12px;
+            padding-right: 60px;
+            border-bottom: 1px solid #e5e0d8;
+            background: linear-gradient(to bottom, #f9f7f4, #f4f1ec);
+            position: relative;
         }
 
         .filter-input {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border: 1px solid #e5e0d8;
+            border-radius: 8px;
             font-size: 14px;
+            background: #fcfbf9;
+            font-family: 'Georgia', serif;
+            color: #2d2d2d;
         }
 
         .filter-input:focus {
-            outline: 2px solid #0066cc;
-            outline-offset: 0;
+            outline: none;
+            border-color: #b8b3aa;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(90, 90, 90, 0.3);
+        }
+
+        .filter-input::placeholder {
+            color: #999;
+            font-style: italic;
         }
 
         .recipe-list {
             flex: 1;
             overflow-y: auto;
-            padding: 8px;
+            padding: 0;
         }
 
         .recipe-item {
-            padding: 12px;
-            margin-bottom: 4px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 14px 20px;
+            margin-bottom: 0;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #ede9e3;
+            border-radius: 0;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
         .recipe-item:hover {
-            background: #e8f4ff;
+            background: #f9f7f4;
         }
 
         .recipe-item:focus {
-            outline: 2px solid #0066cc;
-            outline-offset: -2px;
+            outline: none;
+            box-shadow: inset 3px 0 0 #5a5a5a;
+            background: #f9f7f4;
         }
 
         .recipe-item.active {
-            background: #0066cc;
-            color: white;
-            border-color: #0066cc;
+            background: #f4f1ec;
+            box-shadow: inset 3px 0 0 #7a7066;
         }
 
         .recipe-item-title {
-            font-weight: 500;
-            margin-bottom: 4px;
+            font-weight: normal;
+            margin-bottom: 6px;
+            color: #5a5a5a;
+            font-size: 15px;
         }
 
         .recipe-item-date {
             font-size: 12px;
-            color: #666;
-        }
-
-        .recipe-item.active .recipe-item-date {
-            color: rgba(255, 255, 255, 0.8);
+            color: #999;
+            font-style: italic;
         }
 
         .new-recipe-btn {
-            margin: 8px;
-            padding: 10px;
-            background: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 4px;
+            margin: 12px;
+            padding: 12px;
+            background: #7a7066;
+            color: #fcfbf9;
+            border: 1px solid #5a5a5a;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-family: 'Georgia', serif;
+            transition: all 0.2s;
         }
 
         .new-recipe-btn:hover {
-            background: #0052a3;
+            background: #5a5a5a;
         }
 
         .new-recipe-btn:focus {
-            outline: 2px solid #0066cc;
-            outline-offset: 2px;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(90, 90, 90, 0.4);
         }
 
         /* Main content area */
@@ -119,90 +200,94 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar.collapsed ~ .main-content {
+            margin-left: -280px;
         }
 
         .editor-header {
-            padding: 16px;
-            border-bottom: 1px solid #ddd;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e5e0d8;
             display: flex;
             gap: 12px;
             align-items: center;
+            background: #fcfbf9;
+            transition: padding-left 0.3s ease;
+        }
+
+        .sidebar.collapsed ~ .main-content .editor-header {
+            padding-left: 80px;
         }
 
         .title-input {
             flex: 1;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 500;
+            padding: 10px 12px;
+            border: 1px solid #e5e0d8;
+            border-radius: 8px;
+            font-size: 18px;
+            font-family: 'Georgia', serif;
+            background: white;
+            color: #2d2d2d;
         }
 
         .title-input:focus {
-            outline: 2px solid #0066cc;
-            outline-offset: 0;
+            outline: none;
+            border-color: #d9d4cb;
+            box-shadow: 0 0 0 3px rgba(90, 90, 90, 0.3);
         }
 
         .title-display {
             flex: 1;
-            padding: 8px;
-            font-size: 16px;
-            font-weight: 500;
+            padding: 10px 12px;
+            font-size: 24px;
+            font-family: 'Georgia', serif;
+            color: #5a5a5a;
+            font-style: italic;
         }
 
-        .edit-btn, .save-btn, .delete-btn {
+        .edit-btn, .save-btn, .delete-btn, .copy-link-btn {
             padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
+            border: 1px solid #d9d4cb;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
+            font-family: 'Georgia', serif;
+            transition: all 0.2s;
+            background: transparent;
+            color: #5a5a5a;
         }
 
-        .edit-btn {
-            background: #0066cc;
-            color: white;
+        .edit-btn:hover, .save-btn:hover, .copy-link-btn:hover {
+            background: #f4f1ec;
+            border-color: #ccc5ba;
         }
 
-        .edit-btn:hover {
-            background: #0052a3;
-        }
-
-        .edit-btn:focus {
-            outline: 2px solid #0066cc;
-            outline-offset: 2px;
-        }
-
-        .save-btn {
-            background: #28a745;
-            color: white;
-        }
-
-        .save-btn:hover {
-            background: #218838;
-        }
-
-        .save-btn:focus {
-            outline: 2px solid #28a745;
-            outline-offset: 2px;
+        .edit-btn:focus, .save-btn:focus, .copy-link-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(90, 90, 90, 0.3);
         }
 
         .delete-btn {
-            background: #dc3545;
-            color: white;
+            color: #a06060;
+            border-color: #e5d8d8;
         }
 
         .delete-btn:hover {
-            background: #c82333;
+            background: #faf5f5;
+            border-color: #d9cccc;
         }
 
         .delete-btn:focus {
-            outline: 2px solid #dc3545;
-            outline-offset: 2px;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(160, 96, 96, 0.3);
         }
 
         .editor-container {
             flex: 1;
             overflow: hidden;
+            position: relative;
         }
 
         .editor-content {
@@ -210,7 +295,7 @@
             height: 100%;
             padding: 40px;
             overflow-y: auto;
-            background: white;
+            background: #fcfbf9;
         }
 
         .content-wrapper {
@@ -220,73 +305,92 @@
 
         .markdown-textarea {
             width: 100%;
-            min-height: 500px;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            resize: vertical;
+            height: 100%;
+            padding: 40px;
+            border: none;
+            font-family: 'Georgia', serif;
+            font-size: 16px;
+            line-height: 1.8;
+            resize: none;
+            background: #fcfbf9;
+            color: #2d2d2d;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
         .markdown-textarea:focus {
-            outline: 2px solid #0066cc;
-            outline-offset: 0;
+            outline: none;
+        }
+
+        .markdown-textarea::placeholder {
+            color: #b3b3b3;
+            font-style: italic;
         }
 
         .preview-content {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-family: 'Georgia', serif;
             font-size: 16px;
-            line-height: 1.6;
+            line-height: 1.8;
+            color: #2d2d2d;
         }
 
         /* Markdown preview styling */
         .preview-content h1 { 
-            font-size: 32px; 
-            font-weight: 600;
-            margin: 24px 0 16px;
-            line-height: 1.2;
+            font-size: 36px; 
+            font-weight: normal;
+            margin: 32px 0 20px;
+            line-height: 1.3;
+            color: #5a5a5a;
+            font-style: italic;
         }
         
         .preview-content h2 { 
-            font-size: 26px; 
-            font-weight: 600;
-            margin: 20px 0 12px;
-            line-height: 1.3;
+            font-size: 28px; 
+            font-weight: normal;
+            margin: 28px 0 16px;
+            line-height: 1.4;
+            color: #5a5a5a;
         }
         
         .preview-content h3 { 
             font-size: 22px; 
-            font-weight: 600;
-            margin: 18px 0 10px;
+            font-weight: normal;
+            margin: 24px 0 12px;
             line-height: 1.4;
+            color: #5a5a5a;
+            font-style: italic;
         }
         
         .preview-content p { 
-            margin: 12px 0; 
+            margin: 16px 0; 
         }
         
         .preview-content ul, .preview-content ol { 
-            margin: 12px 0; 
-            padding-left: 28px; 
+            margin: 16px 0; 
+            padding-left: 32px; 
         }
         
         .preview-content li { 
-            margin: 6px 0; 
+            margin: 8px 0; 
         }
         
         .preview-content a { 
-            color: #0066cc; 
-            text-decoration: none; 
+            color: #7a7066; 
+            text-decoration: underline;
+            text-decoration-color: #d9d4cb;
         }
         
         .preview-content a:hover { 
-            text-decoration: underline; 
+            color: #5a5a5a;
+            text-decoration-color: #b8b3aa;
         }
         
         .preview-content strong { 
-            font-weight: 600; 
+            font-weight: 600;
+            color: #5a5a5a;
         }
         
         .preview-content em { 
@@ -294,21 +398,23 @@
         }
         
         .preview-content code { 
-            background: #f5f5f5; 
-            padding: 2px 6px; 
-            border-radius: 3px;
+            background: #f4f1ec; 
+            padding: 3px 8px; 
+            border-radius: 4px;
             font-family: 'Courier New', monospace;
             font-size: 14px;
+            color: #5a5a5a;
         }
         
         .preview-content pre {
-            background: #f5f5f5;
-            padding: 16px;
-            border-radius: 4px;
+            background: #f4f1ec;
+            padding: 20px;
+            border-radius: 8px;
             overflow-x: auto;
-            margin: 12px 0;
+            margin: 20px 0;
             font-family: 'Courier New', monospace;
             font-size: 14px;
+            border: 1px solid #e5e0d8;
         }
         
         .preview-content pre code {
@@ -317,20 +423,17 @@
         }
         
         .preview-content blockquote {
-            border-left: 4px solid #ddd;
-            padding-left: 16px;
-            margin: 12px 0;
-            color: #666;
+            border-left: 3px solid #d9d4cb;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #5a5a5a;
+            font-style: italic;
         }
 
         .preview-content hr {
             border: none;
-            border-top: 1px solid #ddd;
-            margin: 20px 0;
-        }
-
-        .hidden {
-            display: none;
+            border-top: 1px solid #e5e0d8;
+            margin: 28px 0;
         }
 
         .empty-state {
@@ -338,20 +441,98 @@
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #999;
+            color: #b3b3b3;
             font-size: 18px;
+            font-style: italic;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Edit mode floating controls */
+        .edit-controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 0;
+            z-index: 101;
+            background: #fcfbf9;
+            border: 1px solid #d9d4cb;
+            border-radius: 12px;
+            padding: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .edit-controls.view-mode {
+            display: flex;
+        }
+
+        .edit-controls.edit-mode {
+            display: flex;
+        }
+
+        .edit-controls button {
+            padding: 8px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Georgia', serif;
+            transition: all 0.2s;
+            background: transparent;
+            color: #5a5a5a;
+            line-height: 1;
+        }
+
+        .edit-controls button:hover {
+            background: #f4f1ec;
+        }
+
+        .edit-controls button:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(90, 90, 90, 0.3);
+            border-radius: 6px;
+        }
+
+        .edit-controls .delete-btn {
+            color: #a06060;
+        }
+
+        .edit-controls .delete-btn:hover {
+            background: #faf5f5;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f9f7f4;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d9d4cb;
+            border-radius: 6px;
+            border: 2px solid #f9f7f4;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ccc5ba;
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
         <div class="sidebar-header">
-            <h1>Recipes</h1>
             <input 
                 type="text" 
                 class="filter-input" 
                 id="filterInput" 
-                placeholder="Filter recipes..."
+                placeholder="Search recipes..."
                 aria-label="Filter recipes">
         </div>
         <div class="recipe-list" id="recipeList" role="list"></div>
@@ -359,23 +540,21 @@
     </div>
 
     <div class="main-content">
+        <button class="floating-menu-btn" id="floatingMenuBtn" aria-label="Open menu">☰</button>
         <div id="emptyState" class="empty-state">
             Select a recipe or create a new one
         </div>
         <div id="editorView" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
-            <div class="editor-header">
+            <div class="editor-header" id="editorHeader">
                 <input 
                     type="text" 
-                    class="title-input" 
+                    class="title-input hidden" 
                     id="titleInput" 
                     placeholder="Recipe title..."
                     aria-label="Recipe title">
-                <div class="title-display hidden" id="titleDisplay"></div>
-                <button class="edit-btn hidden" id="editBtn">Edit</button>
-                <button class="save-btn" id="saveBtn">Save</button>
-                <button class="delete-btn" id="deleteBtn">Delete</button>
+                <div class="title-display" id="titleDisplay"></div>
             </div>
-            <div class="editor-container">
+            <div class="editor-container" id="editorContainer">
                 <div class="editor-content">
                     <div class="content-wrapper">
                         <textarea 
@@ -388,6 +567,18 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="edit-controls view-mode" id="editControls">
+        <button id="editBtn" title="Edit">✏️</button>
+        <button id="copyLinkBtn" title="Copy link">🔗</button>
+        <button class="delete-btn" id="deleteBtn" title="Delete">🗑️</button>
+    </div>
+
+    <div class="edit-controls edit-mode hidden" id="editModeControls">
+        <button id="saveBtn" title="Save">💾</button>
+        <button id="cancelBtn" title="Cancel">✕</button>
+        <button class="delete-btn" id="deleteBtn2" title="Delete">🗑️</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
@@ -407,10 +598,24 @@
             appId: ""
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const recipesCollection = db.collection('recipes');
+        // Detect if Firebase is configured
+        const useFirebase = firebaseConfig.apiKey && firebaseConfig.projectId;
+        
+        let db = null;
+        let recipesCollection = null;
+        
+        if (useFirebase) {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                recipesCollection = db.collection('recipes');
+                console.log('Using Firebase for storage');
+            } catch (error) {
+                console.log('Firebase initialization failed, falling back to localStorage');
+            }
+        } else {
+            console.log('Using localStorage for storage');
+        }
 
         // Data management
         let recipes = [];
@@ -418,11 +623,16 @@
         let isEditMode = true;
 
         // DOM elements
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const floatingMenuBtn = document.getElementById('floatingMenuBtn');
         const filterInput = document.getElementById('filterInput');
         const recipeList = document.getElementById('recipeList');
         const newRecipeBtn = document.getElementById('newRecipeBtn');
         const emptyState = document.getElementById('emptyState');
         const editorView = document.getElementById('editorView');
+        const editorHeader = document.getElementById('editorHeader');
+        const editorContainer = document.getElementById('editorContainer');
         const titleInput = document.getElementById('titleInput');
         const titleDisplay = document.getElementById('titleDisplay');
         const markdownTextarea = document.getElementById('markdownTextarea');
@@ -430,11 +640,68 @@
         const editBtn = document.getElementById('editBtn');
         const saveBtn = document.getElementById('saveBtn');
         const deleteBtn = document.getElementById('deleteBtn');
+        const deleteBtn2 = document.getElementById('deleteBtn2');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const editControls = document.getElementById('editControls');
+        const editModeControls = document.getElementById('editModeControls');
+        const cancelBtn = document.getElementById('cancelBtn');
 
         // Markdown configuration
         marked.setOptions({
             breaks: true,
             gfm: true
+        });
+
+        // Sidebar toggle
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+
+        floatingMenuBtn.addEventListener('click', () => {
+            sidebar.classList.remove('collapsed');
+        });
+
+        // URL routing with slugified names
+        function slugify(text) {
+            return text
+                .toLowerCase()
+                .trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[\s_-]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        }
+
+        function updateURL(recipeId) {
+            if (!recipeId) {
+                history.pushState(null, '', '/');
+                return;
+            }
+            
+            const recipe = recipes.find(r => r.id === recipeId);
+            if (!recipe) return;
+            
+            const slug = recipe.title ? slugify(recipe.title) : 'untitled';
+            const url = `/${slug}-${recipeId}`;
+            history.pushState({ recipeId }, '', url);
+        }
+
+        function loadRecipeFromURL() {
+            const path = window.location.pathname;
+            // Extract ID from URL like /braised-short-rib-1234
+            const match = path.match(/-(\d+)$/);
+            if (match) {
+                const id = match[1];
+                loadRecipe(id, false);
+            }
+        }
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.recipeId) {
+                loadRecipe(e.state.recipeId, false);
+            } else {
+                hideEditor();
+            }
         });
 
         // Render recipe list
@@ -471,42 +738,47 @@
             });
         }
 
-        // Load all recipes from Firebase
+        // Load all recipes (works with both localStorage and Firebase)
         async function loadAllRecipes() {
-            try {
-                const snapshot = await recipesCollection.get();
-                recipes = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                
-                // If Firebase is empty but localStorage has recipes, migrate them
-                if (recipes.length === 0) {
-                    await migrateFromLocalStorage();
+            if (useFirebase && recipesCollection) {
+                try {
+                    const snapshot = await recipesCollection.get();
+                    recipes = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    
+                    // Migrate from localStorage if Firebase is empty
+                    if (recipes.length === 0) {
+                        await migrateFromLocalStorage();
+                    }
+                } catch (error) {
+                    console.error('Error loading from Firebase:', error);
+                    recipes = JSON.parse(localStorage.getItem('recipes') || '[]');
                 }
-                
-                renderRecipeList(filterInput.value);
-                
-                if (recipes.length > 0 && !currentRecipeId) {
-                    loadRecipe(recipes[0].id);
-                } else if (recipes.length === 0) {
-                    hideEditor();
-                }
-            } catch (error) {
-                alert('Error loading recipes. Check console for details.');
+            } else {
+                recipes = JSON.parse(localStorage.getItem('recipes') || '[]');
+            }
+            
+            renderRecipeList(filterInput.value);
+            loadRecipeFromURL();
+            
+            if (!currentRecipeId && recipes.length > 0) {
+                loadRecipe(recipes[0].id);
+            } else if (recipes.length === 0) {
+                hideEditor();
             }
         }
 
-        // Migrate recipes from localStorage to Firebase
+        // Migrate from localStorage to Firebase
         async function migrateFromLocalStorage() {
             const localRecipes = localStorage.getItem('recipes');
-            if (!localRecipes) return;
+            if (!localRecipes || !useFirebase) return;
             
             try {
                 const recipesToMigrate = JSON.parse(localRecipes);
                 if (recipesToMigrate.length === 0) return;
                 
-                // Batch write to Firebase
                 const batch = db.batch();
                 
                 for (const recipe of recipesToMigrate) {
@@ -521,43 +793,59 @@
                 
                 await batch.commit();
                 
-                // Reload from Firebase
                 const snapshot = await recipesCollection.get();
                 recipes = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
                 
-                // Clear localStorage after successful migration
                 localStorage.removeItem('recipes');
                 
-                alert(`Successfully migrated ${recipesToMigrate.length} recipes to Firebase!`);
+                console.log(`Migrated ${recipesToMigrate.length} recipes to Firebase`);
             } catch (error) {
-                alert('Error migrating recipes. Check console for details.');
+                console.error('Error migrating recipes:', error);
             }
+        }
+
+        // Save to localStorage
+        function saveToStorage() {
+            localStorage.setItem('recipes', JSON.stringify(recipes));
         }
 
         // Switch to edit mode
         function enterEditMode() {
             isEditMode = true;
+            
+            // Toggle floating controls
+            editControls.classList.add('hidden');
+            editModeControls.classList.remove('hidden');
+            
+            // Show title input, hide display
             titleInput.classList.remove('hidden');
             titleDisplay.classList.add('hidden');
+            
+            // Show markdown editor, hide preview
             markdownTextarea.classList.remove('hidden');
             previewContent.classList.add('hidden');
-            editBtn.classList.add('hidden');
-            saveBtn.classList.remove('hidden');
+            
             markdownTextarea.focus();
         }
 
         // Switch to view mode
         function enterViewMode() {
             isEditMode = false;
+            
+            // Toggle floating controls
+            editControls.classList.remove('hidden');
+            editModeControls.classList.add('hidden');
+            
+            // Hide title input, show display
             titleInput.classList.add('hidden');
             titleDisplay.classList.remove('hidden');
+            
+            // Hide markdown editor, show preview
             markdownTextarea.classList.add('hidden');
             previewContent.classList.remove('hidden');
-            editBtn.classList.remove('hidden');
-            saveBtn.classList.add('hidden');
             
             // Update view content
             titleDisplay.textContent = titleInput.value || 'Untitled';
@@ -565,7 +853,7 @@
         }
 
         // Load a recipe
-        function loadRecipe(id) {
+        function loadRecipe(id, updateUrl = true) {
             const recipe = recipes.find(r => r.id === id);
             if (!recipe) return;
 
@@ -576,9 +864,13 @@
             showEditor();
             enterViewMode();
             renderRecipeList(filterInput.value);
+            
+            if (updateUrl) {
+                updateURL(id);
+            }
         }
 
-        // Create new recipe
+        // Create new recipe (works with both localStorage and Firebase)
         async function createNewRecipe() {
             const newRecipe = {
                 title: '',
@@ -587,24 +879,32 @@
                 updatedAt: new Date().toISOString()
             };
             
-            try {
-                const docRef = await recipesCollection.add(newRecipe);
-                newRecipe.id = docRef.id;
-                recipes.unshift(newRecipe);
-                
-                currentRecipeId = newRecipe.id;
-                titleInput.value = '';
-                markdownTextarea.value = '';
-                
-                showEditor();
-                enterEditMode();
-                renderRecipeList(filterInput.value);
-            } catch (error) {
-                alert('Error creating recipe. Check console for details.');
+            if (useFirebase && recipesCollection) {
+                try {
+                    const docRef = await recipesCollection.add(newRecipe);
+                    newRecipe.id = docRef.id;
+                } catch (error) {
+                    console.error('Error creating recipe in Firebase:', error);
+                    newRecipe.id = Date.now().toString();
+                }
+            } else {
+                newRecipe.id = Date.now().toString();
             }
+            
+            recipes.unshift(newRecipe);
+            if (!useFirebase) saveToStorage();
+            
+            currentRecipeId = newRecipe.id;
+            titleInput.value = '';
+            markdownTextarea.value = '';
+            
+            showEditor();
+            enterEditMode();
+            renderRecipeList(filterInput.value);
+            updateURL(newRecipe.id);
         }
 
-        // Save current recipe
+        // Save current recipe (works with both localStorage and Firebase)
         async function saveCurrentRecipe() {
             if (!currentRecipeId) return;
 
@@ -615,34 +915,62 @@
             recipe.content = markdownTextarea.value;
             recipe.updatedAt = new Date().toISOString();
 
-            try {
-                await recipesCollection.doc(currentRecipeId).update({
-                    title: recipe.title,
-                    content: recipe.content,
-                    updatedAt: recipe.updatedAt
-                });
-                
-                enterViewMode();
-                renderRecipeList(filterInput.value);
-            } catch (error) {
-                alert('Error saving recipe. Check console for details.');
+            if (useFirebase && recipesCollection) {
+                try {
+                    await recipesCollection.doc(currentRecipeId).update({
+                        title: recipe.title,
+                        content: recipe.content,
+                        updatedAt: recipe.updatedAt
+                    });
+                } catch (error) {
+                    console.error('Error saving to Firebase:', error);
+                    saveToStorage();
+                }
+            } else {
+                saveToStorage();
             }
+            
+            enterViewMode();
+            renderRecipeList(filterInput.value);
         }
 
-        // Delete current recipe
+        // Delete current recipe (works with both localStorage and Firebase)
         async function deleteCurrentRecipe() {
             if (!currentRecipeId) return;
             if (!confirm('Delete this recipe?')) return;
 
-            try {
-                await recipesCollection.doc(currentRecipeId).delete();
-                recipes = recipes.filter(r => r.id !== currentRecipeId);
-                currentRecipeId = null;
-                hideEditor();
-                renderRecipeList(filterInput.value);
-            } catch (error) {
-                alert('Error deleting recipe. Check console for details.');
+            if (useFirebase && recipesCollection) {
+                try {
+                    await recipesCollection.doc(currentRecipeId).delete();
+                } catch (error) {
+                    console.error('Error deleting from Firebase:', error);
+                }
             }
+            
+            recipes = recipes.filter(r => r.id !== currentRecipeId);
+            if (!useFirebase) saveToStorage();
+            
+            currentRecipeId = null;
+            hideEditor();
+            renderRecipeList(filterInput.value);
+            updateURL(null);
+        }
+
+        // Copy link to recipe
+        function copyRecipeLink() {
+            const recipe = recipes.find(r => r.id === currentRecipeId);
+            if (!recipe) return;
+            
+            const slug = recipe.title ? slugify(recipe.title) : 'untitled';
+            const url = `${window.location.origin}/${slug}-${currentRecipeId}`;
+            
+            navigator.clipboard.writeText(url).then(() => {
+                const originalText = copyLinkBtn.textContent;
+                copyLinkBtn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    copyLinkBtn.textContent = originalText;
+                }, 2000);
+            });
         }
 
         // Show/hide editor
@@ -690,6 +1018,15 @@
         editBtn.addEventListener('click', enterEditMode);
         saveBtn.addEventListener('click', saveCurrentRecipe);
         deleteBtn.addEventListener('click', deleteCurrentRecipe);
+        deleteBtn2.addEventListener('click', deleteCurrentRecipe);
+        copyLinkBtn.addEventListener('click', copyRecipeLink);
+        cancelBtn.addEventListener('click', () => {
+            if (titleInput.value || markdownTextarea.value) {
+                enterViewMode();
+            } else {
+                hideEditor();
+            }
+        });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -715,6 +1052,10 @@
                         enterEditMode();
                     }
                 }
+            }
+            // Escape to exit edit mode
+            if (e.key === 'Escape' && isEditMode) {
+                enterViewMode();
             }
         });
 

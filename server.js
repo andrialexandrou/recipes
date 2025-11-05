@@ -6,8 +6,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve the main HTML file with injected config
-app.get('/', (req, res) => {
+// Function to serve HTML with injected config
+function serveHTML(req, res) {
   const htmlPath = path.join(__dirname, 'public', 'index.html');
   let html = fs.readFileSync(htmlPath, 'utf8');
   
@@ -28,7 +28,11 @@ app.get('/', (req, res) => {
   );
   
   res.send(html);
-});
+}
+
+// Serve the main HTML file for root and all recipe routes
+app.get('/', serveHTML);
+app.get('/:slug', serveHTML);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
