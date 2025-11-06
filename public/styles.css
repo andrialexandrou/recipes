@@ -196,8 +196,11 @@ body {
     transition: margin-left 0.3s ease;
 }
 
-.sidebar.collapsed ~ .main-content {
-    margin-left: -280px;
+/* On wider screens, account for sidebar width when expanded */
+@media (min-width: 769px) {
+    .sidebar.collapsed ~ .main-content {
+        margin-left: 0;
+    }
 }
 
 .editor-header {
@@ -294,6 +297,9 @@ body {
 .content-wrapper {
     max-width: 800px;
     margin: 0 auto;
+    position: relative;
+    height: 100%;
+    min-height: 500px;
 }
 
 .markdown-textarea {
@@ -456,6 +462,7 @@ body {
     border-radius: 12px;
     padding: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: right 0.3s ease;
 }
 
 .edit-controls.view-mode {
@@ -964,13 +971,16 @@ body {
 /* Content area */
 .content-area {
     flex: 1;
-    overflow: auto;
+    height: 100%;
     padding: 40px;
     background: #fcfbf9;
+    display: flex;
+    flex-direction: column;
 }
 
 .view-section {
     display: block;
+    flex: 1;
 }
 
 .view-section.hidden {
@@ -1230,12 +1240,12 @@ body {
 
 .recipe-container {
     flex: 1;
+    height: 100%;
     overflow: auto;
 }
 
 .recipe-content {
-    max-width: 800px;
-    margin: 0 auto;
+    height: 100%;
 }
 
 /* Back button */

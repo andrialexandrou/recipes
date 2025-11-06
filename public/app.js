@@ -755,23 +755,31 @@ async function editCollection(collectionId) {
         return;
     }
     
-    const modal = document.getElementById('createCollectionModal');
-    const form = document.getElementById('createCollectionForm');
-    const titleElement = modal.querySelector('h2');
-    const submitButton = modal.querySelector('button[type="submit"]');
+    const newName = prompt('Collection name:', collection.name);
+    if (!newName) return;
     
-    // Update modal for editing
-    titleElement.textContent = 'Edit Collection';
-    submitButton.textContent = 'Update Collection';
+    const newDescription = prompt('Description (optional):', collection.description || '');
     
-    // Pre-fill form with existing data
-    document.getElementById('collectionName').value = collection.name;
-    document.getElementById('collectionDescription').value = collection.description || '';
-    
-    // Store the collection ID for update
-    form.dataset.editingId = collectionId;
-    
-    modal.classList.remove('hidden');
+    try {
+        const updatedData = { name: newName, description: newDescription || '' };
+        await API.updateCollection(collectionId, updatedData);
+        
+        // Update local collection data
+        collection.name = newName;
+        collection.description = newDescription || '';
+        
+        // Refresh the current view
+        if (currentView === 'collections') {
+            renderCollectionsGrid();
+        } else if (currentView === 'collection-detail' && currentCollectionId === collectionId) {
+            loadCollectionDetail(collectionId, false);
+        }
+        
+        console.log('✅ Collection updated successfully');
+    } catch (error) {
+        console.error('❌ Error updating collection:', error);
+        alert(`Error updating collection: ${error.message}`);
+    }
 }
 
 // Delete collection
