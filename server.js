@@ -25,6 +25,7 @@ app.use((req, res, next) => {
 // Firebase client configuration (server-side only)
 let db = null;
 let useFirebase = false;
+let firebaseFailureDetected = false;
 
 const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
@@ -37,10 +38,21 @@ const firebaseConfig = {
 
 const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && value !== 'your_api_key_here');
 
+// Function to disable Firebase and switch to memory storage
+function disableFirebaseMode(reason) {
+    if (useFirebase) {
+        console.log(`🚫 Disabling Firebase mode: ${reason}`);
+        console.log('📝 Switching entire app to memory storage mode');
+    }
+    useFirebase = false;
+    firebaseFailureDetected = true;
+    db = null;
+}
+
 async function initializeFirebase() {
     if (!hasFirebaseConfig) {
         console.log('⚠️  Firebase configuration incomplete or missing');
-        console.log('📝 Using memory storage');
+        console.log('📝 Using memory storage for entire app');
         return false;
     }
     
@@ -50,21 +62,25 @@ async function initializeFirebase() {
         
         // Try to load Firebase modules
         const { initializeApp } = require('firebase/app');
-        const { getFirestore, connectFirestoreEmulator, enableNetwork } = require('firebase/firestore');
+        const { getFirestore } = require('firebase/firestore');
         
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         
-        // Test connection with a simple operation
+        // Test connection with both collections and recipes
         const { collection, getDocs, limit, query } = require('firebase/firestore');
         
-        // Try to read a small amount of data to test connection
-        console.log('🔄 Testing Firebase connection...');
-        const testQuery = query(collection(db, 'recipes'), limit(1));
-        await getDocs(testQuery);
+        console.log('🔄 Testing Firebase connection for recipes...');
+        const recipesQuery = query(collection(db, 'recipes'), limit(1));
+        await getDocs(recipesQuery);
+        
+        console.log('🔄 Testing Firebase connection for collections...');
+        const collectionsQuery = query(collection(db, 'collections'), limit(1));
+        await getDocs(collectionsQuery);
         
         useFirebase = true;
-        console.log('✅ Firebase connected successfully');
+        firebaseFailureDetected = false;
+        console.log('✅ Firebase fully connected - both recipes and collections accessible');
         return true;
         
     } catch (error) {
@@ -78,9 +94,7 @@ async function initializeFirebase() {
             console.log('📦 Firebase package issue - run: npm install firebase');
         }
         
-        console.log('📝 Falling back to memory storage');
-        useFirebase = false;
-        db = null;
+        disableFirebaseMode(error.code || error.message);
         return false;
     }
 }
@@ -101,6 +115,7 @@ app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'ok', 
         firebase: useFirebase,
+        firebaseFailure: firebaseFailureDetected,
         timestamp: new Date().toISOString()
     });
 });
@@ -108,7 +123,7 @@ app.get('/api/health', (req, res) => {
 // Get all recipes
 app.get('/api/recipes', async (req, res) => {
     try {
-        if (useFirebase && db) {
+        if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const { collection, getDocs } = require('firebase/firestore');
                 const querySnapshot = await getDocs(collection(db, 'recipes'));
@@ -122,7 +137,8 @@ app.get('/api/recipes', async (req, res) => {
                 res.json(data);
             } catch (firebaseError) {
                 console.error('❌ Firebase recipes fetch failed:', firebaseError.message);
-                console.log('📝 Falling back to memory storage for this request');
+                disableFirebaseMode('Recipe fetch failed: ' + firebaseError.message);
+                console.log('📝 Using memory storage for this and all future requests');
                 res.json(recipes);
             }
         } else {
@@ -138,24 +154,39 @@ app.get('/api/recipes', async (req, res) => {
 // Get single recipe
 app.get('/api/recipes/:id', async (req, res) => {
     try {
-        if (useFirebase) {
-            const { doc, getDoc } = require('firebase/firestore');
-            const docRef = doc(db, 'recipes', req.params.id);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) {
-                return res.status(404).json({ error: 'Recipe not found' });
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const { doc, getDoc } = require('firebase/firestore');
+                const docRef = doc(db, 'recipes', req.params.id);
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    return res.status(404).json({ error: 'Recipe not found' });
+                }
+                const data = {
+                    id: docSnap.id,
+                    ...docSnap.data(),
+                    createdAt: docSnap.data().createdAt?.toDate?.()?.toISOString() || docSnap.data().createdAt,
+                    updatedAt: docSnap.data().updatedAt?.toDate?.()?.toISOString() || docSnap.data().updatedAt
+                };
+                console.log('🔥 Retrieved recipe from Firebase:', req.params.id);
+                res.json(data);
+            } catch (firebaseError) {
+                console.error('❌ Firebase get recipe failed:', firebaseError.message);
+                disableFirebaseMode('Get recipe failed: ' + firebaseError.message);
+                // Fall back to memory storage
+                const recipe = recipes.find(r => r.id === req.params.id);
+                if (!recipe) {
+                    return res.status(404).json({ error: 'Recipe not found' });
+                }
+                console.log('📝 Retrieved recipe from memory storage:', req.params.id);
+                res.json(recipe);
             }
-            res.json({
-                id: docSnap.id,
-                ...docSnap.data(),
-                createdAt: docSnap.data().createdAt?.toDate?.()?.toISOString() || docSnap.data().createdAt,
-                updatedAt: docSnap.data().updatedAt?.toDate?.()?.toISOString() || docSnap.data().updatedAt
-            });
         } else {
             const recipe = recipes.find(r => r.id === req.params.id);
             if (!recipe) {
                 return res.status(404).json({ error: 'Recipe not found' });
             }
+            console.log('📝 Retrieved recipe from memory storage:', req.params.id);
             res.json(recipe);
         }
     } catch (error) {
@@ -169,7 +200,7 @@ app.post('/api/recipes', async (req, res) => {
     try {
         const { title, content } = req.body;
         
-        if (useFirebase && db) {
+        if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
                 const newRecipe = {
@@ -190,7 +221,18 @@ app.post('/api/recipes', async (req, res) => {
                 res.json(result);
             } catch (firebaseError) {
                 console.error('❌ Firebase recipe creation failed:', firebaseError.message);
-                throw firebaseError; // Re-throw to use memory fallback
+                disableFirebaseMode('Recipe creation failed: ' + firebaseError.message);
+                // Fall back to memory storage for this request
+                const newRecipe = {
+                    id: Date.now().toString(),
+                    title: title || '',
+                    content: content || '',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                recipes.push(newRecipe);
+                console.log('📝 Recipe created in memory storage:', newRecipe.id);
+                res.json(newRecipe);
             }
         } else {
             const newRecipe = {
@@ -215,31 +257,45 @@ app.put('/api/recipes/:id', async (req, res) => {
     try {
         const { title, content } = req.body;
         
-        if (useFirebase) {
-            const { doc, updateDoc, serverTimestamp } = require('firebase/firestore');
-            const docRef = doc(db, 'recipes', req.params.id);
-            const updates = {
-                title,
-                content,
-                updatedAt: serverTimestamp()
-            };
-            await updateDoc(docRef, updates);
-            res.json({
-                id: req.params.id,
-                ...updates,
-                updatedAt: new Date().toISOString()
-            });
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const { doc, updateDoc, serverTimestamp } = require('firebase/firestore');
+                const docRef = doc(db, 'recipes', req.params.id);
+                const updates = {
+                    title: title || '',
+                    content: content || '',
+                    updatedAt: serverTimestamp()
+                };
+                await updateDoc(docRef, updates);
+                const result = {
+                    id: req.params.id,
+                    title: title || '',
+                    content: content || '',
+                    updatedAt: new Date().toISOString()
+                };
+                console.log('🔥 Recipe updated in Firebase:', req.params.id);
+                res.json(result);
+            } catch (firebaseError) {
+                console.error('❌ Firebase recipe update failed:', firebaseError.message);
+                disableFirebaseMode('Recipe update failed: ' + firebaseError.message);
+                // Fall back to memory storage
+                const recipe = recipes.find(r => r.id === req.params.id);
+                if (!recipe) {
+                    return res.status(404).json({ error: 'Recipe not found' });
+                }
+                const updates = { title: title || '', content: content || '', updatedAt: new Date().toISOString() };
+                Object.assign(recipe, updates);
+                console.log('📝 Recipe updated in memory storage:', req.params.id);
+                res.json(recipe);
+            }
         } else {
             const recipe = recipes.find(r => r.id === req.params.id);
             if (!recipe) {
                 return res.status(404).json({ error: 'Recipe not found' });
             }
-            const updates = {
-                title,
-                content,
-                updatedAt: new Date().toISOString()
-            };
+            const updates = { title: title || '', content: content || '', updatedAt: new Date().toISOString() };
             Object.assign(recipe, updates);
+            console.log('📝 Recipe updated in memory storage:', req.params.id);
             res.json(recipe);
         }
     } catch (error) {
@@ -251,12 +307,32 @@ app.put('/api/recipes/:id', async (req, res) => {
 // Delete recipe
 app.delete('/api/recipes/:id', async (req, res) => {
     try {
-        if (useFirebase) {
-            const { doc, deleteDoc } = require('firebase/firestore');
-            await deleteDoc(doc(db, 'recipes', req.params.id));
-            res.json({ success: true });
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const { doc, deleteDoc } = require('firebase/firestore');
+                const docRef = doc(db, 'recipes', req.params.id);
+                await deleteDoc(docRef);
+                console.log('🔥 Recipe deleted from Firebase:', req.params.id);
+                res.json({ success: true });
+            } catch (firebaseError) {
+                console.error('❌ Firebase recipe deletion failed:', firebaseError.message);
+                disableFirebaseMode('Recipe deletion failed: ' + firebaseError.message);
+                // Fall back to memory storage
+                const index = recipes.findIndex(r => r.id === req.params.id);
+                if (index === -1) {
+                    return res.status(404).json({ error: 'Recipe not found' });
+                }
+                recipes.splice(index, 1);
+                console.log('📝 Recipe deleted from memory storage:', req.params.id);
+                res.json({ success: true });
+            }
         } else {
-            recipes = recipes.filter(r => r.id !== req.params.id);
+            const index = recipes.findIndex(r => r.id === req.params.id);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Recipe not found' });
+            }
+            recipes.splice(index, 1);
+            console.log('📝 Recipe deleted from memory storage:', req.params.id);
             res.json({ success: true });
         }
     } catch (error) {
@@ -268,7 +344,7 @@ app.delete('/api/recipes/:id', async (req, res) => {
 // Get all collections
 app.get('/api/collections', async (req, res) => {
     try {
-        if (useFirebase && db) {
+        if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const { collection, getDocs, doc, setDoc } = require('firebase/firestore');
                 const querySnapshot = await getDocs(collection(db, 'collections'));
@@ -279,38 +355,16 @@ app.get('/api/collections', async (req, res) => {
                 
                 console.log(`🔥 Retrieved ${data.length} collections from Firebase`);
                 
-                // If no collections exist in Firebase, try to create default ones
+                // If no collections exist in Firebase, return empty array (user can create collections via the UI)
                 if (data.length === 0) {
-                    console.log('📝 No collections found in Firebase, attempting to create defaults...');
-                    try {
-                        // Try to create default collections in Firebase
-                        for (const defaultCollection of collections) {
-                            const docRef = doc(db, 'collections', defaultCollection.id);
-                            await setDoc(docRef, {
-                                name: defaultCollection.name,
-                                description: defaultCollection.description,
-                                recipeIds: defaultCollection.recipeIds || []
-                            });
-                        }
-                        console.log('✅ Default collections created in Firebase');
-                        return res.json(collections);
-                    } catch (createError) {
-                        console.log('⚠️  Could not create default collections in Firebase:', createError.message);
-                        return res.json(collections);
-                    }
+                    console.log('📝 No collections found in Firebase, returning empty array');
                 }
                 
                 res.json(data);
             } catch (firebaseError) {
                 console.error('❌ Firebase collections fetch failed:', firebaseError.message);
-                
-                if (firebaseError.code === 'permission-denied') {
-                    console.log('🔒 Permission denied for collections - check Firestore security rules');
-                    console.log('💡 Add this rule to allow collections access:');
-                    console.log('   allow read, write: if true; // or your custom rules');
-                }
-                
-                console.log('📝 Falling back to memory storage for this request');
+                disableFirebaseMode('Collections fetch failed: ' + firebaseError.message);
+                console.log('📝 Using memory storage for this and all future requests');
                 res.json(collections);
             }
         } else {
@@ -328,30 +382,30 @@ app.post('/api/collections', async (req, res) => {
     try {
         const { name, description } = req.body;
         
-        if (useFirebase && db) {
+        if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const { collection, addDoc } = require('firebase/firestore');
                 const newCollection = {
-                    name,
+                    name: name || '',
                     description: description || '',
                     recipeIds: []
                 };
                 const docRef = await addDoc(collection(db, 'collections'), newCollection);
                 const result = {
                     id: docRef.id,
-                    ...newCollection
+                    name: name || '',
+                    description: description || '',
+                    recipeIds: []
                 };
                 console.log('🔥 Collection created in Firebase:', docRef.id);
                 res.json(result);
             } catch (firebaseError) {
                 console.error('❌ Firebase collection creation failed:', firebaseError.message);
-                if (firebaseError.code === 'permission-denied') {
-                    console.log('🔒 Permission denied for creating collections');
-                }
+                disableFirebaseMode('Collection creation failed: ' + firebaseError.message);
                 // Fall back to memory storage
                 const newCollection = {
                     id: Date.now().toString(),
-                    name,
+                    name: name || '',
                     description: description || '',
                     recipeIds: []
                 };
@@ -362,7 +416,7 @@ app.post('/api/collections', async (req, res) => {
         } else {
             const newCollection = {
                 id: Date.now().toString(),
-                name,
+                name: name || '',
                 description: description || '',
                 recipeIds: []
             };
@@ -381,12 +435,27 @@ app.put('/api/collections/:id', async (req, res) => {
     try {
         const { name, description, recipeIds } = req.body;
         
-        if (useFirebase) {
-            const { doc, updateDoc } = require('firebase/firestore');
-            const docRef = doc(db, 'collections', req.params.id);
-            const updates = { name, description, recipeIds: recipeIds || [] };
-            await updateDoc(docRef, updates);
-            res.json({ id: req.params.id, ...updates });
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const { doc, updateDoc } = require('firebase/firestore');
+                const docRef = doc(db, 'collections', req.params.id);
+                const updates = { name, description, recipeIds: recipeIds || [] };
+                await updateDoc(docRef, updates);
+                console.log('🔥 Collection updated in Firebase:', req.params.id);
+                res.json({ id: req.params.id, ...updates });
+            } catch (firebaseError) {
+                console.error('❌ Firebase collection update failed:', firebaseError.message);
+                disableFirebaseMode('Collection update failed: ' + firebaseError.message);
+                // Fall back to memory storage
+                const collection = collections.find(c => c.id === req.params.id);
+                if (!collection) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
+                const updates = { name, description, recipeIds };
+                Object.assign(collection, updates);
+                console.log('📝 Collection updated in memory storage:', req.params.id);
+                res.json(collection);
+            }
         } else {
             const collection = collections.find(c => c.id === req.params.id);
             if (!collection) {
@@ -394,10 +463,170 @@ app.put('/api/collections/:id', async (req, res) => {
             }
             const updates = { name, description, recipeIds };
             Object.assign(collection, updates);
+            console.log('📝 Collection updated in memory storage:', req.params.id);
             res.json(collection);
         }
     } catch (error) {
         console.error('Error updating collection:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add recipe to collection
+app.post('/api/collections/:id/recipes', async (req, res) => {
+    try {
+        const { recipeId } = req.body;
+        
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const { doc, getDoc, updateDoc, arrayUnion } = require('firebase/firestore');
+                const docRef = doc(db, 'collections', req.params.id);
+                const docSnap = await getDoc(docRef);
+                
+                if (!docSnap.exists()) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
+                
+                await updateDoc(docRef, {
+                    recipeIds: arrayUnion(recipeId)
+                });
+                
+                console.log(`🔥 Recipe ${recipeId} added to collection ${req.params.id} in Firebase`);
+                res.json({ success: true });
+            } catch (firebaseError) {
+                console.error('❌ Firebase add recipe to collection failed:', firebaseError.message);
+                disableFirebaseMode('Add recipe to collection failed: ' + firebaseError.message);
+                
+                // Fall back to memory storage
+                const collection = collections.find(c => c.id === req.params.id);
+                if (!collection) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
+                
+                if (!collection.recipeIds) {
+                    collection.recipeIds = [];
+                }
+                
+                if (!collection.recipeIds.includes(recipeId)) {
+                    collection.recipeIds.push(recipeId);
+                }
+                
+                console.log(`📝 Recipe ${recipeId} added to collection ${req.params.id} in memory`);
+                res.json({ success: true });
+            }
+        } else {
+            const collection = collections.find(c => c.id === req.params.id);
+            if (!collection) {
+                return res.status(404).json({ error: 'Collection not found' });
+            }
+            
+            if (!collection.recipeIds) {
+                collection.recipeIds = [];
+            }
+            
+            if (!collection.recipeIds.includes(recipeId)) {
+                collection.recipeIds.push(recipeId);
+            }
+            
+            console.log(`📝 Recipe ${recipeId} added to collection ${req.params.id} in memory`);
+            res.json({ success: true });
+        }
+    } catch (error) {
+        console.error('Error adding recipe to collection:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete collection
+app.delete('/api/collections/:id', async (req, res) => {
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const { doc, deleteDoc } = require('firebase/firestore');
+                const docRef = doc(db, 'collections', req.params.id);
+                await deleteDoc(docRef);
+                console.log('🔥 Collection deleted from Firebase:', req.params.id);
+                res.json({ success: true });
+            } catch (firebaseError) {
+                console.error('❌ Firebase collection deletion failed:', firebaseError.message);
+                disableFirebaseMode('Collection deletion failed: ' + firebaseError.message);
+                // Fall back to memory storage
+                const index = collections.findIndex(c => c.id === req.params.id);
+                if (index === -1) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
+                collections.splice(index, 1);
+                console.log('📝 Collection deleted from memory storage:', req.params.id);
+                res.json({ success: true });
+            }
+        } else {
+            const index = collections.findIndex(c => c.id === req.params.id);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Collection not found' });
+            }
+            collections.splice(index, 1);
+            console.log('📝 Collection deleted from memory storage:', req.params.id);
+            res.json({ success: true });
+        }
+    } catch (error) {
+        console.error('Error deleting collection:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Remove recipe from collection
+app.delete('/api/collections/:id/recipes/:recipeId', async (req, res) => {
+    try {
+        const { id: collectionId, recipeId } = req.params;
+        
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const { doc, getDoc, updateDoc, arrayRemove } = require('firebase/firestore');
+                const docRef = doc(db, 'collections', collectionId);
+                const docSnap = await getDoc(docRef);
+                
+                if (!docSnap.exists()) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
+                
+                await updateDoc(docRef, {
+                    recipeIds: arrayRemove(recipeId)
+                });
+                
+                console.log(`🔥 Recipe ${recipeId} removed from collection ${collectionId} in Firebase`);
+                res.json({ success: true });
+            } catch (firebaseError) {
+                console.error('❌ Firebase remove recipe from collection failed:', firebaseError.message);
+                disableFirebaseMode('Remove recipe from collection failed: ' + firebaseError.message);
+                
+                // Fall back to memory storage
+                const collection = collections.find(c => c.id === collectionId);
+                if (!collection) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
+                
+                if (collection.recipeIds) {
+                    collection.recipeIds = collection.recipeIds.filter(id => id !== recipeId);
+                }
+                
+                console.log(`📝 Recipe ${recipeId} removed from collection ${collectionId} in memory`);
+                res.json({ success: true });
+            }
+        } else {
+            const collection = collections.find(c => c.id === collectionId);
+            if (!collection) {
+                return res.status(404).json({ error: 'Collection not found' });
+            }
+            
+            if (collection.recipeIds) {
+                collection.recipeIds = collection.recipeIds.filter(id => id !== recipeId);
+            }
+            
+            console.log(`📝 Recipe ${recipeId} removed from collection ${collectionId} in memory`);
+            res.json({ success: true });
+        }
+    } catch (error) {
+        console.error('Error removing recipe from collection:', error);
         res.status(500).json({ error: error.message });
     }
 });

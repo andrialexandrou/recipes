@@ -11,62 +11,84 @@
     <div class="sidebar" id="sidebar">
         <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
         <div class="sidebar-header">
-            <div class="view-toggle">
-                <button id="collectionsViewBtn" class="active">Collections</button>
-                <button id="recipesViewBtn">All Recipes</button>
-            </div>
             <input 
                 type="text" 
                 class="filter-input" 
                 id="filterInput" 
-                placeholder="Search..."
-                aria-label="Search">
+                placeholder="Search recipes..."
+                aria-label="Search recipes">
         </div>
         <div class="sidebar-content" id="sidebarContent">
-            <div class="collections-list hidden" id="collectionsList" role="list"></div>
             <div class="recipe-list" id="recipeList" role="list"></div>
         </div>
-        <button class="new-item-btn" id="newItemBtn">
-            <i class="fa-solid fa-plus"></i> <span id="newItemText">New Collection</span>
+        <button class="new-item-btn" id="newRecipeBtn">
+            <i class="fa-solid fa-plus"></i> <span>New Recipe</span>
         </button>
     </div>
 
     <div class="main-content">
-        <button class="floating-menu-btn" id="floatingMenuBtn" aria-label="Open menu">☰</button>
-        
-        <div id="emptyState" class="empty-state">
-            Select a collection or recipe to get started
-        </div>
-        
-        <div id="collectionView" class="collection-view hidden">
-            <div class="collection-header">
-                <button class="back-btn" id="backToCollections"><i class="fa-solid fa-arrow-left"></i> Collections</button>
-                <h2 class="collection-title" id="collectionTitle"></h2>
-                <p class="collection-description" id="collectionDescription"></p>
+        <nav class="navbar" id="navbar">
+            <div class="navbar-brand">
+                <button class="floating-menu-btn" id="floatingMenuBtn" aria-label="Open menu">☰</button>
+                <h1>Recipe Manager</h1>
             </div>
-            <div class="collection-recipes" id="collectionRecipes"></div>
-        </div>
-        
-        <div id="editorView" class="editor-view hidden">
-            <div class="editor-header" id="editorHeader">
-                <button class="back-btn hidden" id="backBtn"><i class="fa-solid fa-arrow-left"></i> <span id="backBtnText">Back</span></button>
-                <input 
-                    type="text" 
-                    class="title-input hidden" 
-                    id="titleInput" 
-                    placeholder="Recipe title..."
-                    aria-label="Recipe title">
-                <div class="title-display" id="titleDisplay"></div>
+            <div class="navbar-nav">
+                <button class="nav-btn active" id="homeBtn" data-view="home">
+                    <i class="fa-solid fa-home"></i> Home
+                </button>
+                <button class="nav-btn" id="collectionsBtn" data-view="collections">
+                    <i class="fa-solid fa-folder"></i> Collections
+                </button>
             </div>
-            <div class="editor-container" id="editorContainer">
-                <div class="editor-content">
-                    <div class="content-wrapper">
-                        <textarea 
-                            class="markdown-textarea" 
-                            id="markdownTextarea"
-                            placeholder="Write your recipe in markdown..."
-                            aria-label="Recipe content in markdown"></textarea>
-                        <div class="preview-content hidden" id="previewContent"></div>
+        </nav>
+        
+        <div class="content-area">
+            <div id="homeView" class="view-section active">
+                <div id="emptyState" class="empty-state">
+                    Welcome! Select a recipe from the sidebar or browse collections.
+                </div>
+            </div>
+            
+            <div id="collectionsView" class="view-section hidden">
+                <div class="collections-header">
+                    <h2>Collections</h2>
+                    <button class="btn btn-primary" id="newCollectionBtn">
+                        <i class="fa-solid fa-plus"></i> New Collection
+                    </button>
+                </div>
+                <div class="collections-grid" id="collectionsGrid"></div>
+            </div>
+            
+            <div id="collectionDetailView" class="view-section hidden">
+                <div class="collection-header">
+                    <button class="back-btn" id="backToCollections"><i class="fa-solid fa-arrow-left"></i> Collections</button>
+                    <h2 class="collection-title" id="collectionTitle"></h2>
+                    <p class="collection-description" id="collectionDescription"></p>
+                </div>
+                <div class="collection-recipes" id="collectionRecipes"></div>
+            </div>
+            
+            <div id="recipeDetailView" class="view-section hidden">
+                <div class="recipe-header" id="recipeHeader">
+                    <button class="back-btn hidden" id="backBtn"><i class="fa-solid fa-arrow-left"></i> <span id="backBtnText">Back</span></button>
+                    <input 
+                        type="text" 
+                        class="title-input hidden" 
+                        id="titleInput" 
+                        placeholder="Recipe title..."
+                        aria-label="Recipe title">
+                    <div class="title-display" id="titleDisplay"></div>
+                </div>
+                <div class="recipe-container" id="recipeContainer">
+                    <div class="recipe-content">
+                        <div class="content-wrapper">
+                            <textarea 
+                                class="markdown-textarea" 
+                                id="markdownTextarea"
+                                placeholder="Write your recipe in markdown..."
+                                aria-label="Recipe content in markdown"></textarea>
+                            <div class="preview-content hidden" id="previewContent"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -74,7 +96,7 @@
     </div>
 
     <div class="edit-controls view-mode hidden" id="editControls">
-        <button id="collectionsBtn" title="Add to collection"><i class="fa-solid fa-folder-plus"></i></button>
+        <button id="addToCollectionBtn" title="Add to collection"><i class="fa-solid fa-folder-plus"></i></button>
         <button id="editBtn" title="Edit"><i class="fa-solid fa-pen"></i></button>
         <button id="copyLinkBtn" title="Copy link"><i class="fa-solid fa-link"></i></button>
         <button class="delete-btn" id="deleteBtn" title="Delete"><i class="fa-solid fa-trash"></i></button>

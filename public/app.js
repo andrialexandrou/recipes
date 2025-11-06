@@ -78,6 +78,22 @@ const API = {
             body: JSON.stringify(data)
         });
         return this.handleResponse(res);
+    },
+    
+    async deleteCollection(id) {
+        console.log('🔄 Deleting collection:', id);
+        const res = await fetch(`/api/collections/${id}`, {
+            method: 'DELETE'
+        });
+        return this.handleResponse(res);
+    },
+    
+    async removeRecipeFromCollection(collectionId, recipeId) {
+        console.log('🔄 Removing recipe from collection:', { collectionId, recipeId });
+        const res = await fetch(`/api/collections/${collectionId}/recipes/${recipeId}`, {
+            method: 'DELETE'
+        });
+        return this.handleResponse(res);
     }
 };
 
@@ -86,7 +102,7 @@ let recipes = [];
 let collections = [];
 let currentRecipeId = null;
 let currentCollectionId = null;
-let currentView = 'collections';
+let currentView = 'home'; // home, collections, collection-detail, recipe-detail
 let isEditMode = true;
 
 // DOM elements
@@ -94,16 +110,30 @@ const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
 const floatingMenuBtn = document.getElementById('floatingMenuBtn');
 const filterInput = document.getElementById('filterInput');
-const sidebarContent = document.getElementById('sidebarContent');
-const collectionsList = document.getElementById('collectionsList');
 const recipeList = document.getElementById('recipeList');
-const newItemBtn = document.getElementById('newItemBtn');
-const newItemText = document.getElementById('newItemText');
-const collectionsViewBtn = document.getElementById('collectionsViewBtn');
-const recipesViewBtn = document.getElementById('recipesViewBtn');
+const newRecipeBtn = document.getElementById('newRecipeBtn');
+
+// Navbar elements
+const navbar = document.getElementById('navbar');
+const homeBtn = document.getElementById('homeBtn');
+const collectionsNavBtn = document.getElementById('collectionsBtn');
+
+// View sections
+const homeView = document.getElementById('homeView');
+const collectionsView = document.getElementById('collectionsView');
+const collectionDetailView = document.getElementById('collectionDetailView');
+const recipeDetailView = document.getElementById('recipeDetailView');
 const emptyState = document.getElementById('emptyState');
-const collectionView = document.getElementById('collectionView');
-const editorView = document.getElementById('editorView');
+
+// Collections elements
+const collectionsGrid = document.getElementById('collectionsGrid');
+const newCollectionBtn = document.getElementById('newCollectionBtn');
+const backToCollections = document.getElementById('backToCollections');
+const collectionTitle = document.getElementById('collectionTitle');
+const collectionDescription = document.getElementById('collectionDescription');
+const collectionRecipes = document.getElementById('collectionRecipes');
+
+// Recipe elements
 const titleInput = document.getElementById('titleInput');
 const titleDisplay = document.getElementById('titleDisplay');
 const markdownTextarea = document.getElementById('markdownTextarea');
@@ -113,16 +143,12 @@ const saveBtn = document.getElementById('saveBtn');
 const deleteBtn = document.getElementById('deleteBtn');
 const deleteBtn2 = document.getElementById('deleteBtn2');
 const copyLinkBtn = document.getElementById('copyLinkBtn');
-const collectionsBtn = document.getElementById('collectionsBtn');
+const addToCollectionBtn = document.getElementById('addToCollectionBtn');
 const editControls = document.getElementById('editControls');
 const editModeControls = document.getElementById('editModeControls');
 const cancelBtn = document.getElementById('cancelBtn');
 const backBtn = document.getElementById('backBtn');
 const backBtnText = document.getElementById('backBtnText');
-const backToCollections = document.getElementById('backToCollections');
-const collectionTitle = document.getElementById('collectionTitle');
-const collectionDescription = document.getElementById('collectionDescription');
-const collectionRecipes = document.getElementById('collectionRecipes');
 const collectionModal = document.getElementById('collectionModal');
 const collectionCheckboxes = document.getElementById('collectionCheckboxes');
 const modalSaveBtn = document.getElementById('modalSaveBtn');
@@ -143,37 +169,58 @@ floatingMenuBtn.addEventListener('click', () => {
     sidebar.classList.remove('collapsed');
 });
 
-// View toggle
-collectionsViewBtn.addEventListener('click', () => {
-    switchToCollectionsView();
+// Navigation
+homeBtn.addEventListener('click', () => {
+    switchToView('home');
+    currentRecipeId = null;
+    currentCollectionId = null;
+    updateURL(null, null);
 });
 
-recipesViewBtn.addEventListener('click', () => {
-    switchToRecipesView();
+collectionsNavBtn.addEventListener('click', () => {
+    switchToView('collections');
+    currentRecipeId = null;
+    currentCollectionId = null;
+    updateURL(null, null);
 });
 
-function switchToCollectionsView() {
-    currentView = 'collections';
-    collectionsViewBtn.classList.add('active');
-    recipesViewBtn.classList.remove('active');
-    collectionsList.classList.remove('hidden');
-    recipeList.classList.add('hidden');
-    newItemText.textContent = 'New Collection';
-    filterInput.placeholder = 'Search collections...';
-    renderCollectionsList();
-    showEmptyState();
-}
-
-function switchToRecipesView() {
-    currentView = 'recipes';
-    collectionsViewBtn.classList.remove('active');
-    recipesViewBtn.classList.add('active');
-    collectionsList.classList.add('hidden');
-    recipeList.classList.remove('hidden');
-    newItemText.textContent = 'New Recipe';
-    filterInput.placeholder = 'Search recipes...';
-    renderRecipeList();
-    showEmptyState();
+// Navigation system
+function switchToView(viewName) {
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    // Update navbar
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    currentView = viewName;
+    
+    switch(viewName) {
+        case 'home':
+            homeView.classList.remove('hidden');
+            homeView.classList.add('active');
+            homeBtn.classList.add('active');
+            break;
+        case 'collections':
+            collectionsView.classList.remove('hidden');
+            collectionsView.classList.add('active');
+            collectionsNavBtn.classList.add('active');
+            renderCollectionsGrid();
+            break;
+        case 'collection-detail':
+            collectionDetailView.classList.remove('hidden');
+            collectionDetailView.classList.add('active');
+            collectionsNavBtn.classList.add('active');
+            break;
+        case 'recipe-detail':
+            recipeDetailView.classList.remove('hidden');
+            recipeDetailView.classList.add('active');
+            break;
+    }
 }
 
 // URL routing
@@ -221,8 +268,12 @@ function loadFromURL() {
         const id = collectionMatch[1];
         const collection = collections.find(c => c.id === id);
         if (collection) {
-            loadCollection(id, false);
+            loadCollectionDetail(id, false);
         }
+    } else if (path === '/collections') {
+        switchToView('collections');
+    } else {
+        showHomeView();
     }
 }
 
@@ -231,40 +282,65 @@ window.addEventListener('popstate', (e) => {
         if (e.state.type === 'recipe') {
             loadRecipe(e.state.id, false);
         } else if (e.state.type === 'collection') {
-            loadCollection(e.state.id, false);
+            loadCollectionDetail(e.state.id, false);
         }
     } else {
-        showEmptyState();
+        const path = window.location.pathname;
+        if (path === '/collections') {
+            switchToView('collections');
+        } else {
+            showHomeView();
+        }
     }
 });
 
-// Render collections list
-function renderCollectionsList(filter = '') {
-    const lowerFilter = filter.toLowerCase();
-    const filtered = collections.filter(col => 
-        col.name.toLowerCase().includes(lowerFilter)
-    );
-
-    collectionsList.innerHTML = filtered.map(col => {
+// Render collections grid
+function renderCollectionsGrid() {
+    collectionsGrid.innerHTML = collections.map(col => {
         const recipeCount = col.recipeIds ? col.recipeIds.length : 0;
         return `
-            <div 
-                class="collection-item ${col.id === currentCollectionId ? 'active' : ''}" 
-                data-id="${col.id}"
-                role="listitem"
-                tabindex="0">
-                <div class="collection-item-name">${escapeHtml(col.name)}</div>
-                <div class="collection-item-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</div>
+            <div class="collection-card" data-id="${col.id}" tabindex="0">
+                <div class="collection-card-header">
+                    <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
+                    <div class="collection-actions">
+                        <button onclick="event.stopPropagation(); editCollection('${col.id}')" class="btn-secondary btn-small" title="Edit collection">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteCollection('${col.id}')" class="btn-danger btn-small" title="Delete collection">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3,6 5,6 21,6"></polyline>
+                                <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
+                </div>
+                <p class="collection-card-description">${escapeHtml(col.description || 'No description')}</p>
+                <div class="collection-card-actions">
+                    <button class="btn btn-sm" onclick="loadCollectionDetail('${col.id}')">
+                        <i class="fa-solid fa-arrow-right"></i> View
+                    </button>
+                </div>
             </div>
         `;
     }).join('');
 
-    collectionsList.querySelectorAll('.collection-item').forEach(item => {
-        item.addEventListener('click', () => loadCollection(item.dataset.id));
-        item.addEventListener('keydown', (e) => {
+    // Add click listeners
+    collectionsGrid.querySelectorAll('.collection-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                loadCollectionDetail(card.dataset.id);
+            }
+        });
+        card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                loadCollection(item.dataset.id);
+                loadCollectionDetail(card.dataset.id);
             }
         });
     });
@@ -302,23 +378,46 @@ function renderRecipeList(filter = '') {
     });
 }
 
-// Load collection
-function loadCollection(id, updateUrl = true) {
+// Load collection detail
+function loadCollectionDetail(id, updateUrl = true) {
     const collection = collections.find(c => c.id === id);
     if (!collection) return;
 
     currentCollectionId = id;
-    currentView = 'collection-detail';
+    switchToView('collection-detail');
     
-    emptyState.classList.add('hidden');
-    editorView.classList.add('hidden');
-    editControls.classList.add('hidden');
-    editModeControls.classList.add('hidden');
-    
-    collectionView.classList.remove('hidden');
-    
-    collectionTitle.textContent = collection.name;
-    collectionDescription.textContent = collection.description || '';
+    // Add edit and delete buttons to collection header
+    const collectionHeader = document.querySelector('.collection-detail-header');
+    if (collectionHeader) {
+        collectionHeader.innerHTML = `
+            <div class="collection-title-section">
+                <h1>${escapeHtml(collection.name)}</h1>
+                <div class="collection-header-actions">
+                    <button onclick="editCollection('${collection.id}')" class="btn-secondary" title="Edit collection">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit
+                    </button>
+                    <button onclick="deleteCollection('${collection.id}')" class="btn-danger" title="Delete collection">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3,6 5,6 21,6"></polyline>
+                            <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+            <p class="collection-description">${escapeHtml(collection.description || '')}</p>
+        `;
+    } else {
+        // Fallback if header doesn't exist
+        collectionTitle.textContent = collection.name;
+        collectionDescription.textContent = collection.description || '';
+    }
     
     const collectionRecipeIds = collection.recipeIds || [];
     const collectionRecipeList = recipes.filter(r => collectionRecipeIds.includes(r.id));
@@ -326,50 +425,67 @@ function loadCollection(id, updateUrl = true) {
     collectionRecipes.innerHTML = collectionRecipeList.length > 0 
         ? collectionRecipeList.map(recipe => `
             <div class="collection-recipe-card" data-id="${recipe.id}" tabindex="0">
-                <div class="collection-recipe-title">${escapeHtml(recipe.title || 'Untitled')}</div>
+                <div class="collection-recipe-header">
+                    <div class="collection-recipe-title">${escapeHtml(recipe.title || 'Untitled')}</div>
+                    <button onclick="event.stopPropagation(); removeRecipeFromCollection('${collection.id}', '${recipe.id}')" class="btn-danger btn-small" title="Remove from collection">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
                 <div class="collection-recipe-date">${formatDate(recipe.updatedAt)}</div>
+                <div class="collection-recipe-actions">
+                    <button class="btn btn-sm" onclick="loadRecipeFromCollection('${recipe.id}')">
+                        <i class="fa-solid fa-arrow-right"></i> View
+                    </button>
+                </div>
             </div>
         `).join('')
-        : '<p style="color: #999; font-style: italic;">No recipes in this collection yet</p>';
+        : '<div class="empty-collection"><p>No recipes in this collection yet</p></div>';
     
+    // Add click listeners for recipe cards
     collectionRecipes.querySelectorAll('.collection-recipe-card').forEach(card => {
-        card.addEventListener('click', () => loadRecipe(card.dataset.id));
+        card.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                loadRecipeFromCollection(card.dataset.id);
+            }
+        });
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                loadRecipe(card.dataset.id);
+                loadRecipeFromCollection(card.dataset.id);
             }
         });
     });
-    
-    renderCollectionsList();
     
     if (updateUrl) {
         updateURL('collection', id);
     }
 }
 
+// Load recipe from collection
+function loadRecipeFromCollection(id) {
+    loadRecipe(id, true, 'collection');
+}
+
 // Load recipe
-function loadRecipe(id, updateUrl = true) {
+function loadRecipe(id, updateUrl = true, source = 'sidebar') {
     const recipe = recipes.find(r => r.id === id);
     if (!recipe) return;
 
     currentRecipeId = id;
-    currentView = 'recipe-detail';
+    switchToView('recipe-detail');
+    
     titleInput.value = recipe.title;
     markdownTextarea.value = recipe.content;
     
-    emptyState.classList.add('hidden');
-    collectionView.classList.add('hidden');
-    
-    editorView.classList.remove('hidden');
-    
     backBtn.classList.remove('hidden');
-    if (currentCollectionId) {
+    if (source === 'collection' && currentCollectionId) {
         const collection = collections.find(c => c.id === currentCollectionId);
-        backBtnText.textContent = collection ? collection.name : 'Back';
+        backBtnText.textContent = collection ? collection.name : 'Collection';
     } else {
-        backBtnText.textContent = 'All Recipes';
+        backBtnText.textContent = 'Recipes';
     }
     
     enterViewMode();
@@ -413,13 +529,9 @@ function enterViewMode() {
     previewContent.innerHTML = marked.parse(markdownTextarea.value || '');
 }
 
-// Show empty state
-function showEmptyState() {
-    emptyState.classList.remove('hidden');
-    collectionView.classList.add('hidden');
-    editorView.classList.add('hidden');
-    editControls.classList.add('hidden');
-    editModeControls.classList.add('hidden');
+// Show home view
+function showHomeView() {
+    switchToView('home');
     currentRecipeId = null;
     currentCollectionId = null;
 }
@@ -444,41 +556,15 @@ async function loadAllData() {
         
         console.log('📊 Data loaded - Recipes:', recipes.length, 'Collections:', collections.length);
         
-        renderCollectionsList();
         renderRecipeList();
         loadFromURL();
         
         if (!currentRecipeId && !currentCollectionId) {
-            showEmptyState();
+            showHomeView();
         }
     } catch (error) {
         console.error('💥 Critical error loading data:', error);
         alert('Failed to connect to server. Please check your connection and try refreshing the page.');
-    }
-}
-
-// Create new item
-async function createNewItem() {
-    if (currentView === 'collections') {
-        await createNewCollection();
-    } else {
-        await createNewRecipe();
-    }
-}
-
-// Create new collection
-async function createNewCollection() {
-    const name = prompt('Collection name:');
-    if (!name) return;
-    
-    const description = prompt('Description (optional):') || '';
-    
-    try {
-        const newCollection = await API.createCollection({ name, description });
-        collections.unshift(newCollection);
-        renderCollectionsList(filterInput.value);
-    } catch (error) {
-        alert('Error creating collection');
     }
 }
 
@@ -492,16 +578,31 @@ async function createNewRecipe() {
         titleInput.value = '';
         markdownTextarea.value = '';
         
-        editorView.classList.remove('hidden');
-        emptyState.classList.add('hidden');
-        collectionView.classList.add('hidden');
+        switchToView('recipe-detail');
         backBtn.classList.remove('hidden');
+        backBtnText.textContent = 'Recipes';
         
         enterEditMode();
         renderRecipeList(filterInput.value);
         updateURL('recipe', newRecipe.id);
     } catch (error) {
         alert('Error creating recipe');
+    }
+}
+
+// Create new collection
+async function createNewCollection() {
+    const name = prompt('Collection name:');
+    if (!name) return;
+    
+    const description = prompt('Description (optional):') || '';
+    
+    try {
+        const newCollection = await API.createCollection({ name, description });
+        collections.unshift(newCollection);
+        renderCollectionsGrid();
+    } catch (error) {
+        alert('Error creating collection');
     }
 }
 
@@ -547,11 +648,12 @@ async function deleteCurrentRecipe() {
         recipes = recipes.filter(r => r.id !== currentRecipeId);
         
         if (currentCollectionId) {
-            loadCollection(currentCollectionId, false);
+            loadCollectionDetail(currentCollectionId, false);
         } else {
-            showEmptyState();
+            showHomeView();
         }
         updateURL(null, null);
+        renderRecipeList();
     } catch (error) {
         alert('Error deleting recipe');
     }
@@ -604,17 +706,122 @@ async function saveCollectionChanges() {
             
             if (shouldBeIn && !isIn) {
                 col.recipeIds.push(currentRecipeId);
-                await API.updateCollection(col.id, col);
+                console.log('🔄 Adding recipe to collection:', col.name);
+                const result = await API.updateCollection(col.id, col);
+                console.log('✅ Successfully added recipe to collection:', result);
             } else if (!shouldBeIn && isIn) {
                 col.recipeIds = col.recipeIds.filter(id => id !== currentRecipeId);
-                await API.updateCollection(col.id, col);
+                console.log('🔄 Removing recipe from collection:', col.name);
+                const result = await API.updateCollection(col.id, col);
+                console.log('✅ Successfully removed recipe from collection:', result);
             }
         }
         
         collectionModal.classList.add('hidden');
-        renderCollectionsList(filterInput.value);
+        renderRecipeList(filterInput.value);
+        console.log('✅ All collection changes saved successfully');
     } catch (error) {
-        alert('Error updating collections');
+        console.error('❌ Error updating collections:', error);
+        console.error('Error details:', error.message, error.stack);
+        alert(`Error updating collections: ${error.message}`);
+    }
+}
+
+// Edit collection
+async function editCollection(collectionId) {
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) {
+        alert('Collection not found');
+        return;
+    }
+    
+    const modal = document.getElementById('createCollectionModal');
+    const form = document.getElementById('createCollectionForm');
+    const titleElement = modal.querySelector('h2');
+    const submitButton = modal.querySelector('button[type="submit"]');
+    
+    // Update modal for editing
+    titleElement.textContent = 'Edit Collection';
+    submitButton.textContent = 'Update Collection';
+    
+    // Pre-fill form with existing data
+    document.getElementById('collectionName').value = collection.name;
+    document.getElementById('collectionDescription').value = collection.description || '';
+    
+    // Store the collection ID for update
+    form.dataset.editingId = collectionId;
+    
+    modal.classList.remove('hidden');
+}
+
+// Delete collection
+async function deleteCollection(collectionId) {
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) {
+        alert('Collection not found');
+        return;
+    }
+    
+    const recipeCount = collection.recipeIds ? collection.recipeIds.length : 0;
+    const confirmMessage = recipeCount > 0 
+        ? `Are you sure you want to delete "${collection.name}"? This will remove ${recipeCount} recipe${recipeCount !== 1 ? 's' : ''} from this collection (the recipes themselves will not be deleted).`
+        : `Are you sure you want to delete "${collection.name}"?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    try {
+        await API.deleteCollection(collectionId);
+        console.log('✅ Collection deleted successfully');
+        
+        // Update local collections array
+        const index = collections.findIndex(c => c.id === collectionId);
+        if (index !== -1) {
+            collections.splice(index, 1);
+        }
+        
+        // Refresh the current view
+        if (currentView === 'collections') {
+            renderCollectionsGrid();
+        } else {
+            // If we're viewing the deleted collection, go back to collections view
+            switchToView('collections');
+        }
+    } catch (error) {
+        console.error('❌ Error deleting collection:', error);
+        alert(`Error deleting collection: ${error.message}`);
+    }
+}
+
+// Remove recipe from collection
+async function removeRecipeFromCollection(collectionId, recipeId) {
+    const collection = collections.find(c => c.id === collectionId);
+    const recipe = recipes.find(r => r.id === recipeId);
+    
+    if (!collection || !recipe) {
+        alert('Collection or recipe not found');
+        return;
+    }
+    
+    if (!confirm(`Remove "${recipe.title}" from "${collection.name}"?`)) {
+        return;
+    }
+    
+    try {
+        await API.removeRecipeFromCollection(collectionId, recipeId);
+        console.log('✅ Recipe removed from collection successfully');
+        
+        // Update local collection data
+        if (collection.recipeIds) {
+            collection.recipeIds = collection.recipeIds.filter(id => id !== recipeId);
+        }
+        
+        // Refresh the collection detail view
+        loadCollectionDetail(collectionId);
+    } catch (error) {
+        console.error('❌ Error removing recipe from collection:', error);
+        alert(`Error removing recipe from collection: ${error.message}`);
     }
 }
 
@@ -645,43 +852,42 @@ function formatDate(dateString) {
 
 // Event listeners
 filterInput.addEventListener('input', (e) => {
-    if (currentView === 'collections') {
-        renderCollectionsList(e.target.value);
-    } else {
-        renderRecipeList(e.target.value);
-    }
+    renderRecipeList(e.target.value);
 });
 
-newItemBtn.addEventListener('click', createNewItem);
+newRecipeBtn.addEventListener('click', createNewRecipe);
+newCollectionBtn.addEventListener('click', createNewCollection);
 editBtn.addEventListener('click', enterEditMode);
 saveBtn.addEventListener('click', saveCurrentRecipe);
 deleteBtn.addEventListener('click', deleteCurrentRecipe);
 deleteBtn2.addEventListener('click', deleteCurrentRecipe);
 copyLinkBtn.addEventListener('click', copyRecipeLink);
-collectionsBtn.addEventListener('click', showCollectionModal);
+addToCollectionBtn.addEventListener('click', showCollectionModal);
 modalSaveBtn.addEventListener('click', saveCollectionChanges);
 modalCancelBtn.addEventListener('click', () => collectionModal.classList.add('hidden'));
 
 backBtn.addEventListener('click', () => {
-    if (currentCollectionId) {
-        loadCollection(currentCollectionId);
+    if (currentCollectionId && currentView === 'recipe-detail') {
+        loadCollectionDetail(currentCollectionId);
     } else {
-        switchToRecipesView();
+        showHomeView();
     }
 });
 
 backToCollections.addEventListener('click', () => {
-    switchToCollectionsView();
+    switchToView('collections');
+    currentCollectionId = null;
+    updateURL(null, null);
 });
 
 cancelBtn.addEventListener('click', () => {
     if (titleInput.value || markdownTextarea.value) {
         enterViewMode();
     } else {
-        if (currentCollectionId) {
-            loadCollection(currentCollectionId);
+        if (currentCollectionId && currentView === 'recipe-detail') {
+            loadCollectionDetail(currentCollectionId);
         } else {
-            showEmptyState();
+            showHomeView();
         }
     }
 });
