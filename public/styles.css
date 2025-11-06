@@ -653,6 +653,17 @@ body {
     align-items: center;
 }
 
+.collection-header-actions .collection-action-btn {
+    width: 40px;
+    height: 40px;
+    opacity: 1;
+}
+
+.collection-action-btn-danger:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
 .collection-detail-header {
     padding: 24px 40px;
     border-bottom: 1px solid #e5e0d8;
@@ -661,26 +672,60 @@ body {
 .back-btn {
     background: transparent;
     border: none;
-    color: #7a7066;
+    color: #8b7d6b;
     font-family: 'Georgia', serif;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
-    padding: 8px 12px;
-    margin-bottom: 16px;
-    border-radius: 6px;
+    padding: 4px 0;
+    margin-bottom: 8px;
+    border-radius: 0;
     transition: all 0.2s;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    text-decoration: none;
 }
 
 .back-btn:hover {
-    background: #f4f1ec;
+    color: #6b5d4f;
+    text-decoration: underline;
 }
 
 .back-btn:focus {
     outline: none;
-    box-shadow: inset 0 0 0 2px rgba(90, 90, 90, 0.3);
+    text-decoration: underline;
+}
+
+/* Breadcrumb styles */
+.breadcrumb {
+    font-size: 13px;
+    color: #8b7d6b;
+    margin-bottom: 8px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.breadcrumb-link {
+    color: #8b7d6b;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+    color: #6b5d4f;
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    color: #bbb;
+    font-size: 12px;
+}
+
+.breadcrumb-current {
+    color: #5a5a5a;
 }
 
 .collection-title {
@@ -703,48 +748,55 @@ body {
     padding: 24px 40px;
 }
 
-.collection-recipe-card {
-    padding: 16px 20px;
-    margin-bottom: 12px;
-    background: white;
-    border: 1px solid #e5e0d8;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
+.collection-recipe-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.collection-recipe-card:hover {
-    border-color: #d9d4cb;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.collection-recipe-card:focus {
-    outline: none;
-    box-shadow: inset 0 0 0 2px rgba(90, 90, 90, 0.3);
-}
-
-.collection-recipe-title {
-    font-size: 18px;
-    color: #5a5a5a;
-    margin-bottom: 4px;
-}
-
-.collection-recipe-header {
+.collection-recipe-item {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0ede8;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
 }
 
-.collection-recipe-header .collection-recipe-title {
-    margin-bottom: 0;
+.collection-recipe-item:hover {
+    background-color: #faf9f7;
+}
+
+.collection-recipe-item:hover .collection-action-btn {
+    opacity: 1;
+}
+
+.collection-recipe-item:focus {
+    outline: none;
+    background-color: #f5f3f0;
+}
+
+.collection-recipe-item:last-child {
+    border-bottom: none;
+}
+
+.recipe-link {
+    font-size: 16px;
+    color: #5a5a5a;
+    text-decoration: none;
     flex: 1;
+    padding-right: 16px;
 }
 
-.collection-recipe-date {
-    font-size: 13px;
-    color: #999;
-    font-style: italic;
+.recipe-link:hover {
+    color: #8b7d6b;
+}
+
+.collection-recipe-item .collection-action-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
 }
 
 /* Modal */
@@ -891,7 +943,7 @@ body {
     border-radius: 8px;
     cursor: pointer;
     font-size: 15px;
-    color: #7a7a7a;
+    color: #8b7d6b;
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -900,13 +952,13 @@ body {
 }
 
 .nav-btn:hover {
-    background: #f4f1ec;
-    color: #2d2d2d;
+    background: rgba(139, 125, 107, 0.1);
+    color: #6b5d4f;
 }
 
 .nav-btn.active {
-    background: #2d2d2d;
-    color: #fcfbf9;
+    background: rgba(139, 125, 107, 0.15);
+    color: #5a4a3a;
 }
 
 /* Content area */
@@ -945,10 +997,31 @@ body {
 }
 
 .collections-header h2 {
-    font-size: 32px;
-    font-weight: 400;
-    color: #2d2d2d;
+    font-size: 20px;
+    font-weight: normal;
+    font-style: italic;
+    color: #5a5a5a;
     margin: 0;
+}
+
+.new-collection-btn {
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    color: #8b7d6b;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.new-collection-btn:hover {
+    background: rgba(139, 125, 107, 0.1);
+    color: #5a4a3a;
 }
 
 /* Simple button styling to match existing design */
@@ -1023,25 +1096,27 @@ body {
 }
 
 .collection-card {
-    background: #f9f7f4;
+    background: white;
     border: 1px solid #e5e0d8;
     border-radius: 12px;
-    padding: 24px;
+    padding: 20px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s;
+    position: relative;
 }
 
 .collection-card:hover {
-    background: #f4f1ec;
     border-color: #d9d4cb;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.collection-card:hover .collection-card-actions {
+    opacity: 1;
 }
 
 .collection-card:focus {
     outline: none;
-    border-color: #2d2d2d;
-    box-shadow: 0 0 0 3px rgba(45, 45, 45, 0.1);
+    box-shadow: inset 0 0 0 2px rgba(90, 90, 90, 0.3);
 }
 
 .collection-card-header {
@@ -1051,33 +1126,63 @@ body {
     margin-bottom: 12px;
 }
 
+.collection-card-info {
+    flex: 1;
+}
+
 .collection-card-title {
     font-size: 20px;
-    font-weight: 400;
-    color: #2d2d2d;
-    margin: 0;
-    line-height: 1.3;
+    font-weight: normal;
+    font-style: italic;
+    color: #5a5a5a;
+    margin: 0 0 4px 0;
 }
 
 .collection-card-count {
-    font-size: 12px;
-    color: #7a7a7a;
-    background: #fcfbf9;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid #e5e0d8;
-    white-space: nowrap;
-}
-
-.collection-card-description {
-    color: #5a5a5a;
-    font-size: 15px;
-    line-height: 1.5;
-    margin-bottom: 20px;
-    font-style: italic;
+    font-size: 13px;
+    color: #8b7d6b;
+    font-style: normal;
 }
 
 .collection-card-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.collection-action-btn {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: #8b7d6b;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.collection-action-btn:hover {
+    background: rgba(139, 125, 107, 0.1);
+    color: #5a4a3a;
+}
+
+.collection-card-description {
+    font-size: 14px;
+    color: #7a7066;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.collection-card-footer {
     display: flex;
     justify-content: flex-end;
 }
@@ -1105,53 +1210,10 @@ body {
 }
 
 .collection-recipes {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.collection-recipe-card {
-    background: #f9f7f4;
-    border: 1px solid #e5e0d8;
-    border-radius: 8px;
-    padding: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.collection-recipe-card:hover {
-    background: #f4f1ec;
-    border-color: #d9d4cb;
-}
-
-.collection-recipe-card:focus {
-    outline: none;
-    border-color: #2d2d2d;
-    box-shadow: 0 0 0 2px rgba(45, 45, 45, 0.1);
-}
-
-.collection-recipe-title {
-    font-size: 16px;
-    font-weight: 400;
-    color: #2d2d2d;
-    margin-bottom: 6px;
-    line-height: 1.3;
-}
-
-.collection-recipe-date {
-    font-size: 12px;
-    color: #7a7a7a;
-    margin-bottom: 16px;
-    font-style: italic;
-}
-
-.collection-recipe-actions {
-    display: flex;
-    justify-content: flex-end;
+    margin-top: 20px;
 }
 
 .empty-collection {
-    grid-column: 1 / -1;
     text-align: center;
     padding: 60px 20px;
     color: #7a7a7a;
@@ -1204,12 +1266,28 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-280px);
+    }
+    
+    .sidebar.collapsed {
+        transform: translateX(-280px);
+    }
+    
+    .floating-menu-btn {
+        display: flex !important;
+    }
+    
     .collections-grid {
         grid-template-columns: 1fr;
     }
     
     .collection-recipes {
         grid-template-columns: 1fr;
+    }
+    
+    .navbar-brand {
+        margin-left: 60px;
     }
     
     .navbar-brand h1 {

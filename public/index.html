@@ -33,11 +33,8 @@
                 <h1>Recipe Manager</h1>
             </div>
             <div class="navbar-nav">
-                <button class="nav-btn active" id="homeBtn" data-view="home">
+                <button class="nav-btn active" id="homeBtn" data-view="collections">
                     <i class="fa-solid fa-home"></i> Home
-                </button>
-                <button class="nav-btn" id="collectionsBtn" data-view="collections">
-                    <i class="fa-solid fa-folder"></i> Collections
                 </button>
             </div>
         </nav>
@@ -52,24 +49,27 @@
             <div id="collectionsView" class="view-section hidden">
                 <div class="collections-header">
                     <h2>Collections</h2>
-                    <button class="btn btn-primary" id="newCollectionBtn">
-                        <i class="fa-solid fa-plus"></i> New Collection
+                    <button class="new-collection-btn" id="newCollectionBtn" title="New Collection">
+                        <i class="fa-solid fa-plus"></i>
                     </button>
                 </div>
                 <div class="collections-grid" id="collectionsGrid"></div>
             </div>
             
             <div id="collectionDetailView" class="view-section hidden">
-                <div class="collection-header">
-                    <button class="back-btn" id="backToCollections"><i class="fa-solid fa-arrow-left"></i> Collections</button>
-                    <h2 class="collection-title" id="collectionTitle"></h2>
-                    <p class="collection-description" id="collectionDescription"></p>
+                <div class="collection-detail-header">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-link" onclick="switchToView('collections')">Collections</span>
+                        <span class="breadcrumb-separator">></span>
+                        <span class="breadcrumb-current" id="collectionBreadcrumbName"></span>
+                    </div>
                 </div>
                 <div class="collection-recipes" id="collectionRecipes"></div>
             </div>
             
             <div id="recipeDetailView" class="view-section hidden">
                 <div class="recipe-header" id="recipeHeader">
+                    <div class="breadcrumb hidden" id="breadcrumb"></div>
                     <button class="back-btn hidden" id="backBtn"><i class="fa-solid fa-arrow-left"></i> <span id="backBtnText">Back</span></button>
                     <input 
                         type="text" 
