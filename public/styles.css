@@ -20,13 +20,14 @@ body {
     border-right: 1px solid #e5e0d8;
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s ease;
+    transition: margin-left 0.3s ease;
     position: relative;
     z-index: 10;
+    flex-shrink: 0;
 }
 
 .sidebar.collapsed {
-    transform: translateX(-280px);
+    margin-left: -280px;
 }
 
 .sidebar-toggle {
@@ -193,14 +194,6 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    transition: margin-left 0.3s ease;
-}
-
-/* On wider screens, account for sidebar width when expanded */
-@media (min-width: 769px) {
-    .sidebar.collapsed ~ .main-content {
-        margin-left: 0;
-    }
 }
 
 .editor-header {
@@ -298,7 +291,6 @@ body {
     max-width: 800px;
     margin: 0 auto;
     position: relative;
-    height: 100%;
     min-height: 500px;
 }
 
@@ -971,16 +963,13 @@ body {
 /* Content area */
 .content-area {
     flex: 1;
-    height: 100%;
     padding: 40px;
     background: #fcfbf9;
-    display: flex;
-    flex-direction: column;
+    overflow: auto;
 }
 
 .view-section {
     display: block;
-    flex: 1;
 }
 
 .view-section.hidden {
@@ -1239,13 +1228,7 @@ body {
 }
 
 .recipe-container {
-    flex: 1;
-    height: 100%;
-    overflow: auto;
-}
-
-.recipe-content {
-    height: 100%;
+    margin-top: 20px;
 }
 
 /* Back button */

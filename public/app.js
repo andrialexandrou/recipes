@@ -323,11 +323,6 @@ function renderCollectionsGrid() {
                     </div>
                 </div>
                 <p class="collection-card-description">${escapeHtml(col.description || 'No description')}</p>
-                <div class="collection-card-footer">
-                    <button class="btn btn-sm" onclick="loadCollectionDetail('${col.id}')">
-                        <i class="fa-solid fa-arrow-right"></i> View
-                    </button>
-                </div>
             </div>
         `;
     }).join('');
@@ -894,13 +889,13 @@ addToCollectionBtn.addEventListener('click', showCollectionModal);
 modalSaveBtn.addEventListener('click', saveCollectionChanges);
 modalCancelBtn.addEventListener('click', () => collectionModal.classList.add('hidden'));
 
-backBtn.addEventListener('click', () => {
-    if (currentCollectionId && currentView === 'recipe-detail') {
-        loadCollectionDetail(currentCollectionId);
-    } else {
-        showHomeView();
-    }
-});
+// backBtn.addEventListener('click', () => {
+//     if (currentCollectionId && currentView === 'recipe-detail') {
+//         loadCollectionDetail(currentCollectionId);
+//     } else {
+//         showHomeView();
+//     }
+// });
 
 cancelBtn.addEventListener('click', () => {
     if (titleInput.value || markdownTextarea.value) {
