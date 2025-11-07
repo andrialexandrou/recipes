@@ -70,27 +70,57 @@ async function initializeFirebase() {
         return false;
     }
     
+    if (!admin) {
+        console.log('❌ Firebase Admin SDK not available');
+        return false;
+    }
+    
     try {
         console.log('✅ Firebase Admin configuration detected');
         console.log('🔄 Attempting to initialize Firebase Admin...');
+        console.log('🔍 Environment check:');
+        console.log(`  - NODE_ENV: ${process.env.NODE_ENV || 'undefined'}`);
+        console.log(`  - VERCEL: ${process.env.VERCEL || 'undefined'}`);
+        console.log(`  - GOOGLE_APPLICATION_CREDENTIALS: ${process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'SET' : 'undefined'}`);
+        console.log(`  - FIREBASE_PROJECT_ID: ${process.env.FIREBASE_PROJECT_ID || 'undefined'}`);
         
         // Initialize Firebase Admin
-        if (admin && admin.apps.length === 0) {
+        if (admin.apps.length === 0) {
+            const initConfig = {
+                projectId: process.env.FIREBASE_PROJECT_ID
+            };
+            
             if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-                // Local development with service account
-                admin.initializeApp({
-                    projectId: process.env.FIREBASE_PROJECT_ID,
-                    credential: admin.credential.applicationDefault()
-                });
+                // Local development with service account file
+                console.log('🔧 Using service account credentials from file');
+                initConfig.credential = admin.credential.applicationDefault();
+            } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+                // Production with service account key as environment variable
+                console.log('🔧 Using service account credentials from environment variable');
+                try {
+                    const serviceAccountKey = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+                    initConfig.credential = admin.credential.cert(serviceAccountKey);
+                } catch (parseError) {
+                    console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseError.message);
+                    throw new Error('Invalid service account key format');
+                }
+            } else if (process.env.VERCEL) {
+                // Vercel environment - may need explicit credential handling
+                console.log('🔧 Vercel environment detected, but no service account key provided');
+                console.log('⚠️  Set FIREBASE_SERVICE_ACCOUNT_KEY environment variable with JSON service account');
+                throw new Error('No credentials provided for Vercel deployment');
             } else {
-                // Production with Application Default Credentials
-                admin.initializeApp({
-                    projectId: process.env.FIREBASE_PROJECT_ID
-                });
+                // Production - try Application Default Credentials
+                console.log('🔧 Using Application Default Credentials (production)');
+                // On GCP/other cloud providers, this should work automatically
             }
+            
+            console.log('🔄 Initializing Firebase Admin...');
+            admin.initializeApp(initConfig);
         }
         
         db = admin.firestore();
+        console.log('✅ Firestore client created');
         
         // Test connection with both collections and recipes
         console.log('🔄 Testing Firebase Admin connection for recipes...');
