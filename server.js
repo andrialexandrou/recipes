@@ -3,6 +3,14 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+// Firebase Admin SDK (server-side only)
+let admin = null;
+try {
+    admin = require('firebase-admin');
+} catch (error) {
+    console.log('📝 Firebase Admin SDK not available, will use memory storage');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -22,34 +30,26 @@ app.use((req, res, next) => {
     }
 });
 
-// Firebase client configuration (server-side only)
+// Firebase Admin SDK configuration (server-side)
 let db = null;
 let useFirebase = false;
 let firebaseFailureDetected = false;
 
+// Firebase Admin config (uses service account or environment-based auth)
 const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY,
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
     projectId: process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.FIREBASE_APP_ID
+    // For production: use service account key or Application Default Credentials
+    // For development: can use service account key file
 };
 
-const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && value !== 'your_api_key_here');
+const hasFirebaseConfig = !!(process.env.FIREBASE_PROJECT_ID);
 
 // Debug Firebase configuration
 if (!hasFirebaseConfig) {
     console.log('🔍 Firebase configuration debug:');
-    Object.entries(firebaseConfig).forEach(([key, value]) => {
-        if (!value) {
-            console.log(`  ❌ ${key}: MISSING`);
-        } else if (value === 'your_api_key_here') {
-            console.log(`  ❌ ${key}: PLACEHOLDER VALUE`);
-        } else {
-            console.log(`  ✅ ${key}: ${value.substring(0, 10)}...`);
-        }
-    });
+    console.log(`  ❌ FIREBASE_PROJECT_ID: ${process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING'}`);
+} else {
+    console.log('✅ Firebase Admin configuration detected');
 }
 
 // Function to disable Firebase and switch to memory storage
@@ -71,41 +71,52 @@ async function initializeFirebase() {
     }
     
     try {
-        console.log('✅ Firebase configuration detected');
-        console.log('🔄 Attempting to initialize Firebase...');
+        console.log('✅ Firebase Admin configuration detected');
+        console.log('🔄 Attempting to initialize Firebase Admin...');
         
-        // Try to load Firebase modules
-        const { initializeApp } = require('firebase/app');
-        const { getFirestore } = require('firebase/firestore');
+        // Initialize Firebase Admin
+        if (admin && admin.apps.length === 0) {
+            if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+                // Local development with service account
+                admin.initializeApp({
+                    projectId: process.env.FIREBASE_PROJECT_ID,
+                    credential: admin.credential.applicationDefault()
+                });
+            } else {
+                // Production with Application Default Credentials
+                admin.initializeApp({
+                    projectId: process.env.FIREBASE_PROJECT_ID
+                });
+            }
+        }
         
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
+        db = admin.firestore();
         
         // Test connection with both collections and recipes
-        const { collection, getDocs, limit, query } = require('firebase/firestore');
+        console.log('🔄 Testing Firebase Admin connection for recipes...');
+        const recipesRef = db.collection('recipes');
+        await recipesRef.limit(1).get();
         
-        console.log('🔄 Testing Firebase connection for recipes...');
-        const recipesQuery = query(collection(db, 'recipes'), limit(1));
-        await getDocs(recipesQuery);
-        
-        console.log('🔄 Testing Firebase connection for collections...');
-        const collectionsQuery = query(collection(db, 'collections'), limit(1));
-        await getDocs(collectionsQuery);
+        console.log('🔄 Testing Firebase Admin connection for collections...');
+        const collectionsRef = db.collection('collections');
+        await collectionsRef.limit(1).get();
         
         useFirebase = true;
         firebaseFailureDetected = false;
-        console.log('✅ Firebase fully connected - both recipes and collections accessible');
+        console.log('✅ Firebase Admin fully connected - both recipes and collections accessible');
         return true;
         
     } catch (error) {
-        console.error('❌ Firebase connection failed:', error.code || error.message);
+        console.error('❌ Firebase Admin connection failed:', error.code || error.message);
         
         if (error.code === 'permission-denied') {
-            console.log('🔒 Permission denied - check Firestore security rules');
+            console.log('🔒 Permission denied - check Firestore security rules or service account permissions');
         } else if (error.code === 'unavailable') {
             console.log('🌐 Network unavailable - check internet connection');
         } else if (error.message.includes('firebase')) {
-            console.log('📦 Firebase package issue - run: npm install firebase');
+            console.log('📦 Firebase package issue - run: npm install firebase-admin');
+        } else if (error.message.includes('credentials')) {
+            console.log('🔑 Credentials issue - check service account configuration');
         }
         
         disableFirebaseMode(error.code || error.message);
@@ -139,8 +150,7 @@ app.get('/api/recipes', async (req, res) => {
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { collection, getDocs } = require('firebase/firestore');
-                const querySnapshot = await getDocs(collection(db, 'recipes'));
+                const querySnapshot = await db.collection('recipes').get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
@@ -170,10 +180,9 @@ app.get('/api/recipes/:id', async (req, res) => {
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { doc, getDoc } = require('firebase/firestore');
-                const docRef = doc(db, 'recipes', req.params.id);
-                const docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
+                const docRef = db.collection('recipes').doc(req.params.id);
+                const docSnap = await docRef.get();
+                if (!docSnap.exists) {
                     return res.status(404).json({ error: 'Recipe not found' });
                 }
                 const data = {
@@ -216,14 +225,13 @@ app.post('/api/recipes', async (req, res) => {
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
                 const newRecipe = {
                     title: title || '',
                     content: content || '',
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp()
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 };
-                const docRef = await addDoc(collection(db, 'recipes'), newRecipe);
+                const docRef = await db.collection('recipes').add(newRecipe);
                 const result = {
                     id: docRef.id,
                     title: title || '',
@@ -273,14 +281,13 @@ app.put('/api/recipes/:id', async (req, res) => {
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { doc, updateDoc, serverTimestamp } = require('firebase/firestore');
-                const docRef = doc(db, 'recipes', req.params.id);
+                const docRef = db.collection('recipes').doc(req.params.id);
                 const updates = {
                     title: title || '',
                     content: content || '',
-                    updatedAt: serverTimestamp()
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 };
-                await updateDoc(docRef, updates);
+                await docRef.update(updates);
                 const result = {
                     id: req.params.id,
                     title: title || '',
@@ -323,9 +330,8 @@ app.delete('/api/recipes/:id', async (req, res) => {
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { doc, deleteDoc } = require('firebase/firestore');
-                const docRef = doc(db, 'recipes', req.params.id);
-                await deleteDoc(docRef);
+                const docRef = db.collection('recipes').doc(req.params.id);
+                await docRef.delete();
                 console.log('🔥 Recipe deleted from Firebase:', req.params.id);
                 res.json({ success: true });
             } catch (firebaseError) {
@@ -360,8 +366,7 @@ app.get('/api/collections', async (req, res) => {
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { collection, getDocs, doc, setDoc } = require('firebase/firestore');
-                const querySnapshot = await getDocs(collection(db, 'collections'));
+                const querySnapshot = await db.collection('collections').get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -398,13 +403,12 @@ app.post('/api/collections', async (req, res) => {
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { collection, addDoc } = require('firebase/firestore');
                 const newCollection = {
                     name: name || '',
                     description: description || '',
                     recipeIds: []
                 };
-                const docRef = await addDoc(collection(db, 'collections'), newCollection);
+                const docRef = await db.collection('collections').add(newCollection);
                 const result = {
                     id: docRef.id,
                     name: name || '',
@@ -451,10 +455,9 @@ app.put('/api/collections/:id', async (req, res) => {
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { doc, updateDoc } = require('firebase/firestore');
-                const docRef = doc(db, 'collections', req.params.id);
+                const docRef = db.collection('collections').doc(req.params.id);
                 const updates = { name, description, recipeIds: recipeIds || [] };
-                await updateDoc(docRef, updates);
+                await docRef.update(updates);
                 console.log('🔥 Collection updated in Firebase:', req.params.id);
                 res.json({ id: req.params.id, ...updates });
             } catch (firebaseError) {
@@ -493,16 +496,15 @@ app.post('/api/collections/:id/recipes', async (req, res) => {
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { doc, getDoc, updateDoc, arrayUnion } = require('firebase/firestore');
-                const docRef = doc(db, 'collections', req.params.id);
-                const docSnap = await getDoc(docRef);
+                const docRef = db.collection('collections').doc(req.params.id);
+                const docSnap = await docRef.get();
                 
-                if (!docSnap.exists()) {
+                if (!docSnap.exists) {
                     return res.status(404).json({ error: 'Collection not found' });
                 }
                 
-                await updateDoc(docRef, {
-                    recipeIds: arrayUnion(recipeId)
+                await docRef.update({
+                    recipeIds: admin.firestore.FieldValue.arrayUnion(recipeId)
                 });
                 
                 console.log(`🔥 Recipe ${recipeId} added to collection ${req.params.id} in Firebase`);
@@ -556,9 +558,8 @@ app.delete('/api/collections/:id', async (req, res) => {
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { doc, deleteDoc } = require('firebase/firestore');
-                const docRef = doc(db, 'collections', req.params.id);
-                await deleteDoc(docRef);
+                const docRef = db.collection('collections').doc(req.params.id);
+                await docRef.delete();
                 console.log('🔥 Collection deleted from Firebase:', req.params.id);
                 res.json({ success: true });
             } catch (firebaseError) {
@@ -595,16 +596,15 @@ app.delete('/api/collections/:id/recipes/:recipeId', async (req, res) => {
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const { doc, getDoc, updateDoc, arrayRemove } = require('firebase/firestore');
-                const docRef = doc(db, 'collections', collectionId);
-                const docSnap = await getDoc(docRef);
+                const docRef = db.collection('collections').doc(collectionId);
+                const docSnap = await docRef.get();
                 
-                if (!docSnap.exists()) {
+                if (!docSnap.exists) {
                     return res.status(404).json({ error: 'Collection not found' });
                 }
                 
-                await updateDoc(docRef, {
-                    recipeIds: arrayRemove(recipeId)
+                await docRef.update({
+                    recipeIds: admin.firestore.FieldValue.arrayRemove(recipeId)
                 });
                 
                 console.log(`🔥 Recipe ${recipeId} removed from collection ${collectionId} in Firebase`);
