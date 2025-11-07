@@ -38,6 +38,20 @@ const firebaseConfig = {
 
 const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && value !== 'your_api_key_here');
 
+// Debug Firebase configuration
+if (!hasFirebaseConfig) {
+    console.log('🔍 Firebase configuration debug:');
+    Object.entries(firebaseConfig).forEach(([key, value]) => {
+        if (!value) {
+            console.log(`  ❌ ${key}: MISSING`);
+        } else if (value === 'your_api_key_here') {
+            console.log(`  ❌ ${key}: PLACEHOLDER VALUE`);
+        } else {
+            console.log(`  ✅ ${key}: ${value.substring(0, 10)}...`);
+        }
+    });
+}
+
 // Function to disable Firebase and switch to memory storage
 function disableFirebaseMode(reason) {
     if (useFirebase) {
@@ -658,5 +672,9 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log('🔧 Environment check:');
+    console.log(`  - NODE_ENV: ${process.env.NODE_ENV || 'undefined'}`);
+    console.log(`  - Firebase Config Present: ${hasFirebaseConfig}`);
+    console.log(`  - FIREBASE_PROJECT_ID: ${process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING'}`);
     await initializeFirebase();
 });
