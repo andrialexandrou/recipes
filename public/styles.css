@@ -885,6 +885,31 @@ body {
     flex: 1;
 }
 
+.new-collection-dropdown-btn {
+    width: calc(100% - 16px);
+    padding: 10px 12px;
+    margin: 8px 8px 4px 8px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid #e5e0d8;
+    padding-top: 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #8b7d6b;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: 'Georgia', 'Garamond', serif;
+    border-radius: 0;
+}
+
+.new-collection-dropdown-btn:hover {
+    background: #f4f1ec;
+    color: #6b5d4f;
+}
+
 .editor-view {
     display: flex;
     flex-direction: column;

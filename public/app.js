@@ -194,6 +194,7 @@ document.addEventListener('click', (e) => {
     if (window.innerWidth <= 768) {
         const isClickInsideSidebar = sidebar.contains(e.target);
         const isToggleButton = sidebarToggle.contains(e.target);
+        const isSearchInput = filterInput.contains(e.target);
         
         if (!isClickInsideSidebar && !isToggleButton && !sidebar.classList.contains('collapsed')) {
             sidebar.classList.add('collapsed');
@@ -911,6 +912,15 @@ deleteBtn2.addEventListener('click', deleteCurrentRecipe);
 copyLinkBtn.addEventListener('click', copyRecipeLink);
 addToCollectionBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    showCollectionModal();
+});
+
+// New collection button in dropdown
+const newCollectionDropdownBtn = document.getElementById('newCollectionDropdownBtn');
+newCollectionDropdownBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await createNewCollection();
+    // Refresh the collection checkboxes to include the new collection
     showCollectionModal();
 });
 
