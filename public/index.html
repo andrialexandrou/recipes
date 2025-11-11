@@ -97,7 +97,13 @@
     </div>
 
     <div class="edit-controls view-mode hidden" id="editControls">
-        <button id="addToCollectionBtn" title="Add to collection"><i class="fa-solid fa-folder-plus"></i></button>
+        <div class="collections-menu-container">
+            <button id="addToCollectionBtn" title="Add to collection"><i class="fa-solid fa-folder-plus"></i></button>
+            <div class="collections-dropdown hidden" id="collectionsDropdown">
+                <div class="collections-dropdown-header">Add to Collection</div>
+                <div class="collections-dropdown-content" id="collectionCheckboxes"></div>
+            </div>
+        </div>
         <button id="editBtn" title="Edit"><i class="fa-solid fa-pen"></i></button>
         <button id="copyLinkBtn" title="Copy link"><i class="fa-solid fa-link"></i></button>
         <button class="delete-btn" id="deleteBtn" title="Delete"><i class="fa-solid fa-trash"></i></button>
@@ -107,17 +113,6 @@
         <button id="saveBtn" title="Save"><i class="fa-solid fa-check"></i></button>
         <button id="cancelBtn" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
         <button class="delete-btn" id="deleteBtn2" title="Delete"><i class="fa-solid fa-trash"></i></button>
-    </div>
-
-    <div class="modal hidden" id="collectionModal">
-        <div class="modal-content">
-            <h3 id="modalTitle">Add to Collection</h3>
-            <div class="collection-checkboxes" id="collectionCheckboxes"></div>
-            <div class="modal-actions">
-                <button id="modalSaveBtn">Save</button>
-                <button id="modalCancelBtn">Cancel</button>
-            </div>
-        </div>
     </div>
 
     <!-- Debug Modal -->

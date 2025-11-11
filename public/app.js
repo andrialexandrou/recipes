@@ -148,10 +148,8 @@ const cancelBtn = document.getElementById('cancelBtn');
 const backBtn = document.getElementById('backBtn');
 const backBtnText = document.getElementById('backBtnText');
 const breadcrumb = document.getElementById('breadcrumb');
-const collectionModal = document.getElementById('collectionModal');
 const collectionCheckboxes = document.getElementById('collectionCheckboxes');
-const modalSaveBtn = document.getElementById('modalSaveBtn');
-const modalCancelBtn = document.getElementById('modalCancelBtn');
+const collectionsDropdown = document.getElementById('collectionsDropdown');
 
 // Markdown configuration
 marked.setOptions({
@@ -714,47 +712,47 @@ function showCollectionModal() {
         const isInCollection = col.recipeIds && col.recipeIds.includes(currentRecipeId);
         return `
             <div class="collection-checkbox">
-                <input type="checkbox" id="col-${col.id}" ${isInCollection ? 'checked' : ''}>
+                <input type="checkbox" id="col-${col.id}" data-collection-id="${col.id}" ${isInCollection ? 'checked' : ''}>
                 <label for="col-${col.id}">${escapeHtml(col.name)}</label>
             </div>
         `;
     }).join('');
     
-    collectionModal.classList.remove('hidden');
+    // Add event listeners to checkboxes for auto-save
+    collections.forEach(col => {
+        const checkbox = document.getElementById(`col-${col.id}`);
+        if (checkbox) {
+            checkbox.addEventListener('change', () => handleCollectionToggle(col.id, checkbox.checked));
+        }
+    });
+    
+    collectionsDropdown.classList.remove('hidden');
 }
 
-// Save collection changes
-async function saveCollectionChanges() {
+// Handle collection checkbox toggle
+async function handleCollectionToggle(collectionId, isChecked) {
     try {
-        for (const col of collections) {
-            const checkbox = document.getElementById(`col-${col.id}`);
-            if (!checkbox) continue;
-            
-            if (!col.recipeIds) col.recipeIds = [];
-            
-            const shouldBeIn = checkbox.checked;
-            const isIn = col.recipeIds.includes(currentRecipeId);
-            
-            if (shouldBeIn && !isIn) {
-                col.recipeIds.push(currentRecipeId);
-                console.log('🔄 Adding recipe to collection:', col.name);
-                const result = await API.updateCollection(col.id, col);
-                console.log('✅ Successfully added recipe to collection:', result);
-            } else if (!shouldBeIn && isIn) {
-                col.recipeIds = col.recipeIds.filter(id => id !== currentRecipeId);
-                console.log('🔄 Removing recipe from collection:', col.name);
-                const result = await API.updateCollection(col.id, col);
-                console.log('✅ Successfully removed recipe from collection:', result);
-            }
+        const col = collections.find(c => c.id === collectionId);
+        if (!col) return;
+        
+        if (!col.recipeIds) col.recipeIds = [];
+        
+        if (isChecked && !col.recipeIds.includes(currentRecipeId)) {
+            col.recipeIds.push(currentRecipeId);
+            console.log('🔄 Adding recipe to collection:', col.name);
+            await API.updateCollection(col.id, col);
+            console.log('✅ Successfully added recipe to collection');
+        } else if (!isChecked && col.recipeIds.includes(currentRecipeId)) {
+            col.recipeIds = col.recipeIds.filter(id => id !== currentRecipeId);
+            console.log('🔄 Removing recipe from collection:', col.name);
+            await API.updateCollection(col.id, col);
+            console.log('✅ Successfully removed recipe from collection');
         }
         
-        collectionModal.classList.add('hidden');
         renderRecipeList(filterInput.value);
-        console.log('✅ All collection changes saved successfully');
     } catch (error) {
-        console.error('❌ Error updating collections:', error);
-        console.error('Error details:', error.message, error.stack);
-        alert(`Error updating collections: ${error.message}`);
+        console.error('❌ Error updating collection:', error);
+        alert(`Error updating collection: ${error.message}`);
     }
 }
 
@@ -901,9 +899,17 @@ saveBtn.addEventListener('click', saveCurrentRecipe);
 deleteBtn.addEventListener('click', deleteCurrentRecipe);
 deleteBtn2.addEventListener('click', deleteCurrentRecipe);
 copyLinkBtn.addEventListener('click', copyRecipeLink);
-addToCollectionBtn.addEventListener('click', showCollectionModal);
-modalSaveBtn.addEventListener('click', saveCollectionChanges);
-modalCancelBtn.addEventListener('click', () => collectionModal.classList.add('hidden'));
+addToCollectionBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showCollectionModal();
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!collectionsDropdown.contains(e.target) && !addToCollectionBtn.contains(e.target)) {
+        collectionsDropdown.classList.add('hidden');
+    }
+});
 
 // backBtn.addEventListener('click', () => {
 //     if (currentCollectionId && currentView === 'recipe-detail') {
@@ -953,8 +959,8 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (isEditMode && currentRecipeId) {
             enterViewMode();
-        } else if (!collectionModal.classList.contains('hidden')) {
-            collectionModal.classList.add('hidden');
+        } else if (!collectionsDropdown.classList.contains('hidden')) {
+            collectionsDropdown.classList.add('hidden');
         }
     }
 });
