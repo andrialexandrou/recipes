@@ -893,6 +893,11 @@ filterInput.addEventListener('input', (e) => {
 });
 
 newRecipeBtn.addEventListener('click', createNewRecipe);
+// Nav bar new recipe button
+const navNewRecipeBtn = document.getElementById('navNewRecipeBtn');
+if (navNewRecipeBtn) {
+    navNewRecipeBtn.addEventListener('click', createNewRecipe);
+}
 newCollectionBtn.addEventListener('click', createNewCollection);
 editBtn.addEventListener('click', enterEditMode);
 saveBtn.addEventListener('click', saveCurrentRecipe);

@@ -30,17 +30,19 @@
         <nav class="navbar" id="navbar">
             <div class="navbar-brand">
                 <button class="floating-menu-btn" id="floatingMenuBtn" aria-label="Open menu">☰</button>
-                <h1>Recipe Manager</h1>
+                <button class="navbar-home-btn" id="homeBtn" data-view="collections" aria-label="Go to home">
+                    <h1>Recipe Manager</h1>
+                </button>
             </div>
             <div class="navbar-nav">
-                <button class="nav-btn active" id="homeBtn" data-view="collections">
-                    <i class="fa-solid fa-home"></i> Home
+                <button class="nav-btn" id="navNewRecipeBtn" aria-label="New recipe">
+                    <i class="fa-solid fa-plus"></i>
                 </button>
-                <button class="nav-btn" id="shortcutsBtn" title="Keyboard Shortcuts">
-                    <i class="fa-solid fa-keyboard"></i> Shortcuts
+                <button class="nav-btn" id="shortcutsBtn" aria-label="Keyboard shortcuts">
+                    <i class="fa-solid fa-keyboard"></i>
                 </button>
-                <button class="nav-btn" id="debugBtn" title="View Firebase Debug Info">
-                    <i class="fa-solid fa-bug"></i> Debug
+                <button class="nav-btn" id="debugBtn" aria-label="View Firebase debug info">
+                    <i class="fa-solid fa-bug"></i>
                 </button>
             </div>
         </nav>
