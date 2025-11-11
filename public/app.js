@@ -108,10 +108,8 @@ let isEditMode = true;
 // DOM elements
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
-const floatingMenuBtn = document.getElementById('floatingMenuBtn');
 const filterInput = document.getElementById('filterInput');
 const recipeList = document.getElementById('recipeList');
-const newRecipeBtn = document.getElementById('newRecipeBtn');
 
 // Navbar elements
 const navbar = document.getElementById('navbar');
@@ -178,10 +176,6 @@ sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
 });
 
-floatingMenuBtn.addEventListener('click', () => {
-    sidebar.classList.remove('collapsed');
-});
-
 // Auto-collapse sidebar on narrow screens
 function handleResize() {
     if (window.innerWidth <= 768) {
@@ -194,6 +188,18 @@ function handleResize() {
 // Initial check and resize listener
 handleResize();
 window.addEventListener('resize', handleResize);
+
+// Close sidebar when clicking outside on narrow screens
+document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768) {
+        const isClickInsideSidebar = sidebar.contains(e.target);
+        const isToggleButton = sidebarToggle.contains(e.target);
+        
+        if (!isClickInsideSidebar && !isToggleButton && !sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+        }
+    }
+});
 
 // Navigation
 homeBtn.addEventListener('click', () => {
@@ -492,6 +498,11 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
     currentRecipeId = id;
     switchToView('recipe-detail');
     
+    // Close sidebar on narrow screens when recipe is clicked
+    if (window.innerWidth <= 768) {
+        sidebar.classList.add('collapsed');
+    }
+    
     titleInput.value = recipe.title;
     markdownTextarea.value = recipe.content;
     
@@ -508,13 +519,9 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
             <span class="breadcrumb-current">${escapeHtml(recipe.title)}</span>
         `;
         breadcrumb.classList.remove('hidden');
-        
-        // Hide back button when breadcrumb is shown
-        backBtn.classList.add('hidden');
     } else {
-        // Hide breadcrumb and back button for sidebar navigation
+        // Hide breadcrumb for sidebar navigation
         breadcrumb.classList.add('hidden');
-        backBtn.classList.add('hidden');
     }
     
     enterViewMode();
@@ -608,10 +615,9 @@ async function createNewRecipe() {
         markdownTextarea.value = '';
         
         switchToView('recipe-detail');
-        backBtn.classList.remove('hidden');
-        backBtnText.textContent = 'Recipes';
         
         enterEditMode();
+        titleInput.focus();
         renderRecipeList(filterInput.value);
         updateURL('recipe', newRecipe.id);
     } catch (error) {
@@ -892,7 +898,6 @@ filterInput.addEventListener('input', (e) => {
     renderRecipeList(e.target.value);
 });
 
-newRecipeBtn.addEventListener('click', createNewRecipe);
 // Nav bar new recipe button
 const navNewRecipeBtn = document.getElementById('navNewRecipeBtn');
 if (navNewRecipeBtn) {

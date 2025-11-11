@@ -30,73 +30,9 @@ body {
     margin-left: -280px;
 }
 
-.sidebar-toggle {
-    position: absolute;
-    right: 12px;
-    top: 20px;
-    width: 36px;
-    height: 36px;
-    background: transparent;
-    border: 1px solid #d9d4cb;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: #5a5a5a;
-    transition: all 0.2s;
-    z-index: 11;
-}
-
-.sidebar-toggle:hover {
-    background: #f4f1ec;
-}
-
-.sidebar-toggle:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(90, 90, 90, 0.3);
-}
-
-.floating-menu-btn {
-    position: fixed;
-    left: 20px;
-    top: 20px;
-    width: 40px;
-    height: 40px;
-    background: #f9f7f4;
-    border: 1px solid #d9d4cb;
-    border-radius: 8px;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: #5a5a5a;
-    transition: all 0.2s;
-    z-index: 9;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.floating-menu-btn:hover {
-    background: #f4f1ec;
-}
-
-.floating-menu-btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(90, 90, 90, 0.3), 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.sidebar.collapsed ~ .main-content .floating-menu-btn {
-    display: flex;
-}
-
 .sidebar-header {
     padding: 20px 12px;
-    padding-right: 60px;
     border-bottom: 1px solid #e5e0d8;
-    background: linear-gradient(to bottom, #f9f7f4, #f4f1ec);
-    position: relative;
 }
 
 .filter-input {
@@ -211,7 +147,7 @@ body {
 }
 
 .title-input {
-    flex: 1;
+    width: 100%;
     padding: 10px 12px;
     border: 1px solid #e5e0d8;
     border-radius: 8px;
@@ -1051,6 +987,30 @@ body {
     gap: 4px;
 }
 
+.navbar-toggle-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #f9f7f4;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Georgia', 'Garamond', serif;
+}
+
+.navbar-toggle-btn:hover {
+    background: rgba(249, 247, 244, 0.15);
+}
+
+.navbar-toggle-btn:focus {
+    outline: none;
+    background: rgba(249, 247, 244, 0.2);
+}
+
 .nav-btn {
     padding: 4px 8px;
     background: transparent;
@@ -1376,44 +1336,45 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
-        transform: translateX(-280px);
+        position: absolute;
+        height: 100vh;
+        z-index: 100;
     }
     
     .sidebar.collapsed {
-        transform: translateX(-280px);
+        margin-left: -280px;
     }
     
-    .floating-menu-btn {
-        display: flex !important;
+    .content-area {
+        padding: 20px 16px;
+    }
+    
+    .recipe-header {
+        margin-bottom: 20px;
+    }
+    
+    .title-display {
+        font-size: 18px;
     }
     
     .collections-grid {
         grid-template-columns: 1fr;
+        gap: 16px;
     }
     
     .collection-recipes {
         grid-template-columns: 1fr;
     }
     
-    .navbar-brand {
-        margin-left: 60px;
+    .navbar {
+        padding: 0 12px;
     }
     
     .navbar-brand h1 {
-        font-size: 20px;
-    }
-    
-    .content-area {
-        padding: 24px 20px;
+        font-size: 13px;
     }
     
     .collections-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
-    }
-    
-    .collections-header h2 {
-        font-size: 28px;
+        margin-bottom: 24px;
     }
 }

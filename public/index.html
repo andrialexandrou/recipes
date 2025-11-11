@@ -9,7 +9,6 @@
 </head>
 <body>
     <div class="sidebar" id="sidebar">
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
         <div class="sidebar-header">
             <input 
                 type="text" 
@@ -21,15 +20,14 @@
         <div class="sidebar-content" id="sidebarContent">
             <div class="recipe-list" id="recipeList" role="list"></div>
         </div>
-        <button class="new-item-btn" id="newRecipeBtn">
-            <i class="fa-solid fa-plus"></i> <span>New Recipe</span>
-        </button>
     </div>
 
     <div class="main-content">
         <nav class="navbar" id="navbar">
             <div class="navbar-brand">
-                <button class="floating-menu-btn" id="floatingMenuBtn" aria-label="Open menu">☰</button>
+                <button class="navbar-toggle-btn" id="sidebarToggle" aria-label="Toggle sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <button class="navbar-home-btn" id="homeBtn" data-view="collections" aria-label="Go to home">
                     <h1>Recipe Manager</h1>
                 </button>
@@ -78,7 +76,6 @@
             <div id="recipeDetailView" class="view-section hidden">
                 <div class="recipe-header" id="recipeHeader">
                     <div class="breadcrumb hidden" id="breadcrumb"></div>
-                    <button class="back-btn hidden" id="backBtn"><i class="fa-solid fa-arrow-left"></i> <span id="backBtnText">Back</span></button>
                     <input 
                         type="text" 
                         class="title-input hidden" 
