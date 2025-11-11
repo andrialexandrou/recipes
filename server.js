@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 
 // Firebase Admin SDK (server-side only)
 let admin = null;
@@ -14,8 +16,8 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Parse JSON bodies
-app.use(express.json());
+// Parse JSON bodies with increased limit for base64 image fallback
+app.use(express.json({ limit: '10mb' }));
 
 // Add CORS headers for local development
 app.use((req, res, next) => {
@@ -32,6 +34,7 @@ app.use((req, res, next) => {
 
 // Firebase Admin SDK configuration (server-side)
 let db = null;
+let bucket = null;
 let useFirebase = false;
 let firebaseFailureDetected = false;
 let firebaseInitialized = false;
@@ -136,6 +139,36 @@ async function initializeFirebase() {
         db = admin.firestore();
         captureLog('✅ Firestore client created', 'info');
         
+        // Initialize Storage - try multiple bucket patterns
+        try {
+            // Try default bucket first
+            bucket = admin.storage().bucket();
+            await bucket.getFiles({ maxResults: 1 }); // Test access
+            captureLog('✅ Firebase Storage bucket initialized (default)', 'info');
+        } catch (bucketError) {
+            try {
+                // Try new Firebase Storage format
+                const bucketName = `${firebaseConfig.projectId}.firebasestorage.app`;
+                captureLog(`🔄 Trying new format bucket: ${bucketName}`, 'info');
+                bucket = admin.storage().bucket(bucketName);
+                await bucket.getFiles({ maxResults: 1 }); // Test access
+                captureLog('✅ Firebase Storage bucket initialized (new format)', 'info');
+            } catch (newFormatError) {
+                try {
+                    // Try old appspot format as fallback
+                    const oldBucketName = `${firebaseConfig.projectId}.appspot.com`;
+                    captureLog(`🔄 Trying old format bucket: ${oldBucketName}`, 'info');
+                    bucket = admin.storage().bucket(oldBucketName);
+                    await bucket.getFiles({ maxResults: 1 }); // Test access
+                    captureLog('✅ Firebase Storage bucket initialized (old format)', 'info');
+                } catch (oldFormatError) {
+                    captureLog('⚠️ Storage bucket not available: ' + oldFormatError.message, 'warn');
+                    captureLog('📝 Storage features disabled - uploads will use base64 fallback', 'warn');
+                    bucket = null;
+                }
+            }
+        }
+        
         // Test connection with both collections and recipes
         captureLog('🔄 Testing Firebase Admin connection for recipes...', 'info');
         const recipesRef = db.collection('recipes');
@@ -191,6 +224,7 @@ let collections = [
     { id: '4', name: 'Potluck Friendly', description: 'Crowd-pleasers that travel well', recipeIds: [] }
 ];
 let menus = [];
+let photos = [];
 
 // API Routes
 
@@ -871,6 +905,133 @@ app.delete('/api/menus/:id', async (req, res) => {
         }
     } catch (error) {
         console.error('Error deleting menu:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// === PHOTO ENDPOINTS ===
+
+// Upload photo
+app.post('/api/photos', upload.single('photo'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const file = req.file;
+        const photoId = Date.now().toString();
+        const filename = `${photoId}.jpg`;
+        
+        if (useFirebase && bucket && !firebaseFailureDetected) {
+            try {
+                // Upload to Firebase Storage
+                const fileUpload = bucket.file(`photos/${filename}`);
+                await fileUpload.save(file.buffer, {
+                    metadata: {
+                        contentType: file.mimetype,
+                    },
+                    public: true,
+                });
+                
+                // Get public URL
+                const publicUrl = `https://storage.googleapis.com/${bucket.name}/photos/${filename}`;
+                
+                // Save metadata to Firestore
+                const photoData = {
+                    filename: file.originalname,
+                    url: publicUrl,
+                    uploadedAt: new Date().toISOString(),
+                    size: file.size,
+                    mimetype: file.mimetype
+                };
+                
+                await db.collection('photos').doc(photoId).set(photoData);
+                
+                console.log('🔥 Photo uploaded to Firebase Storage:', photoId);
+                res.json({ id: photoId, ...photoData });
+            } catch (firebaseError) {
+                console.error('❌ Firebase photo upload failed:', firebaseError.message);
+                disableFirebaseMode('Photo upload failed: ' + firebaseError.message);
+                
+                // Fallback to memory
+                const photoData = {
+                    id: photoId,
+                    filename: file.originalname,
+                    url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+                    uploadedAt: new Date().toISOString(),
+                    size: file.size,
+                    mimetype: file.mimetype
+                };
+                photos.push(photoData);
+                console.log('📝 Photo stored in memory as base64:', photoId);
+                res.json(photoData);
+            }
+        } else {
+            // Memory storage fallback - store as base64
+            const photoData = {
+                id: photoId,
+                filename: file.originalname,
+                url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+                uploadedAt: new Date().toISOString(),
+                size: file.size,
+                mimetype: file.mimetype
+            };
+            photos.push(photoData);
+            console.log('📝 Photo stored in memory as base64:', photoId);
+            res.json(photoData);
+        }
+    } catch (error) {
+        console.error('Error uploading photo:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete photo
+app.delete('/api/photos/:id', async (req, res) => {
+    try {
+        const photoId = req.params.id;
+        
+        if (useFirebase && bucket && db && !firebaseFailureDetected) {
+            try {
+                // Get photo metadata
+                const photoDoc = await db.collection('photos').doc(photoId).get();
+                if (!photoDoc.exists) {
+                    return res.status(404).json({ error: 'Photo not found' });
+                }
+                
+                // Delete from Storage
+                const filename = `${photoId}.jpg`;
+                await bucket.file(`photos/${filename}`).delete();
+                
+                // Delete metadata from Firestore
+                await db.collection('photos').doc(photoId).delete();
+                
+                console.log('🔥 Photo deleted from Firebase:', photoId);
+                res.json({ success: true });
+            } catch (firebaseError) {
+                console.error('❌ Firebase photo deletion failed:', firebaseError.message);
+                disableFirebaseMode('Photo deletion failed: ' + firebaseError.message);
+                
+                // Fallback to memory
+                const index = photos.findIndex(p => p.id === photoId);
+                if (index === -1) {
+                    return res.status(404).json({ error: 'Photo not found' });
+                }
+                photos.splice(index, 1);
+                console.log('📝 Photo deleted from memory storage:', photoId);
+                res.json({ success: true });
+            }
+        } else {
+            const index = photos.findIndex(p => p.id === photoId);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Photo not found' });
+            }
+            photos.splice(index, 1);
+            console.log('📝 Photo deleted from memory storage:', photoId);
+            res.json({ success: true });
+        }
+    } catch (error) {
+        console.error('Error deleting photo:', error);
         res.status(500).json({ error: error.message });
     }
 });

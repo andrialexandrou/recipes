@@ -131,6 +131,29 @@ const API = {
             method: 'DELETE'
         });
         return this.handleResponse(res);
+    },
+    
+    // Photo API methods
+    async uploadPhoto(file) {
+        console.log('🔄 Uploading photo:', file.name);
+        const formData = new FormData();
+        formData.append('photo', file);
+        
+        const res = await fetch('/api/photos', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await this.handleResponse(res);
+        console.log('✅ Photo uploaded:', data.url);
+        return data;
+    },
+    
+    async deletePhoto(id) {
+        console.log('🔄 Deleting photo:', id);
+        const res = await fetch(`/api/photos/${id}`, {
+            method: 'DELETE'
+        });
+        return this.handleResponse(res);
     }
 };
 
@@ -242,6 +265,105 @@ function cleanMarkdown(content) {
     cleaned = cleaned.replace(/^[\s\uFEFF]+(-|\d+\.)/gm, '$1');
     
     return cleaned;
+}
+
+// Compress image before upload
+async function compressImage(file, maxWidth = 1200, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // Calculate new dimensions
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        }));
+                    } else {
+                        reject(new Error('Failed to compress image'));
+                    }
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Handle image paste in textarea
+async function handleImagePaste(e, textarea) {
+    const items = e.clipboardData?.items;
+    console.log('📋 Paste detected, clipboard items:', items?.length || 0);
+    
+    if (!items) return false;
+    
+    for (const item of items) {
+        console.log('📋 Clipboard item type:', item.type);
+        
+        if (item.type.indexOf('image') !== -1) {
+            console.log('🖼️ Image detected in clipboard!');
+            e.preventDefault();
+            
+            const file = item.getAsFile();
+            if (!file) {
+                console.warn('⚠️ Could not get file from clipboard item');
+                continue;
+            }
+            
+            console.log('📁 Image file:', file.name, file.type, file.size, 'bytes');
+            
+            // Show loading indicator at cursor position
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(end);
+            textarea.value = before + '![Uploading...](uploading)' + after;
+            
+            try {
+                // Compress and upload
+                const compressed = await compressImage(file);
+                const photoData = await API.uploadPhoto(compressed);
+                
+                // Replace placeholder with actual image markdown
+                const uploadingText = '![Uploading...](uploading)';
+                const imageMarkdown = `![${file.name}](${photoData.url})`;
+                textarea.value = textarea.value.replace(uploadingText, imageMarkdown);
+                
+                // Trigger change event to update preview if needed
+                textarea.dispatchEvent(new Event('input'));
+                
+                console.log('✅ Image pasted and uploaded successfully');
+            } catch (error) {
+                console.error('❌ Failed to upload pasted image:', error);
+                // Remove placeholder on error
+                textarea.value = textarea.value.replace('![Uploading...](uploading)', '');
+                alert('Failed to upload image. Please try again.');
+            }
+            
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 // Sidebar toggle
@@ -1412,6 +1534,10 @@ document.addEventListener('click', (e) => {
         collectionsDropdown.classList.add('hidden');
     }
 });
+
+// Add paste handlers for image upload
+markdownTextarea.addEventListener('paste', (e) => handleImagePaste(e, markdownTextarea));
+menuMarkdownTextarea.addEventListener('paste', (e) => handleImagePaste(e, menuMarkdownTextarea));
 
 // backBtn.addEventListener('click', () => {
 //     if (currentCollectionId && currentView === 'recipe-detail') {
