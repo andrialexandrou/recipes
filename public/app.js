@@ -159,6 +159,22 @@ marked.setOptions({
     gfm: true
 });
 
+// Helper function to clean markdown content
+function cleanMarkdown(content) {
+    if (!content) return '';
+    
+    // Remove zero-width spaces and other invisible Unicode characters
+    let cleaned = content.replace(/[\u200B-\u200D\uFEFF]/g, '');
+    
+    // Remove BOM (Byte Order Mark)
+    cleaned = cleaned.replace(/^\uFEFF/, '');
+    
+    // Normalize whitespace at the start of lines (but preserve indentation)
+    cleaned = cleaned.replace(/^[\s\uFEFF]+(-|\d+\.)/gm, '$1');
+    
+    return cleaned;
+}
+
 // Sidebar toggle
 sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
@@ -541,7 +557,7 @@ function enterViewMode() {
     previewContent.classList.remove('hidden');
     
     titleDisplay.textContent = titleInput.value || 'Untitled';
-    previewContent.innerHTML = marked.parse(markdownTextarea.value || '');
+    previewContent.innerHTML = marked.parse(cleanMarkdown(markdownTextarea.value || ''));
 }
 
 // Show home view (collections)
