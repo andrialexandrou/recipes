@@ -1431,7 +1431,7 @@ body {
     .sidebar {
         position: absolute;
         height: 100vh;
-        z-index: 100;
+        z-index: 200;
     }
     
     .sidebar.collapsed {
