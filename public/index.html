@@ -3,9 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe Manager</title>
+    <title>Sous</title>
+    <link rel="icon" type="image/png" id="favicon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
+    <script>
+        // Set favicon based on environment
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        document.getElementById('favicon').href = isLocal ? '/favicon-dev.png' : '/favicon.png';
+    </script>
 </head>
 <body>
     <div class="sidebar" id="sidebar">
@@ -29,10 +38,16 @@
                     <i class="fa-solid fa-bars"></i>
                 </button>
                 <button class="navbar-home-btn" id="homeBtn" data-view="collections" aria-label="Go to home">
-                    <h1>Recipe Manager</h1>
+                    <h1>Sous</h1>
                 </button>
             </div>
             <div class="navbar-nav">
+                <button class="nav-btn" id="navCollectionsBtn" aria-label="Collections">
+                    <i class="fa-solid fa-folder"></i>
+                </button>
+                <button class="nav-btn" id="navMenusBtn" aria-label="Menus">
+                    <i class="fa-solid fa-utensils"></i>
+                </button>
                 <button class="nav-btn" id="navNewRecipeBtn" aria-label="New recipe">
                     <i class="fa-solid fa-plus"></i>
                 </button>
@@ -47,8 +62,23 @@
         
         <div class="content-area">
             <div id="homeView" class="view-section active">
-                <div id="emptyState" class="empty-state">
-                    Welcome! Select a recipe from the sidebar or browse collections.
+                <div class="home-section">
+                    <div class="collections-header">
+                        <h2>Collections</h2>
+                        <button class="new-collection-btn" id="newCollectionBtnHome" title="New Collection">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="collections-grid" id="collectionsGridHome"></div>
+                </div>
+                <div class="home-section">
+                    <div class="collections-header">
+                        <h2>Menus</h2>
+                        <button class="new-collection-btn" id="newMenuBtnHome" title="New Menu">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="collections-grid" id="menusGridHome"></div>
                 </div>
             </div>
             
@@ -71,6 +101,16 @@
                     </div>
                 </div>
                 <div class="collection-recipes" id="collectionRecipes"></div>
+            </div>
+            
+            <div id="menusView" class="view-section hidden">
+                <div class="collections-header">
+                    <h2>Menus</h2>
+                    <button class="new-collection-btn" id="newMenuBtn" title="New Menu">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                <div class="collections-grid" id="menusGrid"></div>
             </div>
             
             <div id="recipeDetailView" class="view-section hidden">
@@ -108,7 +148,41 @@
                                 <span class="metadata-empty">None</span>
                             </div>
                         </div>
+                        <div class="metadata-section">
+                            <div class="metadata-label">Menus</div>
+                            <div class="metadata-collections" id="metadataMenus">
+                                <span class="metadata-empty">None</span>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
+            
+            <div id="menuDetailView" class="view-section hidden">
+                <div class="recipe-header" id="menuHeader">
+                    <input 
+                        type="text" 
+                        class="title-input hidden" 
+                        id="menuTitleInput" 
+                        placeholder="Menu name..."
+                        aria-label="Menu name">
+                    <div class="title-display" id="menuTitleDisplay"></div>
+                </div>
+                <div class="menu-content">
+                    <input 
+                        type="text" 
+                        class="description-input hidden" 
+                        id="menuDescriptionInput" 
+                        placeholder="Brief description..."
+                        aria-label="Menu description"
+                        style="margin-bottom: 12px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    <div class="description-display" id="menuDescriptionDisplay" style="margin-bottom: 12px; font-size: 13px; color: #666;"></div>
+                    <textarea 
+                        class="markdown-textarea hidden" 
+                        id="menuMarkdownTextarea"
+                        placeholder="Write your menu in markdown..."
+                        aria-label="Menu content in markdown"></textarea>
+                    <div class="preview-content" id="menuPreviewContent"></div>
                 </div>
             </div>
         </div>
@@ -134,6 +208,17 @@
         <button id="saveBtn" title="Save"><i class="fa-solid fa-check"></i></button>
         <button id="cancelBtn" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
         <button class="delete-btn" id="deleteBtn2" title="Delete"><i class="fa-solid fa-trash"></i></button>
+    </div>
+
+    <div class="edit-controls view-mode hidden" id="menuEditControls">
+        <button id="menuEditBtn" title="Edit"><i class="fa-solid fa-pen"></i></button>
+        <button class="delete-btn" id="menuDeleteBtn" title="Delete"><i class="fa-solid fa-trash"></i></button>
+    </div>
+
+    <div class="edit-controls edit-mode hidden" id="menuEditModeControls">
+        <button id="menuSaveBtn" title="Save"><i class="fa-solid fa-check"></i></button>
+        <button id="menuCancelBtn" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+        <button class="delete-btn" id="menuDeleteBtn2" title="Delete"><i class="fa-solid fa-trash"></i></button>
     </div>
 
     <!-- Debug Modal -->

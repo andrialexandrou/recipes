@@ -999,11 +999,12 @@ body {
 }
 
 .navbar-brand h1 {
-    font-size: 14px;
-    font-weight: 400;
+    font-size: 18px;
+    font-weight: 500;
     color: #f9f7f4;
     margin: 0;
-    font-family: 'Georgia', 'Garamond', serif;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.5px;
 }
 
 .navbar-nav {
