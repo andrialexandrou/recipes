@@ -226,7 +226,7 @@ body {
 }
 
 .content-wrapper {
-    max-width: 800px;
+    max-width: calc(100% - 260px);
     position: relative;
     min-height: 500px;
 }
@@ -1065,7 +1065,7 @@ body {
     flex: 1;
     padding: 40px;
     background: #fcfbf9;
-    overflow: auto;
+    overflow-y: scroll;
 }
 
 .view-section {
@@ -1329,6 +1329,75 @@ body {
 
 .recipe-container {
     margin-top: 20px;
+    position: relative;
+}
+
+.content-wrapper {
+    max-width: calc(100% - 260px);
+    position: relative;
+    min-height: 500px;
+}
+
+.recipe-metadata {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 200px;
+    background: #f9f7f4;
+    border: 1px solid #e5e0d8;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.metadata-section {
+    margin-bottom: 20px;
+}
+
+.metadata-section:last-child {
+    margin-bottom: 0;
+}
+
+.metadata-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8b7d6b;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.metadata-value {
+    font-size: 13px;
+    color: #5a5a5a;
+    font-family: 'Georgia', serif;
+}
+
+.metadata-collections {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metadata-collection-tag {
+    font-size: 13px;
+    color: #8b7d6b;
+    background: transparent;
+    padding: 0;
+    border: none;
+    font-family: 'Georgia', serif;
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.metadata-collection-tag:hover {
+    color: #6b5d4f;
+}
+
+.metadata-empty {
+    font-size: 13px;
+    color: #999;
+    font-style: italic;
 }
 
 /* Back button */
@@ -1370,7 +1439,7 @@ body {
     }
     
     .content-area {
-        padding: 20px 16px;
+        padding: 20px 16px 100px 16px;
     }
     
     .recipe-header {
@@ -1400,5 +1469,28 @@ body {
     
     .collections-header {
         margin-bottom: 24px;
+    }
+    
+    .content-wrapper {
+        max-width: 100%;
+    }
+    
+    .recipe-metadata {
+        position: static;
+        width: 100%;
+        margin-top: 24px;
+    }
+}
+
+/* Medium screens - metadata below when sidebar is open */
+@media (min-width: 769px) and (max-width: 1200px) {
+    .sidebar:not(.collapsed) ~ .main-content .content-wrapper {
+        max-width: 100%;
+    }
+    
+    .sidebar:not(.collapsed) ~ .main-content .recipe-metadata {
+        position: static;
+        width: 100%;
+        margin-top: 24px;
     }
 }

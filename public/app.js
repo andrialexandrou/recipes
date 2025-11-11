@@ -149,6 +149,11 @@ const breadcrumb = document.getElementById('breadcrumb');
 const collectionCheckboxes = document.getElementById('collectionCheckboxes');
 const collectionsDropdown = document.getElementById('collectionsDropdown');
 
+// Metadata elements
+const metadataCreated = document.getElementById('metadataCreated');
+const metadataEdited = document.getElementById('metadataEdited');
+const metadataCollections = document.getElementById('metadataCollections');
+
 // Markdown configuration
 marked.setOptions({
     breaks: true,
@@ -526,10 +531,44 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
     }
     
     enterViewMode();
+    updateRecipeMetadata(recipe);
     renderRecipeList(filterInput.value);
     
     if (updateUrl) {
         updateURL('recipe', id);
+    }
+}
+
+// Update recipe metadata display
+function updateRecipeMetadata(recipe) {
+    // Format dates
+    const formatDate = (timestamp) => {
+        if (!timestamp) return '—';
+        const date = new Date(timestamp);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    };
+    
+    // Update created date
+    metadataCreated.textContent = formatDate(recipe.createdAt);
+    
+    // Update edited date
+    metadataEdited.textContent = formatDate(recipe.updatedAt);
+    
+    // Update collections
+    const recipeCollections = collections.filter(c => 
+        c.recipeIds && c.recipeIds.includes(recipe.id)
+    );
+    
+    if (recipeCollections.length === 0) {
+        metadataCollections.innerHTML = '<span class="metadata-empty">None</span>';
+    } else {
+        metadataCollections.innerHTML = recipeCollections
+            .map(c => `<div class="metadata-collection-tag">${escapeHtml(c.name)}</div>`)
+            .join('');
     }
 }
 
@@ -659,6 +698,7 @@ async function saveCurrentRecipe() {
         recipe.updatedAt = new Date().toISOString();
         
         enterViewMode();
+        updateRecipeMetadata(recipe);
         renderRecipeList(filterInput.value);
         updateURL('recipe', currentRecipeId);
     } catch (error) {
@@ -754,6 +794,12 @@ async function handleCollectionToggle(collectionId, isChecked) {
             console.log('🔄 Removing recipe from collection:', col.name);
             await API.updateCollection(col.id, col);
             console.log('✅ Successfully removed recipe from collection');
+        }
+        
+        // Update metadata sidebar
+        const currentRecipe = recipes.find(r => r.id === currentRecipeId);
+        if (currentRecipe) {
+            updateRecipeMetadata(currentRecipe);
         }
         
         renderRecipeList(filterInput.value);
