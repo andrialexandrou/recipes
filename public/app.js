@@ -567,7 +567,7 @@ function updateRecipeMetadata(recipe) {
         metadataCollections.innerHTML = '<span class="metadata-empty">None</span>';
     } else {
         metadataCollections.innerHTML = recipeCollections
-            .map(c => `<div class="metadata-collection-tag">${escapeHtml(c.name)}</div>`)
+            .map(c => `<div class="metadata-collection-tag" onclick="loadCollectionDetail('${c.id}')">${escapeHtml(c.name)}</div>`)
             .join('');
     }
 }
