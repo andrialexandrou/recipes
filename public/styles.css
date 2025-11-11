@@ -1085,6 +1085,14 @@ body {
     font-style: italic;
 }
 
+.home-section {
+    margin-bottom: 48px;
+}
+
+.home-section:last-child {
+    margin-bottom: 0;
+}
+
 /* Collections view */
 .collections-header {
     display: flex;
@@ -1281,6 +1289,53 @@ body {
     overflow: hidden;
 }
 
+.collection-card-compact {
+    padding: 16px;
+    min-height: 120px;
+}
+
+.collection-card-compact .collection-card-title {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.collection-card-compact .collection-card-count {
+    font-size: 11px;
+}
+
+.collection-card-compact .collection-card-description {
+    font-size: 13px;
+    margin-bottom: 0;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.collection-card-view-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9f7f4;
+    border: 2px dashed #d9d4cb;
+}
+
+.collection-card-view-all:hover {
+    background: #f5f3f0;
+    border-color: #c9c4bb;
+}
+
+.view-all-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #8b7d6b;
+    font-size: 13px;
+}
+
+.view-all-content i {
+    font-size: 20px;
+}
+
 .collection-card-footer {
     display: flex;
     justify-content: flex-end;
@@ -1336,6 +1391,25 @@ body {
     max-width: calc(100% - 260px);
     position: relative;
     min-height: 500px;
+}
+
+.menu-content {
+    margin-top: 20px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    min-height: 500px;
+}
+
+.menu-content .markdown-textarea {
+    position: static;
+    width: 100%;
+    height: 500px;
+}
+
+.menu-content .preview-content {
+    max-width: 100%;
 }
 
 .recipe-metadata {

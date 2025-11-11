@@ -94,16 +94,56 @@ const API = {
             method: 'DELETE'
         });
         return this.handleResponse(res);
+    },
+    
+    // Menu API methods
+    async getMenus() {
+        console.log('🔄 Fetching menus...');
+        const res = await fetch('/api/menus');
+        const data = await this.handleResponse(res);
+        console.log('✅ Received menus:', data.length, 'items');
+        return data;
+    },
+    
+    async createMenu(data) {
+        console.log('🔄 Creating menu:', data);
+        const res = await fetch('/api/menus', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return this.handleResponse(res);
+    },
+    
+    async updateMenu(id, data) {
+        console.log('🔄 Updating menu:', id, data);
+        const res = await fetch(`/api/menus/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return this.handleResponse(res);
+    },
+    
+    async deleteMenu(id) {
+        console.log('🔄 Deleting menu:', id);
+        const res = await fetch(`/api/menus/${id}`, {
+            method: 'DELETE'
+        });
+        return this.handleResponse(res);
     }
 };
 
 // Data management
 let recipes = [];
 let collections = [];
+let menus = [];
 let currentRecipeId = null;
 let currentCollectionId = null;
-let currentView = 'home'; // home, collections, collection-detail, recipe-detail
+let currentMenuId = null;
+let currentView = 'home'; // home, collections, collection-detail, recipe-detail, menus, menu-detail
 let isEditMode = true;
+let isMenuEditMode = false;
 
 // DOM elements
 const sidebar = document.getElementById('sidebar');
@@ -119,15 +159,26 @@ const homeBtn = document.getElementById('homeBtn');
 const homeView = document.getElementById('homeView');
 const collectionsView = document.getElementById('collectionsView');
 const collectionDetailView = document.getElementById('collectionDetailView');
+const menusView = document.getElementById('menusView');
 const recipeDetailView = document.getElementById('recipeDetailView');
 const emptyState = document.getElementById('emptyState');
 
 // Collections elements
 const collectionsGrid = document.getElementById('collectionsGrid');
+const collectionsGridHome = document.getElementById('collectionsGridHome');
 const newCollectionBtn = document.getElementById('newCollectionBtn');
+const newCollectionBtnHome = document.getElementById('newCollectionBtnHome');
+const navCollectionsBtn = document.getElementById('navCollectionsBtn');
 const collectionTitle = document.getElementById('collectionTitle');
 const collectionDescription = document.getElementById('collectionDescription');
 const collectionRecipes = document.getElementById('collectionRecipes');
+
+// Menus elements
+const menusGrid = document.getElementById('menusGrid');
+const menusGridHome = document.getElementById('menusGridHome');
+const newMenuBtn = document.getElementById('newMenuBtn');
+const newMenuBtnHome = document.getElementById('newMenuBtnHome');
+const navMenusBtn = document.getElementById('navMenusBtn');
 
 // Recipe elements
 const titleInput = document.getElementById('titleInput');
@@ -149,10 +200,27 @@ const breadcrumb = document.getElementById('breadcrumb');
 const collectionCheckboxes = document.getElementById('collectionCheckboxes');
 const collectionsDropdown = document.getElementById('collectionsDropdown');
 
+// Menu detail elements
+const menuDetailView = document.getElementById('menuDetailView');
+const menuTitleInput = document.getElementById('menuTitleInput');
+const menuTitleDisplay = document.getElementById('menuTitleDisplay');
+const menuDescriptionInput = document.getElementById('menuDescriptionInput');
+const menuDescriptionDisplay = document.getElementById('menuDescriptionDisplay');
+const menuMarkdownTextarea = document.getElementById('menuMarkdownTextarea');
+const menuPreviewContent = document.getElementById('menuPreviewContent');
+const menuEditControls = document.getElementById('menuEditControls');
+const menuEditModeControls = document.getElementById('menuEditModeControls');
+const menuEditBtn = document.getElementById('menuEditBtn');
+const menuSaveBtn = document.getElementById('menuSaveBtn');
+const menuCancelBtn = document.getElementById('menuCancelBtn');
+const menuDeleteBtn = document.getElementById('menuDeleteBtn');
+const menuDeleteBtn2 = document.getElementById('menuDeleteBtn2');
+
 // Metadata elements
 const metadataCreated = document.getElementById('metadataCreated');
 const metadataEdited = document.getElementById('metadataEdited');
 const metadataCollections = document.getElementById('metadataCollections');
+const metadataMenus = document.getElementById('metadataMenus');
 
 // Markdown configuration
 marked.setOptions({
@@ -209,10 +277,7 @@ document.addEventListener('click', (e) => {
 
 // Navigation
 homeBtn.addEventListener('click', () => {
-    switchToView('collections');
-    currentRecipeId = null;
-    currentCollectionId = null;
-    updateURL(null, null);
+    showHomeView();
 });
 
 // Navigation system
@@ -236,11 +301,23 @@ function switchToView(viewName) {
             collectionsView.classList.add('active');
             homeBtn.classList.add('active');
             renderCollectionsGrid();
+            history.pushState({ type: 'collections' }, '', '/collections');
             break;
         case 'collection-detail':
             collectionDetailView.classList.remove('hidden');
             collectionDetailView.classList.add('active');
             homeBtn.classList.add('active');
+            break;
+        case 'menus':
+            menusView.classList.remove('hidden');
+            menusView.classList.add('active');
+            navMenusBtn.classList.add('active');
+            renderMenusGrid();
+            history.pushState({ type: 'menus' }, '', '/menus');
+            break;
+        case 'menu-detail':
+            menuDetailView.classList.remove('hidden');
+            menuDetailView.classList.add('active');
             break;
         case 'recipe-detail':
             recipeDetailView.classList.remove('hidden');
@@ -275,29 +352,52 @@ function updateURL(type, id) {
         if (!collection) return;
         const slug = slugify(collection.name);
         history.pushState({ type: 'collection', id }, '', `/collection/${slug}-${id}`);
+    } else if (type === 'menu') {
+        const menu = menus.find(m => m.id === id);
+        if (!menu) return;
+        const slug = slugify(menu.name);
+        history.pushState({ type: 'menu', id }, '', `/menu/${slug}-${id}`);
     }
 }
 
 function loadFromURL() {
     const path = window.location.pathname;
+    console.log('🔗 Loading from URL:', path);
     
     const recipeMatch = path.match(/^\/recipe\/.+-([a-zA-Z0-9]+)$/);
     const collectionMatch = path.match(/^\/collection\/.+-([a-zA-Z0-9]+)$/);
+    const menuMatch = path.match(/^\/menu\/.+-([a-zA-Z0-9]+)$/);
     
     if (recipeMatch) {
         const id = recipeMatch[1];
         const recipe = recipes.find(r => r.id === id);
         if (recipe) {
             loadRecipe(id, false);
+        } else {
+            console.warn('⚠️ Recipe not found:', id);
         }
     } else if (collectionMatch) {
         const id = collectionMatch[1];
         const collection = collections.find(c => c.id === id);
         if (collection) {
             loadCollectionDetail(id, false);
+        } else {
+            console.warn('⚠️ Collection not found:', id);
+        }
+    } else if (menuMatch) {
+        const id = menuMatch[1];
+        console.log('🍽️ Menu match found, ID:', id, 'Available menus:', menus.length);
+        const menu = menus.find(m => m.id === id);
+        if (menu) {
+            console.log('✅ Menu found, loading:', menu.name);
+            loadMenuDetail(id, false);
+        } else {
+            console.warn('⚠️ Menu not found:', id, 'Available menu IDs:', menus.map(m => m.id));
         }
     } else if (path === '/collections') {
         switchToView('collections');
+    } else if (path === '/menus') {
+        switchToView('menus');
     } else {
         showHomeView();
     }
@@ -309,11 +409,19 @@ window.addEventListener('popstate', (e) => {
             loadRecipe(e.state.id, false);
         } else if (e.state.type === 'collection') {
             loadCollectionDetail(e.state.id, false);
+        } else if (e.state.type === 'collections') {
+            switchToView('collections');
+        } else if (e.state.type === 'menu') {
+            loadMenuDetail(e.state.id, false);
+        } else if (e.state.type === 'menus') {
+            switchToView('menus');
         }
     } else {
         const path = window.location.pathname;
         if (path === '/collections') {
             switchToView('collections');
+        } else if (path === '/menus') {
+            switchToView('menus');
         } else {
             showHomeView();
         }
@@ -364,6 +472,129 @@ function renderCollectionsGrid() {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 loadCollectionDetail(card.dataset.id);
+            }
+        });
+    });
+}
+
+// Render menus grid
+function renderMenusGrid() {
+    menusGrid.innerHTML = menus.map(menu => {
+        const recipeCount = menu.recipeIds ? menu.recipeIds.length : 0;
+        return `
+            <div class="collection-card" data-id="${menu.id}" tabindex="0">
+                <div class="collection-card-header">
+                    <div class="collection-card-info">
+                        <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
+                        <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
+                    </div>
+                    <div class="collection-card-actions">
+                        <button onclick="event.stopPropagation(); loadMenuDetail('${menu.id}'); enterMenuEditMode();" class="collection-action-btn" title="Edit menu">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteMenu('${menu.id}')" class="collection-action-btn" title="Delete menu">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3,6 5,6 21,6"></polyline>
+                                <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <p class="collection-card-description">${escapeHtml(menu.description || 'No description')}</p>
+            </div>
+        `;
+    }).join('');
+
+    // Add click listeners
+    menusGrid.querySelectorAll('.collection-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                loadMenuDetail(card.dataset.id);
+            }
+        });
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loadMenuDetail(card.dataset.id);
+            }
+        });
+    });
+}
+
+function renderCollectionsGridHome() {
+    const limitedCollections = collections.slice(0, 4);
+    collectionsGridHome.innerHTML = limitedCollections.map(col => {
+        const recipeCount = col.recipeIds ? col.recipeIds.length : 0;
+        return `
+            <div class="collection-card collection-card-compact" data-id="${col.id}" tabindex="0">
+                <div class="collection-card-info">
+                    <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
+                    <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
+                </div>
+                <p class="collection-card-description">${escapeHtml(col.description || 'No description')}</p>
+            </div>
+        `;
+    }).join('');
+    
+    if (collections.length > 4) {
+        collectionsGridHome.innerHTML += `
+            <div class="collection-card collection-card-compact collection-card-view-all" onclick="switchToView('collections')" tabindex="0">
+                <div class="view-all-content">
+                    <i class="fa-solid fa-arrow-right"></i>
+                    <span>View all ${collections.length} collections</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    collectionsGridHome.querySelectorAll('.collection-card:not(.collection-card-view-all)').forEach(card => {
+        card.addEventListener('click', () => loadCollectionDetail(card.dataset.id));
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loadCollectionDetail(card.dataset.id);
+            }
+        });
+    });
+}
+
+function renderMenusGridHome() {
+    const limitedMenus = menus.slice(0, 4);
+    menusGridHome.innerHTML = limitedMenus.map(menu => {
+        const recipeCount = menu.recipeIds ? menu.recipeIds.length : 0;
+        return `
+            <div class="collection-card collection-card-compact" data-id="${menu.id}" tabindex="0">
+                <div class="collection-card-info">
+                    <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
+                    <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
+                </div>
+                <p class="collection-card-description">${escapeHtml(menu.description || 'No description')}</p>
+            </div>
+        `;
+    }).join('');
+    
+    if (menus.length > 4) {
+        menusGridHome.innerHTML += `
+            <div class="collection-card collection-card-compact collection-card-view-all" onclick="switchToView('menus')" tabindex="0">
+                <div class="view-all-content">
+                    <i class="fa-solid fa-arrow-right"></i>
+                    <span>View all ${menus.length} menus</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    menusGridHome.querySelectorAll('.collection-card:not(.collection-card-view-all)').forEach(card => {
+        card.addEventListener('click', () => loadMenuDetail(card.dataset.id));
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loadMenuDetail(card.dataset.id);
             }
         });
     });
@@ -570,6 +801,19 @@ function updateRecipeMetadata(recipe) {
             .map(c => `<div class="metadata-collection-tag" onclick="loadCollectionDetail('${c.id}')">${escapeHtml(c.name)}</div>`)
             .join('');
     }
+    
+    // Update menus
+    const recipeMenus = menus.filter(m => 
+        m.recipeIds && m.recipeIds.includes(recipe.id)
+    );
+    
+    if (recipeMenus.length === 0) {
+        metadataMenus.innerHTML = '<span class="metadata-empty">None</span>';
+    } else {
+        metadataMenus.innerHTML = recipeMenus
+            .map(m => `<div class="metadata-collection-tag" onclick="loadMenuDetail('${m.id}')">${escapeHtml(m.name)}</div>`)
+            .join('');
+    }
 }
 
 // Switch to edit mode
@@ -607,16 +851,30 @@ function enterViewMode() {
 
 // Show home view (collections)
 function showHomeView() {
-    switchToView('collections');
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    homeView.classList.remove('hidden');
+    homeView.classList.add('active');
+    
     currentRecipeId = null;
     currentCollectionId = null;
+    currentMenuId = null;
+    
+    // Render both collections and menus on home
+    renderCollectionsGridHome();
+    renderMenusGridHome();
+    
+    updateURL(null, null);
 }
 
 // Load all data
 async function loadAllData() {
     console.log('🚀 Loading all data...');
     try {
-        const [recipesData, collectionsData] = await Promise.all([
+        const [recipesData, collectionsData, menusData] = await Promise.all([
             API.getRecipes().catch(err => {
                 console.error('❌ Failed to load recipes:', err.message);
                 return [];
@@ -624,18 +882,23 @@ async function loadAllData() {
             API.getCollections().catch(err => {
                 console.error('❌ Failed to load collections:', err.message);
                 return [];
+            }),
+            API.getMenus().catch(err => {
+                console.error('❌ Failed to load menus:', err.message);
+                return [];
             })
         ]);
         
         recipes = recipesData;
         collections = collectionsData;
+        menus = menusData;
         
-        console.log('📊 Data loaded - Recipes:', recipes.length, 'Collections:', collections.length);
+        console.log('📊 Data loaded - Recipes:', recipes.length, 'Collections:', collections.length, 'Menus:', menus.length);
         
         renderRecipeList();
         loadFromURL();
         
-        if (!currentRecipeId && !currentCollectionId) {
+        if (!currentRecipeId && !currentCollectionId && !currentMenuId) {
             showHomeView();
         }
     } catch (error) {
@@ -915,6 +1178,169 @@ async function removeRecipeFromCollection(collectionId, recipeId) {
     }
 }
 
+// === MENU FUNCTIONS ===
+
+async function createNewMenu() {
+    try {
+        const newMenu = await API.createMenu({ 
+            name: 'Untitled Menu', 
+            description: '', 
+            content: '', 
+            recipeIds: [] 
+        });
+        menus.unshift(newMenu);
+        loadMenuDetail(newMenu.id);
+        enterMenuEditMode();
+    } catch (error) {
+        console.error('Error creating menu:', error);
+        alert('Error creating menu');
+    }
+}
+
+function loadMenuDetail(menuId, updateHistory = true) {
+    const menu = menus.find(m => m.id === menuId);
+    if (!menu) {
+        console.error('Menu not found:', menuId);
+        return;
+    }
+    
+    currentMenuId = menuId;
+    currentView = 'menu-detail';
+    
+    if (updateHistory) {
+        updateURL('menu', menuId);
+    }
+    
+    switchToView('menu-detail');
+    
+    // Populate display elements
+    menuTitleDisplay.textContent = menu.name;
+    menuDescriptionDisplay.textContent = menu.description || '';
+    menuPreviewContent.innerHTML = marked.parse(cleanMarkdown(menu.content || ''));
+    
+    // Populate edit elements
+    menuTitleInput.value = menu.name;
+    menuDescriptionInput.value = menu.description || '';
+    menuMarkdownTextarea.value = menu.content || '';
+    
+    // Show view mode controls
+    menuEditControls.classList.remove('hidden');
+    menuEditModeControls.classList.add('hidden');
+    
+    // Exit edit mode
+    isMenuEditMode = false;
+    menuTitleDisplay.classList.remove('hidden');
+    menuTitleInput.classList.add('hidden');
+    menuDescriptionDisplay.classList.remove('hidden');
+    menuDescriptionInput.classList.add('hidden');
+    menuPreviewContent.classList.remove('hidden');
+    menuMarkdownTextarea.classList.add('hidden');
+}
+
+function enterMenuEditMode() {
+    isMenuEditMode = true;
+    
+    menuTitleDisplay.classList.add('hidden');
+    menuTitleInput.classList.remove('hidden');
+    menuDescriptionDisplay.classList.add('hidden');
+    menuDescriptionInput.classList.remove('hidden');
+    menuPreviewContent.classList.add('hidden');
+    menuMarkdownTextarea.classList.remove('hidden');
+    
+    menuEditControls.classList.add('hidden');
+    menuEditModeControls.classList.remove('hidden');
+    
+    menuTitleInput.focus();
+}
+
+function exitMenuEditMode() {
+    const menu = menus.find(m => m.id === currentMenuId);
+    if (!menu) return;
+    
+    isMenuEditMode = false;
+    
+    // Revert to saved values
+    menuTitleInput.value = menu.name;
+    menuDescriptionInput.value = menu.description || '';
+    menuMarkdownTextarea.value = menu.content || '';
+    
+    menuTitleDisplay.classList.remove('hidden');
+    menuTitleInput.classList.add('hidden');
+    menuDescriptionDisplay.classList.remove('hidden');
+    menuDescriptionInput.classList.add('hidden');
+    menuPreviewContent.classList.remove('hidden');
+    menuMarkdownTextarea.classList.add('hidden');
+    
+    menuEditControls.classList.remove('hidden');
+    menuEditModeControls.classList.add('hidden');
+}
+
+async function saveMenuChanges() {
+    const menu = menus.find(m => m.id === currentMenuId);
+    if (!menu) return;
+    
+    const name = menuTitleInput.value.trim();
+    const description = menuDescriptionInput.value.trim();
+    const content = menuMarkdownTextarea.value;
+    
+    if (!name) {
+        alert('Please enter a menu name');
+        menuTitleInput.focus();
+        return;
+    }
+    
+    try {
+        await API.updateMenu(currentMenuId, { name, description, content });
+        
+        menu.name = name;
+        menu.description = description;
+        menu.content = content;
+        
+        menuTitleDisplay.textContent = name;
+        menuDescriptionDisplay.textContent = description;
+        menuPreviewContent.innerHTML = marked.parse(cleanMarkdown(content));
+        
+        exitMenuEditMode();
+    } catch (error) {
+        console.error('Error saving menu:', error);
+        alert('Error saving menu');
+    }
+}
+
+async function deleteMenu(menuId) {
+    const menu = menus.find(m => m.id === menuId);
+    if (!menu) {
+        alert('Menu not found');
+        return;
+    }
+    
+    const recipeCount = menu.recipeIds ? menu.recipeIds.length : 0;
+    const confirmMessage = recipeCount > 0 
+        ? `Are you sure you want to delete "${menu.name}"? This will remove ${recipeCount} recipe${recipeCount !== 1 ? 's' : ''} from this menu (the recipes themselves will not be deleted).`
+        : `Are you sure you want to delete "${menu.name}"?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    try {
+        await API.deleteMenu(menuId);
+        console.log('✅ Menu deleted successfully');
+        
+        // Update local menus array
+        const index = menus.findIndex(m => m.id === menuId);
+        if (index !== -1) {
+            menus.splice(index, 1);
+        }
+        
+        // Refresh the menus view
+        renderMenusGrid();
+    } catch (error) {
+        console.error('❌ Error deleting menu:', error);
+        alert(`Error deleting menu: ${error.message}`);
+    }
+}
+
 // Utilities
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -951,6 +1377,16 @@ if (navNewRecipeBtn) {
     navNewRecipeBtn.addEventListener('click', createNewRecipe);
 }
 newCollectionBtn.addEventListener('click', createNewCollection);
+newCollectionBtnHome.addEventListener('click', createNewCollection);
+navCollectionsBtn.addEventListener('click', () => switchToView('collections'));
+newMenuBtn.addEventListener('click', createNewMenu);
+newMenuBtnHome.addEventListener('click', createNewMenu);
+navMenusBtn.addEventListener('click', () => switchToView('menus'));
+menuEditBtn.addEventListener('click', enterMenuEditMode);
+menuSaveBtn.addEventListener('click', saveMenuChanges);
+menuCancelBtn.addEventListener('click', exitMenuEditMode);
+menuDeleteBtn.addEventListener('click', () => deleteMenu(currentMenuId));
+menuDeleteBtn2.addEventListener('click', () => deleteMenu(currentMenuId));
 editBtn.addEventListener('click', enterEditMode);
 saveBtn.addEventListener('click', saveCurrentRecipe);
 deleteBtn.addEventListener('click', deleteCurrentRecipe);
@@ -1007,22 +1443,32 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         if (isEditMode && currentRecipeId) {
             saveCurrentRecipe();
+        } else if (isMenuEditMode && currentMenuId) {
+            saveMenuChanges();
         }
     }
     
     // N - New recipe (when not typing)
-    if ((e.key === 'n' || e.key === 'N') && !isTyping && !isEditMode) {
+    if ((e.key === 'n' || e.key === 'N') && !isTyping && !isEditMode && !isMenuEditMode) {
         e.preventDefault();
         createNewRecipe();
     }
     
-    // E - Edit recipe (when not typing)
-    if ((e.key === 'e' || e.key === 'E') && !isTyping && currentRecipeId) {
+    // E - Edit recipe or menu (when not typing)
+    if ((e.key === 'e' || e.key === 'E') && !isTyping) {
         e.preventDefault();
-        if (isEditMode) {
-            saveCurrentRecipe();
-        } else {
-            enterEditMode();
+        if (currentRecipeId) {
+            if (isEditMode) {
+                saveCurrentRecipe();
+            } else {
+                enterEditMode();
+            }
+        } else if (currentMenuId) {
+            if (isMenuEditMode) {
+                saveMenuChanges();
+            } else {
+                enterMenuEditMode();
+            }
         }
     }
     
@@ -1036,6 +1482,8 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (isEditMode && currentRecipeId) {
             enterViewMode();
+        } else if (isMenuEditMode && currentMenuId) {
+            exitMenuEditMode();
         } else if (!collectionsDropdown.classList.contains('hidden')) {
             collectionsDropdown.classList.add('hidden');
         }

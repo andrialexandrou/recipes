@@ -190,6 +190,7 @@ let collections = [
     { id: '3', name: 'Quick Dinners', description: '30 minutes or less from start to finish', recipeIds: [] },
     { id: '4', name: 'Potluck Friendly', description: 'Crowd-pleasers that travel well', recipeIds: [] }
 ];
+let menus = [];
 
 // API Routes
 
@@ -707,6 +708,169 @@ app.delete('/api/collections/:id/recipes/:recipeId', async (req, res) => {
         }
     } catch (error) {
         console.error('Error removing recipe from collection:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ==================== MENUS ROUTES ====================
+
+// Get all menus
+app.get('/api/menus', async (req, res) => {
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const querySnapshot = await db.collection('menus').get();
+                const data = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                console.log(`🔥 Retrieved ${data.length} menus from Firebase`);
+                res.json(data);
+            } catch (firebaseError) {
+                console.error('❌ Firebase menus fetch failed:', firebaseError.message);
+                disableFirebaseMode('Menus fetch failed: ' + firebaseError.message);
+                res.json(menus);
+            }
+        } else {
+            console.log('📝 Retrieved menus from memory storage');
+            res.json(menus);
+        }
+    } catch (error) {
+        console.error('Error fetching menus:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create menu
+app.post('/api/menus', async (req, res) => {
+    try {
+        const { name, description, content, recipeIds } = req.body;
+        
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const newMenu = {
+                    name: name || '',
+                    description: description || '',
+                    content: content || '',
+                    recipeIds: recipeIds || [],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                const docRef = await db.collection('menus').add(newMenu);
+                const result = { id: docRef.id, ...newMenu };
+                console.log('🔥 Menu created in Firebase:', docRef.id);
+                res.json(result);
+            } catch (firebaseError) {
+                console.error('❌ Firebase menu creation failed:', firebaseError.message);
+                disableFirebaseMode('Menu creation failed: ' + firebaseError.message);
+                const newMenu = {
+                    id: Date.now().toString(),
+                    name: name || '',
+                    description: description || '',
+                    content: content || '',
+                    recipeIds: recipeIds || [],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                menus.push(newMenu);
+                console.log('📝 Menu created in memory storage:', newMenu.id);
+                res.json(newMenu);
+            }
+        } else {
+            const newMenu = {
+                id: Date.now().toString(),
+                name: name || '',
+                description: description || '',
+                content: content || '',
+                recipeIds: recipeIds || [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            menus.push(newMenu);
+            console.log('📝 Menu created in memory storage:', newMenu.id);
+            res.json(newMenu);
+        }
+    } catch (error) {
+        console.error('Error creating menu:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update menu
+app.put('/api/menus/:id', async (req, res) => {
+    try {
+        const { name, description, content, recipeIds } = req.body;
+        
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const docRef = db.collection('menus').doc(req.params.id);
+                const updates = { 
+                    name, 
+                    description, 
+                    content,
+                    recipeIds: recipeIds || [],
+                    updatedAt: new Date().toISOString()
+                };
+                await docRef.update(updates);
+                console.log('🔥 Menu updated in Firebase:', req.params.id);
+                res.json({ id: req.params.id, ...updates });
+            } catch (firebaseError) {
+                console.error('❌ Firebase menu update failed:', firebaseError.message);
+                disableFirebaseMode('Menu update failed: ' + firebaseError.message);
+                const menu = menus.find(m => m.id === req.params.id);
+                if (!menu) {
+                    return res.status(404).json({ error: 'Menu not found' });
+                }
+                Object.assign(menu, { name, description, content, recipeIds, updatedAt: new Date().toISOString() });
+                console.log('📝 Menu updated in memory storage:', req.params.id);
+                res.json(menu);
+            }
+        } else {
+            const menu = menus.find(m => m.id === req.params.id);
+            if (!menu) {
+                return res.status(404).json({ error: 'Menu not found' });
+            }
+            Object.assign(menu, { name, description, content, recipeIds, updatedAt: new Date().toISOString() });
+            console.log('📝 Menu updated in memory storage:', req.params.id);
+            res.json(menu);
+        }
+    } catch (error) {
+        console.error('Error updating menu:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete menu
+app.delete('/api/menus/:id', async (req, res) => {
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                await db.collection('menus').doc(req.params.id).delete();
+                console.log('🔥 Menu deleted from Firebase:', req.params.id);
+                res.json({ success: true });
+            } catch (firebaseError) {
+                console.error('❌ Firebase menu deletion failed:', firebaseError.message);
+                disableFirebaseMode('Menu deletion failed: ' + firebaseError.message);
+                const index = menus.findIndex(m => m.id === req.params.id);
+                if (index === -1) {
+                    return res.status(404).json({ error: 'Menu not found' });
+                }
+                menus.splice(index, 1);
+                console.log('📝 Menu deleted from memory storage:', req.params.id);
+                res.json({ success: true });
+            }
+        } else {
+            const index = menus.findIndex(m => m.id === req.params.id);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Menu not found' });
+            }
+            menus.splice(index, 1);
+            console.log('📝 Menu deleted from memory storage:', req.params.id);
+            res.json({ success: true });
+        }
+    } catch (error) {
+        console.error('Error deleting menu:', error);
         res.status(500).json({ error: error.message });
     }
 });
