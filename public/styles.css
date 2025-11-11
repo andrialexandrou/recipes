@@ -151,7 +151,7 @@ body {
     padding: 10px 12px;
     border: 1px solid #e5e0d8;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 13px;
     font-family: 'Georgia', serif;
     background: white;
     color: #2d2d2d;
@@ -166,7 +166,7 @@ body {
 .title-display {
     flex: 1;
     padding: 10px 12px;
-    font-size: 20px;
+    font-size: 18px;
     font-family: 'Georgia', serif;
     color: #3d3d3d;
     font-style: italic;
@@ -227,7 +227,6 @@ body {
 
 .content-wrapper {
     max-width: 800px;
-    margin: 0 auto;
     position: relative;
     min-height: 500px;
 }
@@ -238,7 +237,7 @@ body {
     padding: 40px;
     border: none;
     font-family: 'Georgia', serif;
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.8;
     resize: none;
     background: #fcfbf9;
@@ -586,7 +585,7 @@ body {
 }
 
 .collection-title-section h1 {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: normal;
     font-style: italic;
     color: #5a5a5a;
@@ -667,7 +666,7 @@ body {
 
 .breadcrumb-separator {
     color: #bbb;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .breadcrumb-current {
@@ -843,7 +842,7 @@ body {
 }
 
 .collections-dropdown-header {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: #5a5a5a;
     padding: 12px 16px;
@@ -879,7 +878,7 @@ body {
 
 .collection-checkbox label {
     font-family: 'Georgia', serif;
-    font-size: 15px;
+    font-size: 13px;
     color: #5a5a5a;
     cursor: pointer;
     flex: 1;
@@ -1295,7 +1294,7 @@ body {
 }
 
 .collection-title {
-    font-size: 36px;
+    font-size: 24px;
     font-weight: 400;
     color: #2d2d2d;
     margin: 12px 0 8px 0;
@@ -1318,7 +1317,7 @@ body {
     padding: 60px 20px;
     color: #7a7a7a;
     font-style: italic;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 /* Recipe detail view */
