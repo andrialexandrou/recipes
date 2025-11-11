@@ -810,6 +810,7 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    outline: none;
 }
 
 .modal-content {
@@ -942,6 +943,59 @@ body {
     flex-direction: column;
     flex: 1;
     overflow: hidden;
+}
+
+/* Keyboard Shortcuts Modal */
+.shortcuts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin: 20px 0;
+}
+
+.shortcut-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #5a5a5a;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e0d8;
+}
+
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    gap: 16px;
+}
+
+.shortcut-keys {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    color: #5a5a5a;
+}
+
+.shortcut-keys kbd {
+    background: #f4f1ec;
+    border: 1px solid #d9d4cb;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    color: #5a5a5a;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.shortcut-desc {
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    color: #7a7066;
+    flex: 1;
+    text-align: right;
 }
 
 /* Navbar - minimal and elegant */

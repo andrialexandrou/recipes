@@ -36,6 +36,9 @@
                 <button class="nav-btn active" id="homeBtn" data-view="collections">
                     <i class="fa-solid fa-home"></i> Home
                 </button>
+                <button class="nav-btn" id="shortcutsBtn" title="Keyboard Shortcuts">
+                    <i class="fa-solid fa-keyboard"></i> Shortcuts
+                </button>
                 <button class="nav-btn" id="debugBtn" title="View Firebase Debug Info">
                     <i class="fa-solid fa-bug"></i> Debug
                 </button>
@@ -116,7 +119,7 @@
     </div>
 
     <!-- Debug Modal -->
-    <div class="modal" id="debugModal" style="display: none;">
+    <div class="modal" id="debugModal" style="display: none;" tabindex="-1">
         <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow: auto;">
             <h2>🔍 Firebase Debug Info</h2>
             <div id="debugContent" style="font-family: monospace; font-size: 12px; white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 4px; max-height: 60vh; overflow-y: auto;">
@@ -124,6 +127,48 @@
             </div>
             <div class="modal-actions">
                 <button id="debugCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shortcuts Modal -->
+    <div class="modal" id="shortcutsModal" style="display: none;" tabindex="-1">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>⌨️ Keyboard Shortcuts</h2>
+            <div class="shortcuts-list">
+                <div class="shortcut-section">
+                    <h3>General</h3>
+                    <div class="shortcut-item">
+                        <span class="shortcut-keys"><kbd>N</kbd></span>
+                        <span class="shortcut-desc">Create new recipe</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-keys"><kbd>/</kbd></span>
+                        <span class="shortcut-desc">Focus search</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-keys"><kbd>?</kbd></span>
+                        <span class="shortcut-desc">Show keyboard shortcuts</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                        <span class="shortcut-desc">Cancel edit / Close dialogs</span>
+                    </div>
+                </div>
+                <div class="shortcut-section">
+                    <h3>Recipe Editing</h3>
+                    <div class="shortcut-item">
+                        <span class="shortcut-keys"><kbd>E</kbd></span>
+                        <span class="shortcut-desc">Edit current recipe</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-keys"><kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd></span>
+                        <span class="shortcut-desc">Save recipe (when editing)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="shortcutsCloseBtn">Close</button>
             </div>
         </div>
     </div>

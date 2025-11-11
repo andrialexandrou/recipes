@@ -933,6 +933,10 @@ cancelBtn.addEventListener('click', () => {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
+    // Ignore shortcuts when typing in input fields or textareas
+    const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+    
+    // Cmd/Ctrl+S - Save (only when editing)
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         if (isEditMode && currentRecipeId) {
@@ -940,28 +944,42 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    // N - New recipe (when not typing)
+    if ((e.key === 'n' || e.key === 'N') && !isTyping && !isEditMode) {
         e.preventDefault();
-        createNewItem();
+        createNewRecipe();
     }
     
-    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+    // E - Edit recipe (when not typing)
+    if ((e.key === 'e' || e.key === 'E') && !isTyping && currentRecipeId) {
         e.preventDefault();
-        if (currentRecipeId) {
-            if (isEditMode) {
-                saveCurrentRecipe();
-            } else {
-                enterEditMode();
-            }
+        if (isEditMode) {
+            saveCurrentRecipe();
+        } else {
+            enterEditMode();
         }
     }
     
+    // / - Focus search (when not typing)
+    if (e.key === '/' && !isTyping) {
+        e.preventDefault();
+        filterInput.focus();
+    }
+    
+    // Escape - Cancel/Close
     if (e.key === 'Escape') {
         if (isEditMode && currentRecipeId) {
             enterViewMode();
         } else if (!collectionsDropdown.classList.contains('hidden')) {
             collectionsDropdown.classList.add('hidden');
         }
+    }
+    
+    // ? - Show shortcuts (when not typing)
+    if (e.key === '?' && !isTyping) {
+        e.preventDefault();
+        shortcutsModal.style.display = 'flex';
+        shortcutsModal.focus();
     }
 });
 
@@ -976,6 +994,7 @@ const debugCloseBtn = document.getElementById('debugCloseBtn');
 
 debugBtn?.addEventListener('click', async () => {
     debugModal.style.display = 'flex';
+    debugModal.focus();
     debugContent.textContent = 'Loading debug info...';
     
     try {
@@ -1018,5 +1037,67 @@ debugCloseBtn?.addEventListener('click', () => {
 debugModal?.addEventListener('click', (e) => {
     if (e.target === debugModal) {
         debugModal.style.display = 'none';
+    }
+});
+
+debugModal?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        e.stopPropagation();
+        debugModal.style.display = 'none';
+    }
+    if (e.key === 'Tab') {
+        // Trap focus within modal
+        const focusableElements = debugModal.querySelectorAll('button');
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        
+        if (e.shiftKey && document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+        }
+    }
+});
+
+// Shortcuts modal functionality
+const shortcutsBtn = document.getElementById('shortcutsBtn');
+const shortcutsModal = document.getElementById('shortcutsModal');
+const shortcutsCloseBtn = document.getElementById('shortcutsCloseBtn');
+
+shortcutsBtn?.addEventListener('click', () => {
+    shortcutsModal.style.display = 'flex';
+    shortcutsModal.focus();
+});
+
+shortcutsCloseBtn?.addEventListener('click', () => {
+    shortcutsModal.style.display = 'none';
+});
+
+shortcutsModal?.addEventListener('click', (e) => {
+    if (e.target === shortcutsModal) {
+        shortcutsModal.style.display = 'none';
+    }
+});
+
+shortcutsModal?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        e.stopPropagation();
+        shortcutsModal.style.display = 'none';
+    }
+    if (e.key === 'Tab') {
+        // Trap focus within modal
+        const focusableElements = shortcutsModal.querySelectorAll('button');
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        
+        if (e.shiftKey && document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+        }
     }
 });
