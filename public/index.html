@@ -36,6 +36,9 @@
                 <button class="nav-btn active" id="homeBtn" data-view="collections">
                     <i class="fa-solid fa-home"></i> Home
                 </button>
+                <button class="nav-btn" id="debugBtn" title="View Firebase Debug Info">
+                    <i class="fa-solid fa-bug"></i> Debug
+                </button>
             </div>
         </nav>
         
@@ -113,6 +116,19 @@
             <div class="modal-actions">
                 <button id="modalSaveBtn">Save</button>
                 <button id="modalCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Modal -->
+    <div class="modal" id="debugModal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow: auto;">
+            <h2>🔍 Firebase Debug Info</h2>
+            <div id="debugContent" style="font-family: monospace; font-size: 12px; white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 4px; max-height: 60vh; overflow-y: auto;">
+                Loading...
+            </div>
+            <div class="modal-actions">
+                <button id="debugCloseBtn">Close</button>
             </div>
         </div>
     </div>

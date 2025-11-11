@@ -945,3 +945,56 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize
 loadAllData();
+
+// Debug functionality
+const debugBtn = document.getElementById('debugBtn');
+const debugModal = document.getElementById('debugModal');
+const debugContent = document.getElementById('debugContent');
+const debugCloseBtn = document.getElementById('debugCloseBtn');
+
+debugBtn?.addEventListener('click', async () => {
+    debugModal.style.display = 'flex';
+    debugContent.textContent = 'Loading debug info...';
+    
+    try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        
+        let output = '=== FIREBASE STATUS ===\n';
+        output += `Status: ${data.status}\n`;
+        output += `Firebase Connected: ${data.firebase}\n`;
+        output += `Firebase Failure Detected: ${data.firebaseFailure}\n`;
+        output += `Timestamp: ${data.timestamp}\n\n`;
+        
+        output += '=== ENVIRONMENT ===\n';
+        output += `Node Environment: ${data.environment.nodeEnv}\n`;
+        output += `Is Vercel: ${data.environment.isVercel}\n`;
+        output += `Has Project ID: ${data.environment.hasFirebaseProjectId}\n`;
+        output += `Has Service Account Key: ${data.environment.hasServiceAccountKey}\n`;
+        output += `Has Google App Credentials: ${data.environment.hasGoogleAppCreds}\n\n`;
+        
+        output += '=== INITIALIZATION LOGS ===\n';
+        if (data.initLogs && data.initLogs.length > 0) {
+            data.initLogs.forEach(log => {
+                const time = new Date(log.timestamp).toLocaleTimeString();
+                output += `[${time}] [${log.level.toUpperCase()}] ${log.message}\n`;
+            });
+        } else {
+            output += 'No initialization logs available.\n';
+        }
+        
+        debugContent.textContent = output;
+    } catch (error) {
+        debugContent.textContent = `Error fetching debug info: ${error.message}`;
+    }
+});
+
+debugCloseBtn?.addEventListener('click', () => {
+    debugModal.style.display = 'none';
+});
+
+debugModal?.addEventListener('click', (e) => {
+    if (e.target === debugModal) {
+        debugModal.style.display = 'none';
+    }
+});

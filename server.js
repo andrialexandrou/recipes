@@ -35,6 +35,16 @@ let db = null;
 let useFirebase = false;
 let firebaseFailureDetected = false;
 
+// Capture initialization logs for debugging
+let initLogs = [];
+
+function captureLog(message, level = 'info') {
+    const logEntry = { level, message, timestamp: new Date().toISOString() };
+    initLogs.push(logEntry);
+    console.log(message);
+    return logEntry;
+}
+
 // Firebase Admin config (uses service account or environment-based auth)
 const firebaseConfig = {
     projectId: process.env.FIREBASE_PROJECT_ID,
@@ -65,24 +75,25 @@ function disableFirebaseMode(reason) {
 
 async function initializeFirebase() {
     if (!hasFirebaseConfig) {
-        console.log('⚠️  Firebase configuration incomplete or missing');
-        console.log('📝 Using memory storage for entire app');
+        captureLog('⚠️  Firebase configuration incomplete or missing', 'warn');
+        captureLog('📝 Using memory storage for entire app', 'info');
         return false;
     }
     
     if (!admin) {
-        console.log('❌ Firebase Admin SDK not available');
+        captureLog('❌ Firebase Admin SDK not available', 'error');
         return false;
     }
     
     try {
-        console.log('✅ Firebase Admin configuration detected');
-        console.log('🔄 Attempting to initialize Firebase Admin...');
-        console.log('🔍 Environment check:');
-        console.log(`  - NODE_ENV: ${process.env.NODE_ENV || 'undefined'}`);
-        console.log(`  - VERCEL: ${process.env.VERCEL || 'undefined'}`);
-        console.log(`  - GOOGLE_APPLICATION_CREDENTIALS: ${process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'SET' : 'undefined'}`);
-        console.log(`  - FIREBASE_PROJECT_ID: ${process.env.FIREBASE_PROJECT_ID || 'undefined'}`);
+        captureLog('✅ Firebase Admin configuration detected', 'info');
+        captureLog('🔄 Attempting to initialize Firebase Admin...', 'info');
+        captureLog('🔍 Environment check:', 'info');
+        captureLog(`  - NODE_ENV: ${process.env.NODE_ENV || 'undefined'}`, 'info');
+        captureLog(`  - VERCEL: ${process.env.VERCEL || 'undefined'}`, 'info');
+        captureLog(`  - GOOGLE_APPLICATION_CREDENTIALS: ${process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'SET' : 'undefined'}`, 'info');
+        captureLog(`  - FIREBASE_PROJECT_ID: ${process.env.FIREBASE_PROJECT_ID || 'undefined'}`, 'info');
+        captureLog(`  - FIREBASE_SERVICE_ACCOUNT_KEY: ${process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? 'SET (length: ' + process.env.FIREBASE_SERVICE_ACCOUNT_KEY.length + ')' : 'undefined'}`, 'info');
         
         // Initialize Firebase Admin
         if (admin.apps.length === 0) {
@@ -92,64 +103,67 @@ async function initializeFirebase() {
             
             if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
                 // Local development with service account file
-                console.log('🔧 Using service account credentials from file');
+                captureLog('🔧 Using service account credentials from file', 'info');
                 initConfig.credential = admin.credential.applicationDefault();
             } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
                 // Production with service account key as environment variable
-                console.log('🔧 Using service account credentials from environment variable');
+                captureLog('🔧 Using service account credentials from environment variable', 'info');
                 try {
                     const serviceAccountKey = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+                    captureLog(`🔍 Parsed service account - project: ${serviceAccountKey.project_id}, client_email: ${serviceAccountKey.client_email}`, 'info');
                     initConfig.credential = admin.credential.cert(serviceAccountKey);
                 } catch (parseError) {
-                    console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseError.message);
+                    captureLog('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY: ' + parseError.message, 'error');
+                    captureLog('🔍 First 100 chars of service account key: ' + (process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 100) || 'N/A'), 'error');
                     throw new Error('Invalid service account key format');
                 }
             } else if (process.env.VERCEL) {
                 // Vercel environment - may need explicit credential handling
-                console.log('🔧 Vercel environment detected, but no service account key provided');
-                console.log('⚠️  Set FIREBASE_SERVICE_ACCOUNT_KEY environment variable with JSON service account');
+                captureLog('🔧 Vercel environment detected, but no service account key provided', 'warn');
+                captureLog('⚠️  Set FIREBASE_SERVICE_ACCOUNT_KEY environment variable with JSON service account', 'warn');
                 throw new Error('No credentials provided for Vercel deployment');
             } else {
                 // Production - try Application Default Credentials
-                console.log('🔧 Using Application Default Credentials (production)');
+                captureLog('🔧 Using Application Default Credentials (production)', 'info');
                 // On GCP/other cloud providers, this should work automatically
             }
             
-            console.log('🔄 Initializing Firebase Admin...');
+            captureLog('🔄 Initializing Firebase Admin...', 'info');
             admin.initializeApp(initConfig);
         }
         
         db = admin.firestore();
-        console.log('✅ Firestore client created');
+        captureLog('✅ Firestore client created', 'info');
         
         // Test connection with both collections and recipes
-        console.log('🔄 Testing Firebase Admin connection for recipes...');
+        captureLog('🔄 Testing Firebase Admin connection for recipes...', 'info');
         const recipesRef = db.collection('recipes');
         await recipesRef.limit(1).get();
         
-        console.log('🔄 Testing Firebase Admin connection for collections...');
+        captureLog('🔄 Testing Firebase Admin connection for collections...', 'info');
         const collectionsRef = db.collection('collections');
         await collectionsRef.limit(1).get();
         
         useFirebase = true;
         firebaseFailureDetected = false;
-        console.log('✅ Firebase Admin fully connected - both recipes and collections accessible');
+        captureLog('✅ Firebase Admin fully connected - both recipes and collections accessible', 'info');
         return true;
         
     } catch (error) {
-        console.error('❌ Firebase Admin connection failed:', error.code || error.message);
+        captureLog('❌ Firebase Admin connection failed: ' + (error.code || error.message), 'error');
+        captureLog('🔍 Error stack: ' + (error.stack || 'N/A'), 'error');
         
         if (error.code === 'permission-denied') {
-            console.log('🔒 Permission denied - check Firestore security rules or service account permissions');
+            captureLog('🔒 Permission denied - check Firestore security rules or service account permissions', 'error');
         } else if (error.code === 'unavailable') {
-            console.log('🌐 Network unavailable - check internet connection');
+            captureLog('🌐 Network unavailable - check internet connection', 'error');
         } else if (error.message.includes('firebase')) {
-            console.log('📦 Firebase package issue - run: npm install firebase-admin');
+            captureLog('📦 Firebase package issue - run: npm install firebase-admin', 'error');
         } else if (error.message.includes('credentials')) {
-            console.log('🔑 Credentials issue - check service account configuration');
+            captureLog('🔑 Credentials issue - check service account configuration', 'error');
         }
         
-        disableFirebaseMode(error.code || error.message);
+        disableFirebaseMode('Initialization failed: ' + error.message);
         return false;
     }
 }
@@ -171,7 +185,15 @@ app.get('/api/health', (req, res) => {
         status: 'ok', 
         firebase: useFirebase,
         firebaseFailure: firebaseFailureDetected,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: {
+            nodeEnv: process.env.NODE_ENV || 'undefined',
+            isVercel: !!process.env.VERCEL,
+            hasFirebaseProjectId: !!process.env.FIREBASE_PROJECT_ID,
+            hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+            hasGoogleAppCreds: !!process.env.GOOGLE_APPLICATION_CREDENTIALS
+        },
+        initLogs: initLogs
     });
 });
 
