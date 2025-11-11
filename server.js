@@ -34,6 +34,7 @@ app.use((req, res, next) => {
 let db = null;
 let useFirebase = false;
 let firebaseFailureDetected = false;
+let firebaseInitialized = false;
 
 // Capture initialization logs for debugging
 let initLogs = [];
@@ -167,6 +168,19 @@ async function initializeFirebase() {
         return false;
     }
 }
+
+// Middleware to ensure Firebase is initialized (for serverless environments)
+async function ensureFirebaseInitialized(req, res, next) {
+    if (!firebaseInitialized) {
+        captureLog('🔄 First request - initializing Firebase...', 'info');
+        await initializeFirebase();
+        firebaseInitialized = true;
+    }
+    next();
+}
+
+// Apply middleware to all API routes
+app.use('/api', ensureFirebaseInitialized);
 
 // In-memory storage fallback
 let recipes = [];
