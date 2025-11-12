@@ -556,12 +556,11 @@ For rapid verification after deployments:
 - **Reset Password** - Allow users to reset their password via email
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
-- **Placeholder Content for Empty Fields** - Add skeleton screens/placeholder content while data is loading
-- **Avatar Loading States** - Show graceful fallback (skeleton/placeholder) when user avatars are loading
+- ~~**Placeholder Content for Empty Fields**~~ - ✅ DONE: Added empty state messages for collections/menus
+- ~~**Avatar Loading States**~~ - ✅ DONE: Added gray placeholders while Gravatars load
 - **Follow Users** - Allow users to follow other users to see their content
 - **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
 - **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
-- **First-Time User Onboarding** - Show friendly welcome/invitation to create first recipe instead of empty states on initial login
 
 ### Potential Features (Not Yet Implemented)
 
@@ -603,6 +602,9 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-11** - Added empty state messages for collections/menus, avatar loading placeholders
+- **2025-11-11** - Navigate to home after entity deletion, update URLs after saving entities
+- **2025-11-11** - Removed "No description" placeholder text for cleaner cards
 - **2025-11-11** - Added `isStaff` user field, Debug menu only visible to staff users
 - **2025-11-11** - Extended permission-based UI to collections/menus list and detail views
 - **2025-11-11** - Made sidebar username/avatar clickable link to user's home page

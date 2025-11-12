@@ -624,9 +624,13 @@ async function updateUserDisplay() {
     // Update current user avatar in navbar (right side)
     const currentUserAvatar = document.getElementById('currentUserAvatar');
     if (currentUserAvatar && API.currentUser) {
+        // Show loading placeholder
+        currentUserAvatar.style.background = '#e0e0e0';
         const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
         currentUserAvatar.src = gravatarUrl;
         currentUserAvatar.title = `Logged in as @${API.currentUser.username}`;
+        // Remove placeholder once loaded
+        currentUserAvatar.onload = () => { currentUserAvatar.style.background = 'transparent'; };
     }
     
     // Update viewing user in sidebar (shows whose catalog we're browsing)
@@ -636,9 +640,11 @@ async function updateUserDisplay() {
     if (viewingUserAvatar && viewingUsername && API.viewingUser) {
         // If viewing ourselves, use current user data
         if (API.viewingUser === API.currentUser?.username) {
+            viewingUserAvatar.style.background = '#e0e0e0';
             const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
             viewingUserAvatar.src = gravatarUrl;
             viewingUsername.textContent = `@${API.viewingUser}`;
+            viewingUserAvatar.onload = () => { viewingUserAvatar.style.background = 'transparent'; };
         } else {
             // Fetch the viewing user's email from Firestore
             try {
@@ -650,9 +656,11 @@ async function updateUserDisplay() {
                     
                     if (!usersSnapshot.empty) {
                         const userData = usersSnapshot.docs[0].data();
+                        viewingUserAvatar.style.background = '#e0e0e0';
                         const gravatarUrl = getGravatarUrl(userData.email, 128);
                         viewingUserAvatar.src = gravatarUrl;
                         viewingUsername.textContent = `@${API.viewingUser}`;
+                        viewingUserAvatar.onload = () => { viewingUserAvatar.style.background = 'transparent'; };
                     } else {
                         // Fallback to default avatar if user not found
                         viewingUserAvatar.src = getGravatarUrl('unknown@example.com', 128);
@@ -881,7 +889,7 @@ function renderCollectionsGrid() {
                     </div>
                     ${actionsHtml}
                 </div>
-                <p class="collection-card-description">${escapeHtml(col.description || 'No description')}</p>
+                <p class="collection-card-description">${escapeHtml(col.description || '')}</p>
             </div>
         `;
     }).join('');
@@ -933,7 +941,7 @@ function renderMenusGrid() {
                     </div>
                     ${actionsHtml}
                 </div>
-                <p class="collection-card-description">${escapeHtml(menu.description || 'No description')}</p>
+                <p class="collection-card-description">${escapeHtml(menu.description || '')}</p>
             </div>
         `;
     }).join('');
@@ -956,6 +964,17 @@ function renderMenusGrid() {
 
 function renderCollectionsGridHome() {
     const limitedCollections = collections.slice(0, 4);
+    
+    if (collections.length === 0) {
+        const isOwner = API.viewingUser === API.currentUser?.username;
+        collectionsGridHome.innerHTML = `
+            <div style="padding: 2rem; text-align: center; color: #999; grid-column: 1 / -1;">
+                <p style="margin: 0; font-size: 0.95rem;">${isOwner ? 'No collections yet — organize your recipes into collections' : 'No collections yet'}</p>
+            </div>
+        `;
+        return;
+    }
+    
     collectionsGridHome.innerHTML = limitedCollections.map(col => {
         const recipeCount = col.recipeIds ? col.recipeIds.length : 0;
         return `
@@ -964,7 +983,7 @@ function renderCollectionsGridHome() {
                     <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
                     <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
                 </div>
-                <p class="collection-card-description">${escapeHtml(col.description || 'No description')}</p>
+                <p class="collection-card-description">${escapeHtml(col.description || '')}</p>
             </div>
         `;
     }).join('');
@@ -993,6 +1012,17 @@ function renderCollectionsGridHome() {
 
 function renderMenusGridHome() {
     const limitedMenus = menus.slice(0, 4);
+    
+    if (menus.length === 0) {
+        const isOwner = API.viewingUser === API.currentUser?.username;
+        menusGridHome.innerHTML = `
+            <div style="padding: 2rem; text-align: center; color: #999; grid-column: 1 / -1;">
+                <p style="margin: 0; font-size: 0.95rem;">${isOwner ? 'No menus yet — create curated menus for special occasions' : 'No menus yet'}</p>
+            </div>
+        `;
+        return;
+    }
+    
     menusGridHome.innerHTML = limitedMenus.map(menu => {
         const recipeCount = menu.recipeIds ? menu.recipeIds.length : 0;
         return `
@@ -1001,7 +1031,7 @@ function renderMenusGridHome() {
                     <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
                     <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
                 </div>
-                <p class="collection-card-description">${escapeHtml(menu.description || 'No description')}</p>
+                <p class="collection-card-description">${escapeHtml(menu.description || '')}</p>
             </div>
         `;
     }).join('');
@@ -1450,12 +1480,8 @@ async function deleteCurrentRecipe() {
         
         recipes = recipes.filter(r => r.id !== currentRecipeId);
         
-        if (currentCollectionId) {
-            loadCollectionDetail(currentCollectionId, false);
-        } else {
-            showHomeView();
-        }
-        updateURL(null, null);
+        // Navigate to home view after deletion
+        showHomeView();
         renderRecipeList();
     } catch (error) {
         alert('Error deleting recipe');
@@ -1562,6 +1588,8 @@ async function editCollection(collectionId) {
             renderCollectionsGrid();
         } else if (currentView === 'collection-detail' && currentCollectionId === collectionId) {
             loadCollectionDetail(collectionId, false);
+            // Update URL with new name
+            updateURL('collection', collectionId);
         }
         
         console.log('✅ Collection updated successfully');
@@ -1598,13 +1626,8 @@ async function deleteCollection(collectionId) {
             collections.splice(index, 1);
         }
         
-        // Refresh the current view
-        if (currentView === 'collections') {
-            renderCollectionsGrid();
-        } else {
-            // If we're viewing the deleted collection, go back to collections view
-            switchToView('collections');
-        }
+        // Navigate to home view after deletion
+        showHomeView();
     } catch (error) {
         console.error('❌ Error deleting collection:', error);
         alert(`Error deleting collection: ${error.message}`);
@@ -1766,6 +1789,9 @@ async function saveMenuChanges() {
         menuDescriptionDisplay.textContent = description;
         menuPreviewContent.innerHTML = marked.parse(cleanMarkdown(content));
         
+        // Update URL with new name
+        updateURL('menu', currentMenuId);
+        
         exitMenuEditMode();
     } catch (error) {
         console.error('Error saving menu:', error);
@@ -1799,8 +1825,8 @@ async function deleteMenu(menuId) {
             menus.splice(index, 1);
         }
         
-        // Refresh the menus view
-        renderMenusGrid();
+        // Navigate to home view after deletion
+        showHomeView();
     } catch (error) {
         console.error('❌ Error deleting menu:', error);
         alert(`Error deleting menu: ${error.message}`);
