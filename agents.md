@@ -544,11 +544,30 @@ For rapid verification after deployments:
 
 ### State Management
 
-- Global variables for current data (recipes, collections, menus)
-- `currentRecipeId`, `currentCollectionId`, `currentMenuId` track active item
-- `currentView` tracks which view is displayed
-- `API.currentUser` - logged in user (from Firebase Auth)
-- `API.viewingUser` - whose catalog we're viewing (changes per URL)
+The application uses a modular state management approach:
+
+**State Module** - Centralized state in `State` object:
+- `recipes`, `collections`, `menus` - Content arrays
+- `currentRecipeId`, `currentCollectionId`, `currentMenuId` - Active item tracking
+- `currentView` - Current view name
+- `isEditMode`, `isMenuEditMode` - Edit state flags
+- `users` - Cached user data
+
+**DOM Module** - All DOM elements organized in `DOM` object:
+- Sidebar, navbar, view sections
+- Collections, menus, recipes elements
+- Buttons, inputs, and controls
+- Centralized element access reduces global scope pollution
+
+**Helper Modules**:
+- `SkeletonUI` - Reusable skeleton loading state functions
+- `CONSTANTS` - Magic numbers and strings in one place
+- JSDoc comments for type hints and documentation
+
+**API State**:
+- `API.currentUser` - Logged in user (from Firebase Auth)
+- `API.viewingUser` - Whose catalog we're viewing (changes per URL)
+- `API.authInitialized` - Auth setup completion flag
 
 ### URL Strategy
 
@@ -564,8 +583,6 @@ For rapid verification after deployments:
 - **Reset Password** - Allow users to reset their password via email
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
-- ~~**Placeholder Content for Empty Fields**~~ - ✅ DONE: Added empty state messages for collections/menus
-- ~~**Avatar Loading States**~~ - ✅ DONE: Added gray placeholders while Gravatars load
 - **Follow Users** - Allow users to follow other users to see their content
 - **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
 - **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
@@ -610,6 +627,7 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-11** - Code refactoring: Organized code into modules (State, DOM, SkeletonUI, CONSTANTS), extracted helper functions, added JSDoc comments, removed duplicate code
 - **2025-11-11** - Added skeleton loading for sidebar user avatar and recipe list
 - **2025-11-11** - Added first-time user onboarding banner with CTA buttons, skeleton loading UI with shimmer effect
 - **2025-11-11** - Added sidebar collapse state persistence with localStorage

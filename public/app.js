@@ -1,21 +1,47 @@
-// Gravatar helper
-function getGravatarUrl(email, size = 40) {
-    // MD5 hash function for email
-    const md5 = (string) => {
-        const hash = CryptoJS.MD5(string.toLowerCase().trim());
-        return hash.toString();
-    };
-    
-    const hash = md5(email);
-    return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
-}
+// =============================================================================
+// CONSTANTS
+// =============================================================================
 
-// Gravatar helper
-function getGravatarUrl(email, size = 40) {
-    if (!email) return `https://www.gravatar.com/avatar/00000000000000000000000000000000?s=${size}&d=identicon`;
+const CONSTANTS = {
+    GRAVATAR_DEFAULT_SIZE: 40,
+    GRAVATAR_DEFAULT_AVATAR: '00000000000000000000000000000000',
+    VIEWS: {
+        HOME: 'home',
+        COLLECTIONS: 'collections',
+        COLLECTION_DETAIL: 'collection-detail',
+        RECIPE_DETAIL: 'recipe-detail',
+        MENUS: 'menus',
+        MENU_DETAIL: 'menu-detail'
+    },
+    MOBILE_BREAKPOINT: 768,
+    IMAGE: {
+        MAX_WIDTH: 1200,
+        QUALITY: 0.8,
+        MAX_SIZE_MB: 5
+    }
+};
+
+// =============================================================================
+// UTILITIES
+// =============================================================================
+
+/**
+ * Gets a Gravatar URL for an email address
+ * @param {string} email - The email address
+ * @param {number} size - The size of the avatar in pixels
+ * @returns {string} The Gravatar URL
+ */
+function getGravatarUrl(email, size = CONSTANTS.GRAVATAR_DEFAULT_SIZE) {
+    if (!email) {
+        return `https://www.gravatar.com/avatar/${CONSTANTS.GRAVATAR_DEFAULT_AVATAR}?s=${size}&d=identicon`;
+    }
     const hash = SparkMD5.hash(email.toLowerCase().trim());
     return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
 }
+
+// =============================================================================
+// API MODULE
+// =============================================================================
 
 // API helper functions
 const API = {
@@ -307,93 +333,203 @@ const API = {
 };
 
 // Data management
-let recipes = [];
-let collections = [];
-let menus = [];
-let currentRecipeId = null;
-let currentCollectionId = null;
-let currentMenuId = null;
-let currentView = 'home'; // home, collections, collection-detail, recipe-detail, menus, menu-detail
-let isEditMode = true;
-let isMenuEditMode = false;
+// =============================================================================
+// STATE MANAGEMENT
+// =============================================================================
 
-// DOM elements
-const sidebar = document.getElementById('sidebar');
-const sidebarToggle = document.getElementById('sidebarToggle');
-const filterInput = document.getElementById('filterInput');
-const recipeList = document.getElementById('recipeList');
+const State = {
+    recipes: [],
+    collections: [],
+    menus: [],
+    currentRecipeId: null,
+    currentCollectionId: null,
+    currentMenuId: null,
+    currentView: 'home',
+    isEditMode: true,
+    isMenuEditMode: false,
+    users: []
+};
 
-// Navbar elements
-const navbar = document.getElementById('navbar');
-const homeBtn = document.getElementById('homeBtn');
+// =============================================================================
+// DOM ELEMENTS
+// =============================================================================
 
-// View sections
-const homeView = document.getElementById('homeView');
-const collectionsView = document.getElementById('collectionsView');
-const collectionDetailView = document.getElementById('collectionDetailView');
-const menusView = document.getElementById('menusView');
-const recipeDetailView = document.getElementById('recipeDetailView');
-const emptyState = document.getElementById('emptyState');
+const DOM = {
+    // Sidebar
+    sidebar: document.getElementById('sidebar'),
+    sidebarToggle: document.getElementById('sidebarToggle'),
+    filterInput: document.getElementById('filterInput'),
+    recipeList: document.getElementById('recipeList'),
+    
+    // Navbar
+    navbar: document.getElementById('navbar'),
+    homeBtn: document.getElementById('homeBtn'),
+    navMenuBtn: document.getElementById('navMenuBtn'),
+    navbarDropdown: document.getElementById('navbarDropdown'),
+    navCollectionsBtn: document.getElementById('navCollectionsBtn'),
+    
+    // Navbar dropdown
+    dropdownCollections: document.getElementById('dropdownCollections'),
+    dropdownMenus: document.getElementById('dropdownMenus'),
+    dropdownNewRecipe: document.getElementById('dropdownNewRecipe'),
+    dropdownShortcuts: document.getElementById('dropdownShortcuts'),
+    dropdownDebug: document.getElementById('dropdownDebug'),
+    
+    // Views
+    homeView: document.getElementById('homeView'),
+    collectionsView: document.getElementById('collectionsView'),
+    collectionDetailView: document.getElementById('collectionDetailView'),
+    menusView: document.getElementById('menusView'),
+    menuDetailView: document.getElementById('menuDetailView'),
+    recipeDetailView: document.getElementById('recipeDetailView'),
+    emptyState: document.getElementById('emptyState'),
+    
+    // Collections
+    collectionsGrid: document.getElementById('collectionsGrid'),
+    collectionsGridHome: document.getElementById('collectionsGridHome'),
+    newCollectionBtn: document.getElementById('newCollectionBtn'),
+    newCollectionBtnHome: document.getElementById('newCollectionBtnHome'),
+    collectionTitle: document.getElementById('collectionTitle'),
+    collectionDescription: document.getElementById('collectionDescription'),
+    collectionRecipes: document.getElementById('collectionRecipes'),
+    
+    // Menus
+    menusGrid: document.getElementById('menusGrid'),
+    menusGridHome: document.getElementById('menusGridHome'),
+    newMenuBtn: document.getElementById('newMenuBtn'),
+    newMenuBtnHome: document.getElementById('newMenuBtnHome'),
+    menuTitleInput: document.getElementById('menuTitleInput'),
+    menuTitleDisplay: document.getElementById('menuTitleDisplay'),
+    menuDescriptionInput: document.getElementById('menuDescriptionInput'),
+    menuDescriptionDisplay: document.getElementById('menuDescriptionDisplay'),
+    menuMarkdownTextarea: document.getElementById('menuMarkdownTextarea'),
+    menuPreviewContent: document.getElementById('menuPreviewContent'),
+    menuEditBtn: document.getElementById('menuEditBtn'),
+    menuSaveBtn: document.getElementById('menuSaveBtn'),
+    menuDeleteBtn: document.getElementById('menuDeleteBtn'),
+    menuCancelBtn: document.getElementById('menuCancelBtn'),
+    
+    // Recipe
+    titleInput: document.getElementById('titleInput'),
+    titleDisplay: document.getElementById('titleDisplay'),
+    markdownTextarea: document.getElementById('markdownTextarea'),
+    previewContent: document.getElementById('previewContent'),
+    editBtn: document.getElementById('editBtn'),
+    saveBtn: document.getElementById('saveBtn'),
+    deleteBtn: document.getElementById('deleteBtn'),
+    deleteBtn2: document.getElementById('deleteBtn2'),
+    copyLinkBtn: document.getElementById('copyLinkBtn'),
+    addToCollectionBtn: document.getElementById('addToCollectionBtn'),
+    editControls: document.getElementById('editControls'),
+    editModeControls: document.getElementById('editModeControls'),
+    cancelBtn: document.getElementById('cancelBtn'),
+    backBtn: document.getElementById('backBtn'),
+    backBtnText: document.getElementById('backBtnText'),
+    breadcrumb: document.getElementById('breadcrumb'),
+    collectionCheckboxes: document.getElementById('collectionCheckboxes'),
+    collectionsDropdown: document.getElementById('collectionsDropdown')
+};
 
-// Collections elements
-const collectionsGrid = document.getElementById('collectionsGrid');
-const collectionsGridHome = document.getElementById('collectionsGridHome');
-const newCollectionBtn = document.getElementById('newCollectionBtn');
-const newCollectionBtnHome = document.getElementById('newCollectionBtnHome');
-const navCollectionsBtn = document.getElementById('navCollectionsBtn');
-const collectionTitle = document.getElementById('collectionTitle');
-const collectionDescription = document.getElementById('collectionDescription');
-const collectionRecipes = document.getElementById('collectionRecipes');
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
 
-// Menus elements
-const menusGrid = document.getElementById('menusGrid');
-const menusGridHome = document.getElementById('menusGridHome');
-const newMenuBtn = document.getElementById('newMenuBtn');
-const newMenuBtnHome = document.getElementById('newMenuBtnHome');
+// Skeleton UI helpers
+const SkeletonUI = {
+    hide(element) {
+        if (element) {
+            const skeleton = element.querySelector('.sidebar-skeleton, .home-skeleton');
+            if (skeleton) skeleton.remove();
+        }
+    },
+    
+    removeClasses(element, ...classes) {
+        if (element) {
+            classes.forEach(cls => element.classList.remove(cls));
+        }
+    },
+    
+    showContent(contentElement, skeletonElement) {
+        if (skeletonElement) skeletonElement.classList.add('hidden');
+        if (contentElement) contentElement.classList.remove('hidden');
+    }
+};
 
-// Navbar dropdown elements
-const navMenuBtn = document.getElementById('navMenuBtn');
-const navbarDropdown = document.getElementById('navbarDropdown');
-const dropdownCollections = document.getElementById('dropdownCollections');
-const dropdownMenus = document.getElementById('dropdownMenus');
-const dropdownNewRecipe = document.getElementById('dropdownNewRecipe');
-const dropdownShortcuts = document.getElementById('dropdownShortcuts');
-const dropdownDebug = document.getElementById('dropdownDebug');
+// Backwards compatibility - create global references
+let recipes = State.recipes;
+let collections = State.collections;
+let menus = State.menus;
+let currentRecipeId = State.currentRecipeId;
+let currentCollectionId = State.currentCollectionId;
+let currentMenuId = State.currentMenuId;
+let currentView = State.currentView;
+let isEditMode = State.isEditMode;
+let isMenuEditMode = State.isMenuEditMode;
 
-// Recipe elements
-const titleInput = document.getElementById('titleInput');
-const titleDisplay = document.getElementById('titleDisplay');
-const markdownTextarea = document.getElementById('markdownTextarea');
-const previewContent = document.getElementById('previewContent');
-const editBtn = document.getElementById('editBtn');
-const saveBtn = document.getElementById('saveBtn');
-const deleteBtn = document.getElementById('deleteBtn');
-const deleteBtn2 = document.getElementById('deleteBtn2');
-const copyLinkBtn = document.getElementById('copyLinkBtn');
-const addToCollectionBtn = document.getElementById('addToCollectionBtn');
-const editControls = document.getElementById('editControls');
-const editModeControls = document.getElementById('editModeControls');
-const cancelBtn = document.getElementById('cancelBtn');
-const backBtn = document.getElementById('backBtn');
-const backBtnText = document.getElementById('backBtnText');
-const breadcrumb = document.getElementById('breadcrumb');
-const collectionCheckboxes = document.getElementById('collectionCheckboxes');
-const collectionsDropdown = document.getElementById('collectionsDropdown');
+const sidebar = DOM.sidebar;
+const sidebarToggle = DOM.sidebarToggle;
+const filterInput = DOM.filterInput;
+const recipeList = DOM.recipeList;
+const navbar = DOM.navbar;
+const homeBtn = DOM.homeBtn;
+const homeView = DOM.homeView;
+const collectionsView = DOM.collectionsView;
+const collectionDetailView = DOM.collectionDetailView;
+const menusView = DOM.menusView;
+const recipeDetailView = DOM.recipeDetailView;
+const emptyState = DOM.emptyState;
+const collectionsGrid = DOM.collectionsGrid;
+const collectionsGridHome = DOM.collectionsGridHome;
+const newCollectionBtn = DOM.newCollectionBtn;
+const newCollectionBtnHome = DOM.newCollectionBtnHome;
+const navCollectionsBtn = DOM.navCollectionsBtn;
+const collectionTitle = DOM.collectionTitle;
+const collectionDescription = DOM.collectionDescription;
+const collectionRecipes = DOM.collectionRecipes;
+const menusGrid = DOM.menusGrid;
+const menusGridHome = DOM.menusGridHome;
+const newMenuBtn = DOM.newMenuBtn;
+const newMenuBtnHome = DOM.newMenuBtnHome;
+const navMenuBtn = DOM.navMenuBtn;
+const navbarDropdown = DOM.navbarDropdown;
+const dropdownCollections = DOM.dropdownCollections;
+const dropdownMenus = DOM.dropdownMenus;
+const dropdownNewRecipe = DOM.dropdownNewRecipe;
+const dropdownShortcuts = DOM.dropdownShortcuts;
+const dropdownDebug = DOM.dropdownDebug;
+const titleInput = DOM.titleInput;
+const titleDisplay = DOM.titleDisplay;
+const markdownTextarea = DOM.markdownTextarea;
+const previewContent = DOM.previewContent;
+const editBtn = DOM.editBtn;
+const saveBtn = DOM.saveBtn;
+const deleteBtn = DOM.deleteBtn;
+const deleteBtn2 = DOM.deleteBtn2;
+const copyLinkBtn = DOM.copyLinkBtn;
+const addToCollectionBtn = DOM.addToCollectionBtn;
+const editControls = DOM.editControls;
+const editModeControls = DOM.editModeControls;
+const cancelBtn = DOM.cancelBtn;
+const backBtn = DOM.backBtn;
+const backBtnText = DOM.backBtnText;
+const breadcrumb = DOM.breadcrumb;
+const collectionCheckboxes = DOM.collectionCheckboxes;
+const collectionsDropdown = DOM.collectionsDropdown;
+const menuDetailView = DOM.menuDetailView;
+const menuTitleInput = DOM.menuTitleInput;
+const menuTitleDisplay = DOM.menuTitleDisplay;
+const menuDescriptionInput = DOM.menuDescriptionInput;
+const menuDescriptionDisplay = DOM.menuDescriptionDisplay;
+const menuMarkdownTextarea = DOM.menuMarkdownTextarea;
+const menuPreviewContent = DOM.menuPreviewContent;
+const menuEditBtn = DOM.menuEditBtn;
+const menuSaveBtn = DOM.menuSaveBtn;
+const menuCancelBtn = DOM.menuCancelBtn;
+const menuDeleteBtn = DOM.menuDeleteBtn;
 
-// Menu detail elements
-const menuDetailView = document.getElementById('menuDetailView');
-const menuTitleInput = document.getElementById('menuTitleInput');
-const menuTitleDisplay = document.getElementById('menuTitleDisplay');
-const menuDescriptionInput = document.getElementById('menuDescriptionInput');
-const menuDescriptionDisplay = document.getElementById('menuDescriptionDisplay');
-const menuMarkdownTextarea = document.getElementById('menuMarkdownTextarea');
-const menuPreviewContent = document.getElementById('menuPreviewContent');
+// Additional menu elements not yet in DOM module
 const menuEditControls = document.getElementById('menuEditControls');
 const menuEditModeControls = document.getElementById('menuEditModeControls');
-const menuEditBtn = document.getElementById('menuEditBtn');
-const menuSaveBtn = document.getElementById('menuSaveBtn');
-const menuCancelBtn = document.getElementById('menuCancelBtn');
-const menuDeleteBtn = document.getElementById('menuDeleteBtn');
 const menuDeleteBtn2 = document.getElementById('menuDeleteBtn2');
 
 // Metadata elements
@@ -671,7 +807,8 @@ async function updateUserDisplay() {
         }
     }
     
-    if (viewingUsername) viewingUsername.classList.remove('skeleton-text');
+    // Remove skeleton class from username using helper
+    SkeletonUI.removeClasses(viewingUsername, 'skeleton-text');
     
     // Update edit controls visibility based on ownership
     updateEditControls();
@@ -1096,9 +1233,8 @@ function renderMenusGridHome() {
 
 // Render recipe list
 function renderRecipeList(filter = '') {
-    // Remove skeleton on first render
-    const skeleton = recipeList.querySelector('.sidebar-skeleton');
-    if (skeleton) skeleton.remove();
+    // Remove skeleton on first render using helper
+    SkeletonUI.hide(recipeList);
     
     const lowerFilter = filter.toLowerCase();
     const filtered = recipes.filter(recipe => 
@@ -1368,6 +1504,7 @@ function enterViewMode() {
 
 // Show home view (collections)
 function showHomeView() {
+    // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
         view.classList.add('hidden');
         view.classList.remove('active');
@@ -1388,45 +1525,58 @@ function showHomeView() {
     const hasNoContent = recipes.length === 0 && collections.length === 0 && menus.length === 0;
     
     if (isOwner && hasNoContent) {
-        // Hide skeleton, show onboarding banner
-        if (skeleton) skeleton.classList.add('hidden');
-        if (content) content.classList.add('hidden');
-        
-        // Replace homeView content with onboarding banner
-        const existingBanner = homeView.querySelector('.onboarding-banner');
-        if (!existingBanner) {
-            const banner = document.createElement('div');
-            banner.className = 'onboarding-banner';
-            banner.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 40px;">
-                    <div style="text-align: center; max-width: 500px;">
-                        <h1 style="font-family: 'Cinzel', serif; font-size: 48px; margin: 0 0 16px 0; color: #6b5d52;">Welcome to Sous</h1>
-                        <p style="font-size: 18px; line-height: 1.6; color: #666; margin: 0 0 32px 0;">Your personal recipe manager. Get started by adding your first recipe or creating a curated menu.</p>
-                        <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-                            <button onclick="createNewRecipe()" style="padding: 14px 28px; font-size: 16px; font-weight: 500; background: #6b5d52; color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-family: inherit;" onmouseover="this.style.background='#5a4d42'" onmouseout="this.style.background='#6b5d52'">📝 Add your first recipe</button>
-                            <button onclick="createNewMenu()" style="padding: 14px 28px; font-size: 16px; font-weight: 500; background: white; color: #6b5d52; border: 2px solid #6b5d52; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-family: inherit;" onmouseover="this.style.background='#f9f7f4'" onmouseout="this.style.background='white'">🍽️ Create a menu</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            homeView.appendChild(banner);
-        }
+        showOnboardingBanner(skeleton, content);
     } else {
-        // Hide skeleton and any onboarding banner, show normal content
-        if (skeleton) skeleton.classList.add('hidden');
-        if (content) content.classList.remove('hidden');
-        
-        const banner = homeView.querySelector('.onboarding-banner');
-        if (banner) banner.remove();
-        
-        // Render normal home view
-        renderCollectionsGridHome();
-        renderMenusGridHome();
+        showNormalHomeView(skeleton, content);
     }
     
     updateEditControls(); // Show/hide create buttons based on ownership
-    
     updateURL(null, null);
+}
+
+/**
+ * Shows the onboarding banner for first-time users
+ */
+function showOnboardingBanner(skeleton, content) {
+    // Hide skeleton and content using helper
+    SkeletonUI.showContent(null, skeleton);
+    if (content) content.classList.add('hidden');
+    
+    // Create onboarding banner if it doesn't exist
+    const existingBanner = homeView.querySelector('.onboarding-banner');
+    if (!existingBanner) {
+        const banner = document.createElement('div');
+        banner.className = 'onboarding-banner';
+        banner.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 40px;">
+                <div style="text-align: center; max-width: 500px;">
+                    <h1 style="font-family: 'Cinzel', serif; font-size: 48px; margin: 0 0 16px 0; color: #6b5d52;">Welcome to Sous</h1>
+                    <p style="font-size: 18px; line-height: 1.6; color: #666; margin: 0 0 32px 0;">Your personal recipe manager. Get started by adding your first recipe or creating a curated menu.</p>
+                    <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="createNewRecipe()" style="padding: 14px 28px; font-size: 16px; font-weight: 500; background: #6b5d52; color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-family: inherit;" onmouseover="this.style.background='#5a4d42'" onmouseout="this.style.background='#6b5d52'">📝 Add your first recipe</button>
+                        <button onclick="createNewMenu()" style="padding: 14px 28px; font-size: 16px; font-weight: 500; background: white; color: #6b5d52; border: 2px solid #6b5d52; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-family: inherit;" onmouseover="this.style.background='#f9f7f4'" onmouseout="this.style.background='white'">🍽️ Create a menu</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        homeView.appendChild(banner);
+    }
+}
+
+/**
+ * Shows the normal home view with collections and menus
+ */
+function showNormalHomeView(skeleton, content) {
+    // Hide skeleton, show content using helper
+    SkeletonUI.showContent(content, skeleton);
+    
+    // Remove any onboarding banner
+    const banner = homeView.querySelector('.onboarding-banner');
+    if (banner) banner.remove();
+    
+    // Render normal home view
+    renderCollectionsGridHome();
+    renderMenusGridHome();
 }
 
 // Load all data
