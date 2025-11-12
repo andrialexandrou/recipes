@@ -599,6 +599,9 @@ The application uses a modular state management approach:
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
 - **Menus Above Collections** - Reorder the home page to show menus section before collections section
+- **Firebase Connection Error UI** - Show user-friendly 500 error message when ECONNREFUSED or Firestore connection fails, so users don't think their data is lost. Currently falls back silently to memory storage which can be confusing.
+- **Clear Metadata on New Recipe** - Fix bug where metadata from previously viewed recipe persists when creating a new recipe
+- **Recipe Author Display** - Show "by @username" in recipe metadata for visibility of who created the recipe
 
 **Medium Effort:**
 
@@ -636,6 +639,7 @@ The application uses a modular state management approach:
 - No build process (ships raw files)
 - Memory storage fallback loses data on restart
 - No offline support (PWA)
+- Metadata persists when navigating from recipe to new recipe creation (needs state cleanup)
 
 ## Notes for AI Agents
 

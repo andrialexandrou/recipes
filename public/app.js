@@ -404,30 +404,13 @@ const DOM = {
     menuDescriptionDisplay: document.getElementById('menuDescriptionDisplay'),
     menuMarkdownTextarea: document.getElementById('menuMarkdownTextarea'),
     menuPreviewContent: document.getElementById('menuPreviewContent'),
-    menuEditBtn: document.getElementById('menuEditBtn'),
-    menuSaveBtn: document.getElementById('menuSaveBtn'),
-    menuDeleteBtn: document.getElementById('menuDeleteBtn'),
-    menuCancelBtn: document.getElementById('menuCancelBtn'),
     
     // Recipe
     titleInput: document.getElementById('titleInput'),
     titleDisplay: document.getElementById('titleDisplay'),
     markdownTextarea: document.getElementById('markdownTextarea'),
     previewContent: document.getElementById('previewContent'),
-    editBtn: document.getElementById('editBtn'),
-    saveBtn: document.getElementById('saveBtn'),
-    deleteBtn: document.getElementById('deleteBtn'),
-    deleteBtn2: document.getElementById('deleteBtn2'),
-    copyLinkBtn: document.getElementById('copyLinkBtn'),
-    addToCollectionBtn: document.getElementById('addToCollectionBtn'),
-    editControls: document.getElementById('editControls'),
-    editModeControls: document.getElementById('editModeControls'),
-    cancelBtn: document.getElementById('cancelBtn'),
-    backBtn: document.getElementById('backBtn'),
-    backBtnText: document.getElementById('backBtnText'),
-    breadcrumb: document.getElementById('breadcrumb'),
-    collectionCheckboxes: document.getElementById('collectionCheckboxes'),
-    collectionsDropdown: document.getElementById('collectionsDropdown')
+    breadcrumb: document.getElementById('breadcrumb')
 };
 
 // =============================================================================
@@ -501,20 +484,7 @@ const titleInput = DOM.titleInput;
 const titleDisplay = DOM.titleDisplay;
 const markdownTextarea = DOM.markdownTextarea;
 const previewContent = DOM.previewContent;
-const editBtn = DOM.editBtn;
-const saveBtn = DOM.saveBtn;
-const deleteBtn = DOM.deleteBtn;
-const deleteBtn2 = DOM.deleteBtn2;
-const copyLinkBtn = DOM.copyLinkBtn;
-const addToCollectionBtn = DOM.addToCollectionBtn;
-const editControls = DOM.editControls;
-const editModeControls = DOM.editModeControls;
-const cancelBtn = DOM.cancelBtn;
-const backBtn = DOM.backBtn;
-const backBtnText = DOM.backBtnText;
 const breadcrumb = DOM.breadcrumb;
-const collectionCheckboxes = DOM.collectionCheckboxes;
-const collectionsDropdown = DOM.collectionsDropdown;
 const menuDetailView = DOM.menuDetailView;
 const menuTitleInput = DOM.menuTitleInput;
 const menuTitleDisplay = DOM.menuTitleDisplay;
@@ -522,15 +492,6 @@ const menuDescriptionInput = DOM.menuDescriptionInput;
 const menuDescriptionDisplay = DOM.menuDescriptionDisplay;
 const menuMarkdownTextarea = DOM.menuMarkdownTextarea;
 const menuPreviewContent = DOM.menuPreviewContent;
-const menuEditBtn = DOM.menuEditBtn;
-const menuSaveBtn = DOM.menuSaveBtn;
-const menuCancelBtn = DOM.menuCancelBtn;
-const menuDeleteBtn = DOM.menuDeleteBtn;
-
-// Additional menu elements not yet in DOM module
-const menuEditControls = document.getElementById('menuEditControls');
-const menuEditModeControls = document.getElementById('menuEditModeControls');
-const menuDeleteBtn2 = document.getElementById('menuDeleteBtn2');
 
 // Metadata elements
 const metadataCreated = document.getElementById('metadataCreated');
@@ -1457,26 +1418,67 @@ function updateRecipeMetadata(recipe) {
             .join('');
     }
     
-    // Update menus
-    const recipeMenus = menus.filter(m => 
-        m.recipeIds && m.recipeIds.includes(recipe.id)
-    );
+    // Update action buttons
+    updateRecipeActionButtons(recipe);
+}
+
+// Update recipe action buttons in metadata
+function updateRecipeActionButtons(recipe) {
+    const metadataActions = document.getElementById('metadataActions');
+    if (!metadataActions) return;
     
-    if (recipeMenus.length === 0) {
-        metadataMenus.innerHTML = '<span class="metadata-empty">None</span>';
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    
+    if (isEditMode) {
+        // Edit mode buttons
+        metadataActions.innerHTML = `
+            <button id="metadataSaveBtn" class="metadata-action-btn metadata-action-btn-primary" title="Save">
+                <i class="fa-solid fa-check"></i>
+            </button>
+            <button id="metadataCancelBtn" class="metadata-action-btn" title="Cancel">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <button id="metadataDeleteBtn" class="metadata-action-btn metadata-action-btn-danger" title="Delete">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        `;
+        document.getElementById('metadataSaveBtn').onclick = saveCurrentRecipe;
+        document.getElementById('metadataCancelBtn').onclick = enterViewMode;
+        document.getElementById('metadataDeleteBtn').onclick = deleteCurrentRecipe;
+    } else if (isOwner) {
+        // View mode buttons (owner)
+        metadataActions.innerHTML = `
+            <button id="metadataEditBtn" class="metadata-action-btn metadata-action-btn-primary" title="Edit">
+                <i class="fa-solid fa-pen"></i>
+            </button>
+            <button id="metadataCopyLinkBtn" class="metadata-action-btn" title="Copy link">
+                <i class="fa-solid fa-link"></i>
+            </button>
+            <button id="metadataAddToCollectionBtn" class="metadata-action-btn" title="Add to collection">
+                <i class="fa-solid fa-folder-plus"></i>
+            </button>
+            <button id="metadataDeleteBtn2" class="metadata-action-btn metadata-action-btn-danger" title="Delete">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        `;
+        document.getElementById('metadataEditBtn').onclick = enterEditMode;
+        document.getElementById('metadataCopyLinkBtn').onclick = copyRecipeLink;
+        document.getElementById('metadataAddToCollectionBtn').onclick = showCollectionModal;
+        document.getElementById('metadataDeleteBtn2').onclick = deleteCurrentRecipe;
     } else {
-        metadataMenus.innerHTML = recipeMenus
-            .map(m => `<div class="metadata-collection-tag" onclick="loadMenuDetail('${m.id}')">${escapeHtml(m.name)}</div>`)
-            .join('');
+        // View mode (non-owner) - only copy link
+        metadataActions.innerHTML = `
+            <button id="metadataCopyLinkBtn" class="metadata-action-btn" title="Copy link">
+                <i class="fa-solid fa-link"></i>
+            </button>
+        `;
+        document.getElementById('metadataCopyLinkBtn').onclick = copyRecipeLink;
     }
 }
 
 // Switch to edit mode
 function enterEditMode() {
     isEditMode = true;
-    
-    editControls.classList.add('hidden');
-    editModeControls.classList.remove('hidden');
     
     titleInput.classList.remove('hidden');
     titleDisplay.classList.add('hidden');
@@ -1485,14 +1487,15 @@ function enterEditMode() {
     previewContent.classList.add('hidden');
     
     markdownTextarea.focus();
+    
+    // Update action buttons for edit mode
+    const recipe = recipes.find(r => r.id === currentRecipeId);
+    if (recipe) updateRecipeActionButtons(recipe);
 }
 
 // Switch to view mode
 function enterViewMode() {
     isEditMode = false;
-    
-    editControls.classList.remove('hidden');
-    editModeControls.classList.add('hidden');
     
     titleInput.classList.add('hidden');
     titleDisplay.classList.remove('hidden');
@@ -1502,6 +1505,10 @@ function enterViewMode() {
     
     titleDisplay.textContent = titleInput.value || 'Untitled';
     previewContent.innerHTML = marked.parse(cleanMarkdown(markdownTextarea.value || ''));
+    
+    // Update action buttons for view mode
+    const recipe = recipes.find(r => r.id === currentRecipeId);
+    if (recipe) updateRecipeActionButtons(recipe);
 }
 
 // Show home view (collections)
@@ -1732,45 +1739,130 @@ async function deleteCurrentRecipe() {
 }
 
 // Copy link to recipe
-function copyRecipeLink() {
+function copyRecipeLink(event) {
     const recipe = recipes.find(r => r.id === currentRecipeId);
     if (!recipe) return;
     
     const slug = recipe.title ? slugify(recipe.title) : 'untitled';
-    const url = `${window.location.origin}/recipe/${slug}-${currentRecipeId}`;
+    const url = `${window.location.origin}/${API.viewingUser}/recipe/${slug}-${currentRecipeId}`;
+    
+    const button = event?.target?.closest('button') || document.getElementById('metadataCopyLinkBtn');
     
     navigator.clipboard.writeText(url).then(() => {
-        copyLinkBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
-        setTimeout(() => {
-            copyLinkBtn.innerHTML = '<i class="fa-solid fa-link"></i>';
-        }, 2000);
+        if (button) {
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fa-solid fa-check"></i>';
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+            }, 2000);
+        }
     });
 }
 
 // Show collection modal
-function showCollectionModal() {
+function showCollectionModal(event) {
     if (!currentRecipeId) return;
     
-    collectionCheckboxes.innerHTML = collections.map(col => {
-        const isInCollection = col.recipeIds && col.recipeIds.includes(currentRecipeId);
-        return `
-            <div class="collection-checkbox">
-                <input type="checkbox" id="col-${col.id}" data-collection-id="${col.id}" ${isInCollection ? 'checked' : ''}>
-                <label for="col-${col.id}">${escapeHtml(col.name)}</label>
-            </div>
-        `;
-    }).join('');
+    const collectionsMenuContent = document.getElementById('collectionsMenuContent');
+    const collectionsMenu = document.getElementById('collectionsMenu');
+    const collectionsSearch = document.getElementById('collectionsSearch');
+    const button = event?.target?.closest('button');
     
-    // Add event listeners to checkboxes for auto-save
-    collections.forEach(col => {
-        const checkbox = document.getElementById(`col-${col.id}`);
-        if (checkbox) {
-            checkbox.addEventListener('change', () => handleCollectionToggle(col.id, checkbox.checked));
+    // Render all collections
+    const renderCollections = (filter = '') => {
+        const filtered = filter 
+            ? collections.filter(col => col.name.toLowerCase().includes(filter.toLowerCase()))
+            : collections;
+            
+        collectionsMenuContent.innerHTML = filtered.map(col => {
+            const isInCollection = col.recipeIds && col.recipeIds.includes(currentRecipeId);
+            return `
+                <div class="collection-checkbox">
+                    <input type="checkbox" id="col-${col.id}" data-collection-id="${col.id}" ${isInCollection ? 'checked' : ''}>
+                    <label for="col-${col.id}">${escapeHtml(col.name)}</label>
+                </div>
+            `;
+        }).join('');
+        
+        // Add event listeners to checkboxes for auto-save
+        filtered.forEach(col => {
+            const checkbox = document.getElementById(`col-${col.id}`);
+            if (checkbox) {
+                checkbox.addEventListener('change', () => handleCollectionToggle(col.id, checkbox.checked));
+            }
+        });
+    };
+    
+    renderCollections();
+    
+    // Search functionality
+    collectionsSearch.value = '';
+    collectionsSearch.oninput = (e) => renderCollections(e.target.value);
+    
+    // New collection button
+    document.getElementById('newCollectionMenuBtn').onclick = async () => {
+        const name = prompt('Collection name:');
+        if (name && name.trim()) {
+            const description = prompt('Description (optional):') || '';
+            const newCollection = await API.createCollection({ name: name.trim(), description });
+            if (newCollection) {
+                collections.push(newCollection);
+                renderCollections();
+            }
         }
-    });
+    };
     
-    collectionsDropdown.classList.remove('hidden');
+    // Position menu near the button, ensuring it stays in viewport
+    if (button) {
+        const rect = button.getBoundingClientRect();
+        const menuHeight = 400; // max height
+        const menuWidth = 240;
+        
+        let top = rect.bottom + 8;
+        let left = rect.left;
+        
+        // Adjust if menu goes off bottom of viewport
+        if (top + menuHeight > window.innerHeight) {
+            top = rect.top - menuHeight - 8;
+        }
+        
+        // Adjust if menu goes off right of viewport
+        if (left + menuWidth > window.innerWidth) {
+            left = window.innerWidth - menuWidth - 16;
+        }
+        
+        // Adjust if menu goes off left of viewport
+        if (left < 16) {
+            left = 16;
+        }
+        
+        collectionsMenu.style.top = `${top}px`;
+        collectionsMenu.style.left = `${left}px`;
+    }
+    
+    collectionsMenu.style.display = 'flex';
+    
+    // Focus search input
+    setTimeout(() => collectionsSearch.focus(), 50);
 }
+
+// Close collections modal
+function closeCollectionsModal() {
+    const collectionsMenu = document.getElementById('collectionsMenu');
+    collectionsMenu.style.display = 'none';
+}
+
+// Close collections menu when clicking outside
+document.addEventListener('click', (e) => {
+    const collectionsMenu = document.getElementById('collectionsMenu');
+    const addToCollectionBtn = document.getElementById('metadataAddToCollectionBtn');
+    
+    if (collectionsMenu && collectionsMenu.style.display === 'flex') {
+        if (!collectionsMenu.contains(e.target) && !addToCollectionBtn?.contains(e.target)) {
+            closeCollectionsModal();
+        }
+    }
+});
 
 // Handle collection checkbox toggle
 async function handleCollectionToggle(collectionId, isChecked) {
@@ -1953,10 +2045,6 @@ function loadMenuDetail(menuId, updateHistory = true) {
     menuDescriptionInput.value = menu.description || '';
     menuMarkdownTextarea.value = menu.content || '';
     
-    // Show view mode controls
-    menuEditControls.classList.remove('hidden');
-    menuEditModeControls.classList.add('hidden');
-    
     // Exit edit mode
     isMenuEditMode = false;
     menuTitleDisplay.classList.remove('hidden');
@@ -1979,9 +2067,6 @@ function enterMenuEditMode() {
     menuPreviewContent.classList.add('hidden');
     menuMarkdownTextarea.classList.remove('hidden');
     
-    menuEditControls.classList.add('hidden');
-    menuEditModeControls.classList.remove('hidden');
-    
     menuTitleInput.focus();
 }
 
@@ -2002,9 +2087,6 @@ function exitMenuEditMode() {
     menuDescriptionInput.classList.add('hidden');
     menuPreviewContent.classList.remove('hidden');
     menuMarkdownTextarea.classList.add('hidden');
-    
-    menuEditControls.classList.remove('hidden');
-    menuEditModeControls.classList.add('hidden');
 }
 
 async function saveMenuChanges() {
@@ -2171,60 +2253,9 @@ document.addEventListener('click', (e) => {
     }
 });
 
-menuEditBtn.addEventListener('click', enterMenuEditMode);
-menuSaveBtn.addEventListener('click', saveMenuChanges);
-menuCancelBtn.addEventListener('click', exitMenuEditMode);
-menuDeleteBtn.addEventListener('click', () => deleteMenu(currentMenuId));
-menuDeleteBtn2.addEventListener('click', () => deleteMenu(currentMenuId));
-editBtn.addEventListener('click', enterEditMode);
-saveBtn.addEventListener('click', saveCurrentRecipe);
-deleteBtn.addEventListener('click', deleteCurrentRecipe);
-deleteBtn2.addEventListener('click', deleteCurrentRecipe);
-copyLinkBtn.addEventListener('click', copyRecipeLink);
-addToCollectionBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showCollectionModal();
-});
-
-// New collection button in dropdown
-const newCollectionDropdownBtn = document.getElementById('newCollectionDropdownBtn');
-newCollectionDropdownBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    await createNewCollection();
-    // Refresh the collection checkboxes to include the new collection
-    showCollectionModal();
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    if (!collectionsDropdown.contains(e.target) && !addToCollectionBtn.contains(e.target)) {
-        collectionsDropdown.classList.add('hidden');
-    }
-});
-
 // Add paste handlers for image upload
 markdownTextarea.addEventListener('paste', (e) => handleImagePaste(e, markdownTextarea));
 menuMarkdownTextarea.addEventListener('paste', (e) => handleImagePaste(e, menuMarkdownTextarea));
-
-// backBtn.addEventListener('click', () => {
-//     if (currentCollectionId && currentView === 'recipe-detail') {
-//         loadCollectionDetail(currentCollectionId);
-//     } else {
-//         showHomeView();
-//     }
-// });
-
-cancelBtn.addEventListener('click', () => {
-    if (titleInput.value || markdownTextarea.value) {
-        enterViewMode();
-    } else {
-        if (currentCollectionId && currentView === 'recipe-detail') {
-            loadCollectionDetail(currentCollectionId);
-        } else {
-            showHomeView();
-        }
-    }
-});
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
@@ -2273,12 +2304,14 @@ document.addEventListener('keydown', (e) => {
     
     // Escape - Cancel/Close
     if (e.key === 'Escape') {
+        const collectionsMenu = document.getElementById('collectionsMenu');
+        
         if (isEditMode && currentRecipeId) {
             enterViewMode();
         } else if (isMenuEditMode && currentMenuId) {
             exitMenuEditMode();
-        } else if (!collectionsDropdown.classList.contains('hidden')) {
-            collectionsDropdown.classList.add('hidden');
+        } else if (collectionsMenu && collectionsMenu.style.display === 'flex') {
+            closeCollectionsModal();
         }
     }
     

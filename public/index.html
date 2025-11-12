@@ -222,10 +222,10 @@
                                 <span class="metadata-empty">None</span>
                             </div>
                         </div>
-                        <div class="metadata-section">
-                            <div class="metadata-label">Menus</div>
-                            <div class="metadata-collections" id="metadataMenus">
-                                <span class="metadata-empty">None</span>
+                        <div class="metadata-section metadata-actions">
+                            <div class="metadata-label">Actions</div>
+                            <div class="metadata-action-buttons" id="metadataActions">
+                                <!-- Buttons inserted here by JS -->
                             </div>
                         </div>
                     </div>
@@ -262,39 +262,6 @@
         </div>
     </div>
 
-    <div class="edit-controls view-mode hidden" id="editControls">
-        <div class="collections-menu-container">
-            <button id="addToCollectionBtn" title="Add to collection"><i class="fa-solid fa-folder-plus"></i></button>
-            <div class="collections-dropdown hidden" id="collectionsDropdown">
-                <div class="collections-dropdown-header">Add to Collection</div>
-                <div class="collections-dropdown-content" id="collectionCheckboxes"></div>
-                <button class="new-collection-dropdown-btn" id="newCollectionDropdownBtn">
-                    <i class="fa-solid fa-plus"></i> New Collection
-                </button>
-            </div>
-        </div>
-        <button id="editBtn" title="Edit"><i class="fa-solid fa-pen"></i></button>
-        <button id="copyLinkBtn" title="Copy link"><i class="fa-solid fa-link"></i></button>
-        <button class="delete-btn" id="deleteBtn" title="Delete"><i class="fa-solid fa-trash"></i></button>
-    </div>
-
-    <div class="edit-controls edit-mode hidden" id="editModeControls">
-        <button id="saveBtn" title="Save"><i class="fa-solid fa-check"></i></button>
-        <button id="cancelBtn" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
-        <button class="delete-btn" id="deleteBtn2" title="Delete"><i class="fa-solid fa-trash"></i></button>
-    </div>
-
-    <div class="edit-controls view-mode hidden" id="menuEditControls">
-        <button id="menuEditBtn" title="Edit"><i class="fa-solid fa-pen"></i></button>
-        <button class="delete-btn" id="menuDeleteBtn" title="Delete"><i class="fa-solid fa-trash"></i></button>
-    </div>
-
-    <div class="edit-controls edit-mode hidden" id="menuEditModeControls">
-        <button id="menuSaveBtn" title="Save"><i class="fa-solid fa-check"></i></button>
-        <button id="menuCancelBtn" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
-        <button class="delete-btn" id="menuDeleteBtn2" title="Delete"><i class="fa-solid fa-trash"></i></button>
-    </div>
-
     <!-- Debug Modal -->
     <div class="modal" id="debugModal" style="display: none;" tabindex="-1">
         <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow: auto;">
@@ -305,6 +272,20 @@
             <div class="modal-actions">
                 <button id="debugCloseBtn">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Collections Dropdown Menu -->
+    <div class="collections-menu" id="collectionsMenu" style="display: none;">
+        <div class="collections-menu-search">
+            <input type="text" id="collectionsSearch" placeholder="Find a collection" autocomplete="off">
+        </div>
+        <button class="collections-menu-new-btn" id="newCollectionMenuBtn">
+            <i class="fa-solid fa-plus"></i> New collection
+        </button>
+        <div class="collections-menu-divider"></div>
+        <div class="collections-menu-content" id="collectionsMenuContent">
+            <!-- Collection checkboxes inserted here -->
         </div>
     </div>
 

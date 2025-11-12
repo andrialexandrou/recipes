@@ -402,61 +402,6 @@ body {
     display: none !important;
 }
 
-/* Edit mode floating controls */
-.edit-controls {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    display: flex;
-    gap: 0;
-    z-index: 101;
-    background: #fcfbf9;
-    border: 1px solid #d9d4cb;
-    border-radius: 12px;
-    padding: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transition: right 0.3s ease;
-}
-
-.edit-controls.view-mode {
-    display: flex;
-}
-
-.edit-controls.edit-mode {
-    display: flex;
-}
-
-.edit-controls button {
-    padding: 8px 10px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-family: 'Georgia', serif;
-    transition: all 0.2s;
-    background: transparent;
-    color: #5a5a5a;
-    line-height: 1;
-}
-
-.edit-controls button:hover {
-    background: #f4f1ec;
-}
-
-.edit-controls button:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(90, 90, 90, 0.3);
-    border-radius: 6px;
-}
-
-.edit-controls .delete-btn {
-    color: #a06060;
-}
-
-.edit-controls .delete-btn:hover {
-    background: #faf5f5;
-}
-
 /* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 12px;
@@ -829,99 +774,6 @@ body {
 .modal-actions button:focus {
     outline: none;
     box-shadow: inset 0 0 0 2px rgba(90, 90, 90, 0.3);
-}
-
-/* Collections Dropdown Menu */
-.collections-menu-container {
-    position: relative;
-}
-
-.collections-dropdown {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    right: 0;
-    background: #fcfbf9;
-    border: 1px solid #d9d4cb;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    min-width: 250px;
-    max-width: 320px;
-    z-index: 100;
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.2s, transform 0.2s;
-}
-
-.collections-dropdown.hidden {
-    display: none;
-}
-
-.collections-dropdown-header {
-    font-size: 14px;
-    font-weight: 600;
-    color: #5a5a5a;
-    padding: 12px 16px;
-    border-bottom: 1px solid #e5e0d8;
-    background: #f9f7f4;
-    border-radius: 8px 8px 0 0;
-}
-
-.collections-dropdown-content {
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 8px;
-}
-
-.collection-checkbox {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-    margin-bottom: 4px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.collection-checkbox:hover {
-    background: #f4f1ec;
-}
-
-.collection-checkbox input {
-    margin-right: 12px;
-    cursor: pointer;
-}
-
-.collection-checkbox label {
-    font-family: 'Georgia', serif;
-    font-size: 13px;
-    color: #5a5a5a;
-    cursor: pointer;
-    flex: 1;
-}
-
-.new-collection-dropdown-btn {
-    width: calc(100% - 16px);
-    padding: 10px 12px;
-    margin: 8px 8px 4px 8px;
-    background: transparent;
-    border: none;
-    border-top: 1px solid #e5e0d8;
-    padding-top: 12px;
-    cursor: pointer;
-    font-size: 13px;
-    color: #8b7d6b;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-family: 'Georgia', 'Garamond', serif;
-    border-radius: 0;
-}
-
-.new-collection-dropdown-btn:hover {
-    background: #f4f1ec;
-    color: #6b5d4f;
 }
 
 .editor-view {
@@ -1605,6 +1457,163 @@ body {
     font-size: 13px;
     color: #999;
     font-style: italic;
+}
+
+.metadata-actions {
+    padding-top: 8px;
+    border-top: 1px solid #e5e0d8;
+}
+
+.metadata-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.metadata-action-btn {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 14px;
+    color: #8b7d6b;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.metadata-action-btn:hover {
+    background: #f4f1ec;
+    color: #6b5d4f;
+}
+
+.metadata-action-btn i {
+    font-size: 14px;
+}
+
+.metadata-action-btn-primary {
+    color: #6b5d52;
+}
+
+.metadata-action-btn-primary:hover {
+    background: #f4f1ec;
+    color: #5a4d42;
+}
+
+.metadata-action-btn-danger {
+    color: #a06060;
+}
+
+.metadata-action-btn-danger:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #8b4545;
+}
+
+/* Collections Menu (Spotify-style dropdown) */
+.collections-menu {
+    position: fixed;
+    background: #fcfbf9;
+    border: 1px solid #d9d4cb;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    width: 240px;
+    max-height: 400px;
+    z-index: 1000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.collections-menu-search {
+    padding: 8px;
+}
+
+.collections-menu-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e5e0d8;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'Georgia', serif;
+    background: #fff;
+    color: #5a5a5a;
+}
+
+.collections-menu-search input:focus {
+    outline: none;
+    border-color: #c9c4bb;
+}
+
+.collections-menu-new-btn {
+    padding: 10px 12px;
+    margin: 0 8px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-size: 13px;
+    font-family: 'Georgia', serif;
+    color: #6b5d52;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.collections-menu-new-btn:hover {
+    background: #f4f1ec;
+}
+
+.collections-menu-new-btn i {
+    font-size: 12px;
+}
+
+.collections-menu-divider {
+    height: 1px;
+    background: #e5e0d8;
+    margin: 8px 0;
+}
+
+.collections-menu-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px 8px 8px;
+    max-height: 280px;
+}
+
+.collection-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.collection-checkbox:hover {
+    background: #f4f1ec;
+}
+
+.collection-checkbox input[type="checkbox"] {
+    margin: 0 12px 0 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.collection-checkbox label {
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    color: #5a5a5a;
+    cursor: pointer;
+    flex: 1;
+    margin: 0;
 }
 
 /* Back button */
