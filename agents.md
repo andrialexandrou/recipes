@@ -580,6 +580,9 @@ The application uses a modular state management approach:
 
 ### Feature Backlog
 
+- **Public Content Viewing (Logged Out)** - Allow viewing user content via direct links when logged out, only redirect to login for app navigation
+- **Vertical Menu Cards with Header Images** - Make menu cards vertical (Pinterest-style) with optional header images for better visual appeal and social sharing
+- **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
