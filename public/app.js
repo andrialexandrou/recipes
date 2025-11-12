@@ -64,9 +64,10 @@ const API = {
                                             username: userData.username,
                                             displayName: userData.username,
                                             email: firebaseUser.email,
-                                            uid: firebaseUser.uid
+                                            uid: firebaseUser.uid,
+                                            isStaff: userData.isStaff || false
                                         };
-                                        console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`);
+                                        console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`, this.currentUser.isStaff ? '🛠️ Staff' : '');
                                         
                                         // Set viewing user
                                         if (!this.viewingUser) {
@@ -558,6 +559,15 @@ homeBtn.addEventListener('click', () => {
     showHomeView();
 });
 
+// Viewing user link (sidebar) - navigate to their home page
+const viewingUserLink = document.getElementById('viewingUser');
+if (viewingUserLink) {
+    viewingUserLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showHomeView();
+    });
+}
+
 // Update edit controls visibility based on ownership
 function updateEditControls() {
     const isOwner = API.viewingUser === API.currentUser?.username;
@@ -566,10 +576,12 @@ function updateEditControls() {
     const editBtn = document.getElementById('editBtn');
     const deleteBtn = document.getElementById('deleteBtn');
     const deleteBtn2 = document.getElementById('deleteBtn2');
+    const addToCollectionBtn = document.getElementById('addToCollectionBtn');
     
     if (editBtn) editBtn.style.display = isOwner ? 'inline-flex' : 'none';
     if (deleteBtn) deleteBtn.style.display = isOwner ? 'inline-flex' : 'none';
     if (deleteBtn2) deleteBtn2.style.display = isOwner ? 'inline-flex' : 'none';
+    if (addToCollectionBtn) addToCollectionBtn.style.display = isOwner ? 'inline-flex' : 'none';
     
     // Menu edit/delete controls
     const menuEditBtn = document.getElementById('menuEditBtn');
@@ -584,6 +596,12 @@ function updateEditControls() {
     const dropdownNewRecipe = document.getElementById('dropdownNewRecipe');
     if (dropdownNewRecipe) {
         dropdownNewRecipe.style.display = isOwner ? 'block' : 'none';
+    }
+    
+    // Debug menu item (staff only)
+    const dropdownDebug = document.getElementById('dropdownDebug');
+    if (dropdownDebug) {
+        dropdownDebug.style.display = API.currentUser?.isStaff ? 'block' : 'none';
     }
     
     // Create collection/menu buttons on home view
@@ -834,15 +852,10 @@ window.addEventListener('popstate', (e) => {
 
 // Render collections grid
 function renderCollectionsGrid() {
+    const isOwner = API.viewingUser === API.currentUser?.username;
     collectionsGrid.innerHTML = collections.map(col => {
         const recipeCount = col.recipeIds ? col.recipeIds.length : 0;
-        return `
-            <div class="collection-card" data-id="${col.id}" tabindex="0">
-                <div class="collection-card-header">
-                    <div class="collection-card-info">
-                        <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
-                        <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
-                    </div>
+        const actionsHtml = isOwner ? `
                     <div class="collection-card-actions">
                         <button onclick="event.stopPropagation(); editCollection('${col.id}')" class="collection-action-btn" title="Edit collection">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -858,7 +871,15 @@ function renderCollectionsGrid() {
                                 <line x1="14" y1="11" x2="14" y2="17"></line>
                             </svg>
                         </button>
+                    </div>` : '';
+        return `
+            <div class="collection-card" data-id="${col.id}" tabindex="0">
+                <div class="collection-card-header">
+                    <div class="collection-card-info">
+                        <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
+                        <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
                     </div>
+                    ${actionsHtml}
                 </div>
                 <p class="collection-card-description">${escapeHtml(col.description || 'No description')}</p>
             </div>
@@ -883,15 +904,10 @@ function renderCollectionsGrid() {
 
 // Render menus grid
 function renderMenusGrid() {
+    const isOwner = API.viewingUser === API.currentUser?.username;
     menusGrid.innerHTML = menus.map(menu => {
         const recipeCount = menu.recipeIds ? menu.recipeIds.length : 0;
-        return `
-            <div class="collection-card" data-id="${menu.id}" tabindex="0">
-                <div class="collection-card-header">
-                    <div class="collection-card-info">
-                        <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
-                        <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
-                    </div>
+        const actionsHtml = isOwner ? `
                     <div class="collection-card-actions">
                         <button onclick="event.stopPropagation(); loadMenuDetail('${menu.id}'); enterMenuEditMode();" class="collection-action-btn" title="Edit menu">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -907,7 +923,15 @@ function renderMenusGrid() {
                                 <line x1="14" y1="11" x2="14" y2="17"></line>
                             </svg>
                         </button>
+                    </div>` : '';
+        return `
+            <div class="collection-card" data-id="${menu.id}" tabindex="0">
+                <div class="collection-card-header">
+                    <div class="collection-card-info">
+                        <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
+                        <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
                     </div>
+                    ${actionsHtml}
                 </div>
                 <p class="collection-card-description">${escapeHtml(menu.description || 'No description')}</p>
             </div>
@@ -1055,23 +1079,18 @@ function loadCollectionDetail(id, updateUrl = true) {
     currentCollectionId = id;
     switchToView('collection-detail');
     
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    
     // Update breadcrumb
     const breadcrumbName = document.getElementById('collectionBreadcrumbName');
     if (breadcrumbName) {
         breadcrumbName.textContent = collection.name;
     }
     
-    // Add edit and delete buttons to collection header
+    // Add edit and delete buttons to collection header (only if owner)
     const collectionHeader = document.querySelector('.collection-detail-header');
     if (collectionHeader) {
-        collectionHeader.innerHTML = `
-            <div class="breadcrumb">
-                <span class="breadcrumb-link" onclick="switchToView('collections')">Collections</span>
-                <span class="breadcrumb-separator">></span>
-                <span class="breadcrumb-current">${escapeHtml(collection.name)}</span>
-            </div>
-            <div class="collection-title-section">
-                <h1>${escapeHtml(collection.name)}</h1>
+        const actionsHtml = isOwner ? `
                 <div class="collection-header-actions">
                     <button onclick="editCollection('${collection.id}')" class="collection-action-btn" title="Edit collection">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1087,7 +1106,16 @@ function loadCollectionDetail(id, updateUrl = true) {
                             <line x1="14" y1="11" x2="14" y2="17"></line>
                         </svg>
                     </button>
-                </div>
+                </div>` : '';
+        collectionHeader.innerHTML = `
+            <div class="breadcrumb">
+                <span class="breadcrumb-link" onclick="switchToView('collections')">Collections</span>
+                <span class="breadcrumb-separator">></span>
+                <span class="breadcrumb-current">${escapeHtml(collection.name)}</span>
+            </div>
+            <div class="collection-title-section">
+                <h1>${escapeHtml(collection.name)}</h1>
+                ${actionsHtml}
             </div>
             <p class="collection-description">${escapeHtml(collection.description || '')}</p>
         `;
@@ -1096,17 +1124,20 @@ function loadCollectionDetail(id, updateUrl = true) {
     const collectionRecipeIds = collection.recipeIds || [];
     const collectionRecipeList = recipes.filter(r => collectionRecipeIds.includes(r.id));
     
-    collectionRecipes.innerHTML = collectionRecipeList.length > 0 
-        ? `<ul class="collection-recipe-list">${collectionRecipeList.map(recipe => `
-            <li class="collection-recipe-item" data-id="${recipe.id}" tabindex="0" onclick="loadRecipeFromCollection('${recipe.id}')">
-                <span class="recipe-link">${escapeHtml(recipe.title || 'Untitled')}</span>
+    const removeButtonHtml = isOwner ? `
                 <button onclick="event.stopPropagation(); removeRecipeFromCollection('${collection.id}', '${recipe.id}')" class="collection-action-btn collection-action-btn-danger" title="Remove from collection">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="3 6h18"></path>
                         <path d="19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                         <path d="8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                     </svg>
-                </button>
+                </button>` : '';
+    
+    collectionRecipes.innerHTML = collectionRecipeList.length > 0 
+        ? `<ul class="collection-recipe-list">${collectionRecipeList.map(recipe => `
+            <li class="collection-recipe-item" data-id="${recipe.id}" tabindex="0" onclick="loadRecipeFromCollection('${recipe.id}')">
+                <span class="recipe-link">${escapeHtml(recipe.title || 'Untitled')}</span>
+                ${removeButtonHtml}
             </li>
         `).join('')}</ul>`
         : '<div class="empty-collection"><p>No recipes in this collection yet</p></div>';

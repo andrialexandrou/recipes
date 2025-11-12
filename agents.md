@@ -132,10 +132,21 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 3. Sets `API.currentUser` with username, email, uid
 4. Loads user's data via userId-based queries
 
+**Staff Users:**
+- User documents can have `isStaff: true` field
+- Staff users see Debug Info menu item
+- Set manually in Firestore Console: `users/{uid}` → add `isStaff` boolean field
+- Console logs show 🛠️ Staff indicator for staff users
+
+**Deployment Notes:**
+- Production domain must be added to Firebase Console → Authentication → Settings → Authorized domains
+- Required for Google OAuth to work on deployed app
+- Add both preview and production Vercel URLs
+
 **Key Files:**
 - `public/login.html` - Login page with email/password and Google options
 - `public/signup.html` - Signup page with username collection
-- `public/app.js` - Auth state handling, `onAuthStateChanged`
+- `public/app.js` - Auth state handling, `onAuthStateChanged`, `isStaff` check
 
 ### 6. Multi-User Architecture with UserId
 
@@ -165,6 +176,10 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `updateEditControls()` function checks ownership: `API.viewingUser === API.currentUser?.username`
 - Hides edit/delete buttons when viewing other users' content
 - Hides "New Recipe", "New Collection", "New Menu" buttons when not viewing own content
+- Hides "Add to Collection" button when viewing other users' recipes
+- Hides Debug Info menu item for non-staff users
+- Collection/menu grid cards: Edit/delete buttons only shown for owner
+- Collection detail view: Edit/delete header buttons + remove recipe buttons only for owner
 - Creates clear read-only vs. editable state distinction
 
 **Key Files:**
@@ -204,7 +219,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **Sidebar:**
 
-- Viewing user indicator (Gravatar + @username)
+- Viewing user indicator (Gravatar + @username) - clickable link to user's home page
 - Search/filter recipes
 - Recipe list with live filtering
 - Collapsible on mobile
@@ -245,9 +260,10 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **Firestore Collections:**
 
-- `recipes` - {id, title, content, username, createdAt, updatedAt}
-- `collections` - {id, name, description, username, recipeIds[]}
-- `menus` - {id, name, description, content, username, recipeIds[], createdAt, updatedAt}
+- `users` - {username, email, createdAt, isStaff (optional boolean)}
+- `recipes` - {id, title, content, username, userId, createdAt, updatedAt}
+- `collections` - {id, name, description, username, userId, recipeIds[]}
+- `menus` - {id, name, description, content, username, userId, recipeIds[], createdAt, updatedAt}
 - `photos` - {id, filename, url, username, uploadedAt, size, mimetype}
 
 **Firebase Storage:**
@@ -413,9 +429,20 @@ These scenarios should be tested when making changes to ensure core functionalit
 - [ ] **Own Content** - Navigate to your own content, verify all edit/delete/create buttons visible
 - [ ] **Other User's Content** - Navigate to `/{otherUser}/recipe/...`, verify edit/delete buttons hidden
 - [ ] **New Recipe Hidden** - When viewing another user's catalog, verify "New Recipe" menu item hidden
+- [ ] **Add to Collection Hidden** - On another user's recipe, verify "Add to Collection" button hidden
 - [ ] **Create Buttons Hidden** - On another user's home/collections/menus views, verify "New Collection" and "New Menu" buttons hidden
+- [ ] **Collections List** - View another user's collections list, verify no edit/delete buttons on cards
+- [ ] **Collection Detail** - View another user's collection detail, verify no edit/delete buttons in header or on recipes
+- [ ] **Menus List** - View another user's menus list, verify no edit/delete buttons on cards
 - [ ] **Switch Back** - Navigate back to your own content, verify edit controls reappear
+- [ ] **Sidebar Username Link** - Click username/avatar in sidebar, verify navigates to user's home page
 - [ ] **Console Logging** - Check for `🔒 Edit controls shown/hidden` messages in console
+
+#### Staff Features
+
+- [ ] **Debug Menu (Staff)** - As staff user (`isStaff: true`), verify Debug Info menu item visible
+- [ ] **Debug Menu (Non-Staff)** - As regular user, verify Debug Info menu item hidden
+- [ ] **Staff Console Log** - Check for 🛠️ Staff indicator in console when staff user logs in
 
 #### Gravatar Integration
 
@@ -576,6 +603,10 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-11** - Added `isStaff` user field, Debug menu only visible to staff users
+- **2025-11-11** - Extended permission-based UI to collections/menus list and detail views
+- **2025-11-11** - Made sidebar username/avatar clickable link to user's home page
+- **2025-11-11** - Hidden "Add to Collection" button when viewing other users' recipes
 - **2025-11-11** - Added permission-based UI (read-only mode when viewing other users' content)
 - **2025-11-11** - Fixed URL persistence and navigation bugs in multi-user architecture
 - **2025-11-11** - Fixed Gravatar lookup to fetch viewing user's email from Firestore
