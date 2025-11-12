@@ -599,7 +599,7 @@ The application uses a modular state management approach:
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
 - ✅ **Menus Above Collections** - DONE: Reordered home view rendering and HTML sections
-- **Firebase Connection Error UI** - Show user-friendly 500 error message when ECONNREFUSED or Firestore connection fails, so users don't think their data is lost. Currently falls back silently to memory storage which can be confusing.
+- ✅ **Firebase Connection Error UI** - DONE: Added dismissible banner that shows when server/Firebase connection fails
 - ✅ **Clear Metadata on New Recipe** - DONE: Metadata now properly resets when creating new recipe
 - ✅ **Recipe Author Display** - DONE: Shows @username at top of recipe metadata
 - ✅ **Remove Recipe Count from Menu Cards** - DONE: Removed from both home and full menus view
@@ -660,6 +660,7 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-12** - Added Firebase connection error UI with dismissible banner for server failures
 - **2025-11-12** - Implemented Quick Wins: Reordered home view (menus before collections), added author display to recipe metadata (at top), removed recipe count from menu cards, fixed auth page centering with :has() selector, cleared metadata on new recipe creation
 - **2025-11-11** - Removed floating action buttons completely, replaced with inline icon-only metadata buttons, built Spotify-style collections dropdown with search and creation, fixed multiple console errors (function references), removed menus from recipe metadata
 - **2025-11-11** - Code refactoring: Organized code into modules (State, DOM, SkeletonUI, CONSTANTS), extracted helper functions, added JSDoc comments, removed duplicate code

@@ -77,6 +77,20 @@
             </div>
         </nav>
         
+        <!-- Firebase Error Banner -->
+        <div id="firebaseErrorBanner" class="firebase-error-banner hidden">
+            <div class="firebase-error-content">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div class="firebase-error-text">
+                    <strong>Connection Issue</strong>
+                    <span>We're having trouble connecting to the server. Your data is safe, but changes may not be saved until the connection is restored.</span>
+                </div>
+            </div>
+            <button class="firebase-error-close" onclick="document.getElementById('firebaseErrorBanner').classList.add('hidden')" aria-label="Dismiss">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        
         <!-- Navbar Menu Dropdown -->
         <div class="navbar-dropdown hidden" id="navbarDropdown">
             <div class="navbar-dropdown-item" id="dropdownProfile">

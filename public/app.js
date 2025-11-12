@@ -26,6 +26,26 @@ const CONSTANTS = {
 // =============================================================================
 
 /**
+ * Shows the Firebase error banner
+ */
+function showFirebaseErrorBanner() {
+    const errorBanner = document.getElementById('firebaseErrorBanner');
+    if (errorBanner) {
+        errorBanner.classList.remove('hidden');
+    }
+}
+
+/**
+ * Hides the Firebase error banner
+ */
+function hideFirebaseErrorBanner() {
+    const errorBanner = document.getElementById('firebaseErrorBanner');
+    if (errorBanner) {
+        errorBanner.classList.add('hidden');
+    }
+}
+
+/**
  * Gets a Gravatar URL for an email address
  * @param {string} email - The email address
  * @param {number} size - The size of the avatar in pixels
@@ -177,6 +197,10 @@ const API = {
     
     async handleResponse(res) {
         if (!res.ok) {
+            // Show error banner for server errors
+            if (res.status >= 500) {
+                showFirebaseErrorBanner();
+            }
             const error = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
             throw new Error(error.error || `Request failed with status ${res.status}`);
         }
@@ -1622,14 +1646,17 @@ async function loadAllData() {
         const [recipesData, collectionsData, menusData] = await Promise.all([
             API.getRecipes().catch(err => {
                 console.error('❌ Failed to load recipes:', err.message);
+                showFirebaseErrorBanner();
                 return [];
             }),
             API.getCollections().catch(err => {
                 console.error('❌ Failed to load collections:', err.message);
+                showFirebaseErrorBanner();
                 return [];
             }),
             API.getMenus().catch(err => {
                 console.error('❌ Failed to load menus:', err.message);
+                showFirebaseErrorBanner();
                 return [];
             })
         ]);
@@ -1649,7 +1676,17 @@ async function loadAllData() {
         }
     } catch (error) {
         console.error('💥 Critical error loading data:', error);
-        alert('Failed to connect to server. Please check your connection and try refreshing the page.');
+        
+        // Show Firebase error banner
+        const errorBanner = document.getElementById('firebaseErrorBanner');
+        if (errorBanner) {
+            errorBanner.classList.remove('hidden');
+        }
+        
+        // Still show a modal for critical failures
+        if (error.message && (error.message.includes('fetch') || error.message.includes('NetworkError'))) {
+            alert('Failed to connect to server. Please check your connection and try refreshing the page.');
+        }
     }
 }
 
