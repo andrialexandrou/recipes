@@ -558,8 +558,51 @@ homeBtn.addEventListener('click', () => {
     showHomeView();
 });
 
+// Update edit controls visibility based on ownership
+function updateEditControls() {
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    
+    // Recipe edit/delete controls
+    const editBtn = document.getElementById('editBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const deleteBtn2 = document.getElementById('deleteBtn2');
+    
+    if (editBtn) editBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    if (deleteBtn) deleteBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    if (deleteBtn2) deleteBtn2.style.display = isOwner ? 'inline-flex' : 'none';
+    
+    // Menu edit/delete controls
+    const menuEditBtn = document.getElementById('menuEditBtn');
+    const menuDeleteBtn = document.getElementById('menuDeleteBtn');
+    const menuDeleteBtn2 = document.getElementById('menuDeleteBtn2');
+    
+    if (menuEditBtn) menuEditBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    if (menuDeleteBtn) menuDeleteBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    if (menuDeleteBtn2) menuDeleteBtn2.style.display = isOwner ? 'inline-flex' : 'none';
+    
+    // "New Recipe" menu item
+    const dropdownNewRecipe = document.getElementById('dropdownNewRecipe');
+    if (dropdownNewRecipe) {
+        dropdownNewRecipe.style.display = isOwner ? 'block' : 'none';
+    }
+    
+    // Create collection/menu buttons on home view
+    const newCollectionBtnHome = document.getElementById('newCollectionBtnHome');
+    const newMenuBtnHome = document.getElementById('newMenuBtnHome');
+    if (newCollectionBtnHome) newCollectionBtnHome.style.display = isOwner ? 'inline-flex' : 'none';
+    if (newMenuBtnHome) newMenuBtnHome.style.display = isOwner ? 'inline-flex' : 'none';
+    
+    // Create buttons in collections/menus list views
+    const newCollectionBtn = document.getElementById('newCollectionBtn');
+    const newMenuBtn = document.getElementById('newMenuBtn');
+    if (newCollectionBtn) newCollectionBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    if (newMenuBtn) newMenuBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    
+    console.log(`🔒 Edit controls ${isOwner ? 'shown' : 'hidden'} (viewing: ${API.viewingUser}, owner: ${API.currentUser?.username})`);
+}
+
 // Update user display in navbar
-function updateUserDisplay() {
+async function updateUserDisplay() {
     // Update current user avatar in navbar (right side)
     const currentUserAvatar = document.getElementById('currentUserAvatar');
     if (currentUserAvatar && API.currentUser) {
@@ -573,13 +616,45 @@ function updateUserDisplay() {
     const viewingUsername = document.getElementById('viewingUsername');
     
     if (viewingUserAvatar && viewingUsername && API.viewingUser) {
-        // Find the viewing user's data to get their email
-        const viewingUserData = users.find(u => u.username === API.viewingUser) || API.currentUser;
-        const gravatarUrl = getGravatarUrl(viewingUserData.email, 128);
-        
-        viewingUserAvatar.src = gravatarUrl;
-        viewingUsername.textContent = `@${API.viewingUser}`;
+        // If viewing ourselves, use current user data
+        if (API.viewingUser === API.currentUser?.username) {
+            const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
+            viewingUserAvatar.src = gravatarUrl;
+            viewingUsername.textContent = `@${API.viewingUser}`;
+        } else {
+            // Fetch the viewing user's email from Firestore
+            try {
+                if (window.db) {
+                    const usersSnapshot = await window.db.collection('users')
+                        .where('username', '==', API.viewingUser)
+                        .limit(1)
+                        .get();
+                    
+                    if (!usersSnapshot.empty) {
+                        const userData = usersSnapshot.docs[0].data();
+                        const gravatarUrl = getGravatarUrl(userData.email, 128);
+                        viewingUserAvatar.src = gravatarUrl;
+                        viewingUsername.textContent = `@${API.viewingUser}`;
+                    } else {
+                        // Fallback to default avatar if user not found
+                        viewingUserAvatar.src = getGravatarUrl('unknown@example.com', 128);
+                        viewingUsername.textContent = `@${API.viewingUser}`;
+                    }
+                } else {
+                    // No Firestore, use fallback
+                    viewingUserAvatar.src = getGravatarUrl('unknown@example.com', 128);
+                    viewingUsername.textContent = `@${API.viewingUser}`;
+                }
+            } catch (error) {
+                console.error('Failed to fetch viewing user email:', error);
+                viewingUserAvatar.src = getGravatarUrl('unknown@example.com', 128);
+                viewingUsername.textContent = `@${API.viewingUser}`;
+            }
+        }
     }
+    
+    // Update edit controls visibility based on ownership
+    updateEditControls();
 }
 
 // Helper to get list of users (we'll fetch this from the API)
@@ -596,7 +671,7 @@ async function fetchUsers() {
 
 // Navigation system
 function switchToView(viewName) {
-    const username = API.currentUser?.username || API.viewingUser;
+    const username = API.viewingUser || API.currentUser?.username;
     
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
@@ -617,6 +692,7 @@ function switchToView(viewName) {
             collectionsView.classList.add('active');
             homeBtn.classList.add('active');
             renderCollectionsGrid();
+            updateEditControls(); // Show/hide create button
             history.pushState({ type: 'collections' }, '', `/${username}/collections`);
             break;
         case 'collection-detail':
@@ -627,8 +703,8 @@ function switchToView(viewName) {
         case 'menus':
             menusView.classList.remove('hidden');
             menusView.classList.add('active');
-            navMenusBtn.classList.add('active');
             renderMenusGrid();
+            updateEditControls(); // Show/hide create button
             history.pushState({ type: 'menus' }, '', `/${username}/menus`);
             break;
         case 'menu-detail':
@@ -653,7 +729,7 @@ function slugify(text) {
 }
 
 function updateURL(type, id) {
-    const username = API.currentUser?.username || API.viewingUser;
+    const username = API.viewingUser || API.currentUser?.username;
     
     if (!id) {
         history.pushState(null, '', `/${username}`);
@@ -1092,6 +1168,7 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
     enterViewMode();
     updateRecipeMetadata(recipe);
     renderRecipeList(filterInput.value);
+    updateEditControls(); // Show/hide edit controls based on ownership
     
     if (updateUrl) {
         updateURL('recipe', id);
@@ -1195,6 +1272,8 @@ function showHomeView() {
     renderCollectionsGridHome();
     renderMenusGridHome();
     
+    updateEditControls(); // Show/hide create buttons based on ownership
+    
     updateURL(null, null);
 }
 
@@ -1216,27 +1295,9 @@ async function loadAllData() {
         const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
         if (usernameMatch) {
             const username = usernameMatch[1];
-            // Validate username against known users or current user
-            if (username === API.currentUser.username) {
-                API.viewingUser = username;
-                console.log('👁️  Setting viewing user from URL (self):', username);
-            } else {
-                // Try to validate via server
-                try {
-                    const response = await fetch(`/api/${username}/recipes`);
-                    if (response.ok) {
-                        API.viewingUser = username;
-                        console.log('👁️  Setting viewing user from URL:', username);
-                    } else {
-                        // Invalid user, default to current user
-                        API.viewingUser = API.currentUser.username;
-                        console.log('⚠️ Invalid username in URL, defaulting to current user');
-                    }
-                } catch (err) {
-                    API.viewingUser = API.currentUser.username;
-                    console.log('⚠️ Error validating username, defaulting to current user');
-                }
-            }
+            // Set viewing user from URL - trust the URL
+            API.viewingUser = username;
+            console.log('👁️  Setting viewing user from URL:', username);
         } else {
             // No username in URL, use current user
             API.viewingUser = API.currentUser.username;
@@ -1607,6 +1668,8 @@ function loadMenuDetail(menuId, updateHistory = true) {
     menuDescriptionInput.classList.add('hidden');
     menuPreviewContent.classList.remove('hidden');
     menuMarkdownTextarea.classList.add('hidden');
+    
+    updateEditControls(); // Show/hide edit controls based on ownership
 }
 
 function enterMenuEditMode() {

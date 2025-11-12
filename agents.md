@@ -160,9 +160,17 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Navbar dropdown shows current logged-in user
 - URLs clearly show whose catalog is being viewed
 
+**Permission-Based UI:**
+
+- `updateEditControls()` function checks ownership: `API.viewingUser === API.currentUser?.username`
+- Hides edit/delete buttons when viewing other users' content
+- Hides "New Recipe", "New Collection", "New Menu" buttons when not viewing own content
+- Creates clear read-only vs. editable state distinction
+
 **Key Files:**
+
 - `server.js` - `validateUsername` middleware, `buildUserQuery` helper, user-scoped queries
-- `public/app.js` - `API.currentUser`, `API.viewingUser`, dynamic username validation
+- `public/app.js` - `API.currentUser`, `API.viewingUser`, `updateEditControls()`, dynamic username validation
 
 ### 7. Gravatar Integration
 
@@ -400,6 +408,15 @@ These scenarios should be tested when making changes to ensure core functionalit
 - [ ] **Create Recipe** - Verify new recipe has `userId` field in Firestore
 - [ ] **Data Ownership** - Try editing another user's recipe via direct URL, verify fails
 
+#### Permission-Based UI (Read-Only Mode)
+
+- [ ] **Own Content** - Navigate to your own content, verify all edit/delete/create buttons visible
+- [ ] **Other User's Content** - Navigate to `/{otherUser}/recipe/...`, verify edit/delete buttons hidden
+- [ ] **New Recipe Hidden** - When viewing another user's catalog, verify "New Recipe" menu item hidden
+- [ ] **Create Buttons Hidden** - On another user's home/collections/menus views, verify "New Collection" and "New Menu" buttons hidden
+- [ ] **Switch Back** - Navigate back to your own content, verify edit controls reappear
+- [ ] **Console Logging** - Check for `🔒 Edit controls shown/hidden` messages in console
+
 #### Gravatar Integration
 
 - [ ] **User Avatars** - Verify avatars appear in navbar dropdown and sidebar
@@ -517,6 +534,7 @@ For rapid verification after deployments:
 - **Follow Users** - Allow users to follow other users to see their content
 - **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
 - **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
+- **First-Time User Onboarding** - Show friendly welcome/invitation to create first recipe instead of empty states on initial login
 
 ### Potential Features (Not Yet Implemented)
 
@@ -558,6 +576,9 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-11** - Added permission-based UI (read-only mode when viewing other users' content)
+- **2025-11-11** - Fixed URL persistence and navigation bugs in multi-user architecture
+- **2025-11-11** - Fixed Gravatar lookup to fetch viewing user's email from Firestore
 - **2025-11-11** - Added Firebase Authentication (email/password + Google Sign-In), userId-based data architecture, multi-user support
 - **2025-11-11** - Added multi-user architecture, Gravatar integration, navbar redesign, photo migration
 - **2025-11-11** - Added menus feature with full CRUD
