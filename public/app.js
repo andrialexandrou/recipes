@@ -1341,7 +1341,9 @@ function loadCollectionDetail(id, updateUrl = true) {
     const collectionRecipeIds = collection.recipeIds || [];
     const collectionRecipeList = recipes.filter(r => collectionRecipeIds.includes(r.id));
     
-    const removeButtonHtml = isOwner ? `
+    collectionRecipes.innerHTML = collectionRecipeList.length > 0 
+        ? `<ul class="collection-recipe-list">${collectionRecipeList.map(recipe => {
+            const removeButtonHtml = isOwner ? `
                 <button onclick="event.stopPropagation(); removeRecipeFromCollection('${collection.id}', '${recipe.id}')" class="collection-action-btn collection-action-btn-danger" title="Remove from collection">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="3 6h18"></path>
@@ -1349,14 +1351,14 @@ function loadCollectionDetail(id, updateUrl = true) {
                         <path d="8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                     </svg>
                 </button>` : '';
-    
-    collectionRecipes.innerHTML = collectionRecipeList.length > 0 
-        ? `<ul class="collection-recipe-list">${collectionRecipeList.map(recipe => `
+            
+            return `
             <li class="collection-recipe-item" data-id="${recipe.id}" tabindex="0" onclick="loadRecipeFromCollection('${recipe.id}')">
                 <span class="recipe-link">${escapeHtml(recipe.title || 'Untitled')}</span>
                 ${removeButtonHtml}
             </li>
-        `).join('')}</ul>`
+        `;
+        }).join('')}</ul>`
         : '<div class="empty-collection"><p>No recipes in this collection yet</p></div>';
     
     // Add click listeners for recipe list items

@@ -598,6 +598,7 @@ The application uses a modular state management approach:
 - **Center Auth Pages** - Center the login/signup screens vertically and horizontally for better visual balance
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
+- **Menus Above Collections** - Reorder the home page to show menus section before collections section
 
 **Medium Effort:**
 
@@ -605,12 +606,13 @@ The application uses a modular state management approach:
 - **Public Content Viewing (Logged Out)** - Allow viewing user content via direct links when logged out, only redirect to login for app navigation
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
+- **Import/Migration Tool** - Allow users to bulk import recipes from various file formats (PDF, Markdown, HTML, text files) to populate their catalog after account creation. Implementation: Use Vercel AI SDK with user-provided API keys stored securely in their Firestore user document. Let users attach their own OpenAI/Anthropic key for AI-powered parsing, or start with simple markdown/text imports without AI. Trade-off: User provides key (no cost to app) vs. built-in credits (simpler UX but ongoing costs).
 
 **Large Features:**
 
 - **Follow Users** - Allow users to follow other users to see their content
 - **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
-- **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
+- **Progressive Web App (PWA)** - Add manifest.json and service worker for offline support, home screen installation that opens as standalone app without browser chrome
 
 ### Potential Features (Not Yet Implemented)
 
@@ -629,7 +631,7 @@ The application uses a modular state management approach:
 
 ### Technical Debt
 
-- No automated tests yet
+- No automated tests yet (need tests that load each view across multiple users to verify data isolation and permissions)
 - No TypeScript (pure JavaScript)
 - No build process (ships raw files)
 - Memory storage fallback loses data on restart
