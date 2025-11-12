@@ -595,16 +595,19 @@ The application uses a modular state management approach:
 
 **Quick Wins (Small):**
 
-- **Center Auth Pages** - Center the login/signup screens vertically and horizontally for better visual balance
+- ✅ **Center Auth Pages** - DONE: Fixed body flexbox conflict with :has() selector
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
-- **Menus Above Collections** - Reorder the home page to show menus section before collections section
+- ✅ **Menus Above Collections** - DONE: Reordered home view rendering and HTML sections
 - **Firebase Connection Error UI** - Show user-friendly 500 error message when ECONNREFUSED or Firestore connection fails, so users don't think their data is lost. Currently falls back silently to memory storage which can be confusing.
-- **Clear Metadata on New Recipe** - Fix bug where metadata from previously viewed recipe persists when creating a new recipe
-- **Recipe Author Display** - Show "by @username" in recipe metadata for visibility of who created the recipe
+- ✅ **Clear Metadata on New Recipe** - DONE: Metadata now properly resets when creating new recipe
+- ✅ **Recipe Author Display** - DONE: Shows @username at top of recipe metadata
+- ✅ **Remove Recipe Count from Menu Cards** - DONE: Removed from both home and full menus view
+- **Fix User Menu Alignment** - Fix alignment bugs in the navbar user dropdown menu
 
 **Medium Effort:**
 
+- **Open Graph Cards for Social Sharing** - Generate Open Graph meta tags for recipes, collections, and menus to create rich preview cards when sharing links. Use page content and user-provided images to auto-generate cards. Optional: As a pro feature, use AI to generate enhanced cards with title, estimated duration from recipe notes, basic instructions, etc.
 - **Vertical Menu Cards with Header Images** - Make menu cards vertical (Pinterest-style) with optional header images for better visual appeal and social sharing
 - **Public Content Viewing (Logged Out)** - Allow viewing user content via direct links when logged out, only redirect to login for app navigation
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
@@ -639,7 +642,6 @@ The application uses a modular state management approach:
 - No build process (ships raw files)
 - Memory storage fallback loses data on restart
 - No offline support (PWA)
-- Metadata persists when navigating from recipe to new recipe creation (needs state cleanup)
 
 ## Notes for AI Agents
 
@@ -658,6 +660,8 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-12** - Implemented Quick Wins: Reordered home view (menus before collections), added author display to recipe metadata (at top), removed recipe count from menu cards, fixed auth page centering with :has() selector, cleared metadata on new recipe creation
+- **2025-11-11** - Removed floating action buttons completely, replaced with inline icon-only metadata buttons, built Spotify-style collections dropdown with search and creation, fixed multiple console errors (function references), removed menus from recipe metadata
 - **2025-11-11** - Code refactoring: Organized code into modules (State, DOM, SkeletonUI, CONSTANTS), extracted helper functions, added JSDoc comments, removed duplicate code
 - **2025-11-11** - Added skeleton loading for sidebar user avatar and recipe list
 - **2025-11-11** - Added first-time user onboarding banner with CTA buttons, skeleton loading UI with shimmer effect

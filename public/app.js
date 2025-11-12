@@ -1048,7 +1048,6 @@ function renderCollectionsGrid() {
 function renderMenusGrid() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     menusGrid.innerHTML = menus.map(menu => {
-        const recipeCount = menu.recipeIds ? menu.recipeIds.length : 0;
         const actionsHtml = isOwner ? `
                     <div class="collection-card-actions">
                         <button onclick="event.stopPropagation(); loadMenuDetail('${menu.id}'); enterMenuEditMode();" class="collection-action-btn" title="Edit menu">
@@ -1071,7 +1070,6 @@ function renderMenusGrid() {
                 <div class="collection-card-header">
                     <div class="collection-card-info">
                         <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
-                        <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
                     </div>
                     ${actionsHtml}
                 </div>
@@ -1158,12 +1156,10 @@ function renderMenusGridHome() {
     }
     
     menusGridHome.innerHTML = limitedMenus.map(menu => {
-        const recipeCount = menu.recipeIds ? menu.recipeIds.length : 0;
         return `
             <div class="collection-card collection-card-compact" data-id="${menu.id}" tabindex="0">
                 <div class="collection-card-info">
                     <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
-                    <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
                 </div>
                 <p class="collection-card-description">${escapeHtml(menu.description || '')}</p>
             </div>
@@ -1405,6 +1401,12 @@ function updateRecipeMetadata(recipe) {
     // Update edited date
     metadataEdited.textContent = formatDate(recipe.updatedAt);
     
+    // Update author
+    const metadataAuthor = document.getElementById('metadataAuthor');
+    if (metadataAuthor && recipe.username) {
+        metadataAuthor.textContent = `@${recipe.username}`;
+    }
+    
     // Update collections
     const recipeCollections = collections.filter(c => 
         c.recipeIds && c.recipeIds.includes(recipe.id)
@@ -1583,9 +1585,9 @@ function showNormalHomeView(skeleton, content) {
     const banner = homeView.querySelector('.onboarding-banner');
     if (banner) banner.remove();
     
-    // Render normal home view
-    renderCollectionsGridHome();
+    // Render normal home view - MENUS FIRST, then collections
     renderMenusGridHome();
+    renderCollectionsGridHome();
 }
 
 // Load all data
@@ -1660,6 +1662,17 @@ async function createNewRecipe() {
         currentRecipeId = newRecipe.id;
         titleInput.value = '';
         markdownTextarea.value = '';
+        
+        // Clear metadata for new recipe
+        const metadataCreated = document.getElementById('metadataCreated');
+        const metadataEdited = document.getElementById('metadataEdited');
+        const metadataCollections = document.getElementById('metadataCollections');
+        const metadataAuthor = document.getElementById('metadataAuthor');
+        
+        if (metadataCreated) metadataCreated.textContent = '—';
+        if (metadataEdited) metadataEdited.textContent = '—';
+        if (metadataCollections) metadataCollections.innerHTML = '<span class="metadata-empty">None</span>';
+        if (metadataAuthor) metadataAuthor.textContent = '—';
         
         switchToView('recipe-detail');
         

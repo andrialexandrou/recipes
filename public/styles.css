@@ -1712,6 +1712,12 @@ body {
 }
 
 /* Auth Pages */
+body:has(.auth-container) {
+    display: block;
+    height: auto;
+    overflow: auto;
+}
+
 .auth-container {
     display: flex;
     align-items: center;
@@ -1826,6 +1832,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     margin-top: 12px;
 }
 
