@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — Sous</title>
+    <link rel="icon" type="image/png" href="/favicon.png" id="favicon">
+    <link rel="stylesheet" href="/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        // Set dev favicon if on localhost
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            document.getElementById('favicon').href = '/favicon-dev.png';
+        }
+    </script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 class="auth-title">Sous</h1>
+            <h2 class="auth-subtitle">Create Account</h2>
+            
+            <form id="signupForm" class="auth-form">
+                <div class="form-group">
+                    <label for="signupUsername">Username</label>
+                    <input type="text" id="signupUsername" name="username" required autofocus placeholder="e.g., chef_alex">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" name="email" autocomplete="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" name="password" autocomplete="new-password" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupPasswordConfirm">Confirm Password</label>
+                    <input type="password" id="signupPasswordConfirm" name="passwordConfirm" autocomplete="new-password" required minlength="6">
+                </div>
+                
+                <div id="signupError" class="error-message"></div>
+                
+                <button type="submit" id="signupBtn" class="auth-btn">Create Account</button>
+            </form>
+            
+            <div class="auth-divider">
+                <span>or</span>
+            </div>
+            
+            <button id="googleSignUpBtn" class="auth-btn auth-btn-google">
+                <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 8px;">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+                    <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.183l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                    <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
+                    <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                </svg>
+                Continue with Google
+            </button>
+            
+            <p class="auth-footer">
+                Already have an account? <a href="/login">Sign in</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcvHMjul-zt4Di5cjVf1Yi6CRS4dSRc78",
+            authDomain: "recipe-manager-4c340.firebaseapp.com",
+            projectId: "recipe-manager-4c340"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+        
+        const signupForm = document.getElementById('signupForm');
+        const signupUsername = document.getElementById('signupUsername');
+        const signupEmail = document.getElementById('signupEmail');
+        const signupPassword = document.getElementById('signupPassword');
+        const signupPasswordConfirm = document.getElementById('signupPasswordConfirm');
+        const signupError = document.getElementById('signupError');
+        const signupBtn = document.getElementById('signupBtn');
+        
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = signupUsername.value.trim().toLowerCase();
+            const email = signupEmail.value.trim();
+            const password = signupPassword.value;
+            const passwordConfirm = signupPasswordConfirm.value;
+            
+            // Validate username format
+            if (!/^[a-z0-9_-]+$/.test(username)) {
+                signupError.textContent = 'Username must contain only lowercase letters, numbers, hyphens, and underscores';
+                signupError.style.display = 'block';
+                return;
+            }
+            
+            // Validate passwords match
+            if (password !== passwordConfirm) {
+                signupError.textContent = 'Passwords do not match';
+                signupError.style.display = 'block';
+                return;
+            }
+            
+            // Validate password length
+            if (password.length < 6) {
+                signupError.textContent = 'Password must be at least 6 characters';
+                signupError.style.display = 'block';
+                return;
+            }
+            
+            try {
+                signupBtn.disabled = true;
+                signupBtn.textContent = 'Creating account...';
+                signupError.style.display = 'none';
+                
+                // Create Firebase Auth account FIRST
+                console.log('Creating Firebase Auth account...');
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                
+                // Now check if username is taken (now we're authenticated)
+                console.log('Checking if username is available...');
+                const usernameQuery = await db.collection('users').where('username', '==', username).get();
+                if (!usernameQuery.empty) {
+                    // Username is taken - delete the auth account we just created
+                    await userCredential.user.delete();
+                    signupError.textContent = 'Username is already taken';
+                    signupError.style.display = 'block';
+                    signupBtn.disabled = false;
+                    signupBtn.textContent = 'Create Account';
+                    return;
+                }
+                
+                // Create user document in Firestore
+                console.log('Creating user document...');
+                await db.collection('users').doc(userCredential.user.uid).set({
+                    username: username,
+                    email: email,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log('✅ Sign up successful:', username);
+                
+                // Redirect to home (user is automatically signed in)
+                window.location.href = '/';
+                
+            } catch (error) {
+                console.error('Sign up failed:', error);
+                let errorMessage = error.message;
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'An account with this email already exists. Please sign in instead.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password is too weak. Please use at least 6 characters.';
+                }
+                signupError.textContent = errorMessage;
+                signupError.style.display = 'block';
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+            }
+        });
+        
+        // Google Sign-Up
+        const googleSignUpBtn = document.getElementById('googleSignUpBtn');
+        googleSignUpBtn.addEventListener('click', async () => {
+            try {
+                googleSignUpBtn.disabled = true;
+                googleSignUpBtn.textContent = 'Signing up...';
+                signupError.style.display = 'none';
+                
+                const result = await auth.signInWithPopup(googleProvider);
+                const user = result.user;
+                
+                // Check if user document already exists
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                
+                if (userDoc.exists) {
+                    // User already has an account, just redirect
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // New user - need to collect username
+                const username = prompt('Choose a username (lowercase letters, numbers, hyphens, underscores only):');
+                
+                if (!username) {
+                    // User cancelled - sign them out
+                    await auth.signOut();
+                    signupError.textContent = 'Username is required';
+                    signupError.style.display = 'block';
+                    googleSignUpBtn.disabled = false;
+                    googleSignUpBtn.textContent = 'Continue with Google';
+                    return;
+                }
+                
+                const cleanUsername = username.trim().toLowerCase();
+                
+                // Validate username format
+                if (!/^[a-z0-9_-]+$/.test(cleanUsername)) {
+                    await auth.signOut();
+                    signupError.textContent = 'Username must contain only lowercase letters, numbers, hyphens, and underscores';
+                    signupError.style.display = 'block';
+                    googleSignUpBtn.disabled = false;
+                    googleSignUpBtn.textContent = 'Continue with Google';
+                    return;
+                }
+                
+                // Check if username is taken
+                const usernameQuery = await db.collection('users').where('username', '==', cleanUsername).get();
+                if (!usernameQuery.empty) {
+                    await auth.signOut();
+                    signupError.textContent = 'Username is already taken';
+                    signupError.style.display = 'block';
+                    googleSignUpBtn.disabled = false;
+                    googleSignUpBtn.textContent = 'Continue with Google';
+                    return;
+                }
+                
+                // Create user document
+                await db.collection('users').doc(user.uid).set({
+                    username: cleanUsername,
+                    email: user.email,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log('✅ Google sign-up successful:', cleanUsername);
+                
+                // Redirect to home
+                window.location.href = '/';
+                
+            } catch (error) {
+                console.error('Google sign-up failed:', error);
+                let errorMessage = error.message;
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-up cancelled';
+                } else if (error.code === 'auth/popup-blocked') {
+                    errorMessage = 'Popup blocked. Please allow popups for this site.';
+                } else if (error.code === 'auth/account-exists-with-different-credential') {
+                    errorMessage = 'An account already exists with this email using a different sign-in method.';
+                }
+                signupError.textContent = errorMessage;
+                signupError.style.display = 'block';
+                googleSignUpBtn.disabled = false;
+                googleSignUpBtn.textContent = 'Continue with Google';
+            }
+        });
+    </script>
+</body>
+</html>

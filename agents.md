@@ -41,7 +41,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Auto-save on edit
 - Full preview with marked.js rendering
 - Metadata tracking (created, updated dates)
-- Slug-based URLs: `/andri/recipe/alabama-white-sauce-ABC123`
+- Slug-based URLs: `/{username}/recipe/alabama-white-sauce-ABC123`
 - Edit/view mode toggle
 - Copy link functionality
 
@@ -105,42 +105,66 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/app.js` - `handleImagePaste()`, `compressImage()`
 - `server.js` - `/api/:username/photos` endpoints
 
-### 5. Multi-User Architecture
+### 5. Authentication System
 
 **Status: ✅ Complete**
 
-**Philosophy:** Each user has their own namespace. Current user always logged in as "andri", but can view other users' catalogs.
+**Firebase Authentication with Email/Password + Google Sign-In**
 
-**Users:**
+**Features:**
+- Email/password signup and login
+- Google OAuth authentication
+- Dedicated `/login` and `/signup` routes (no modals)
+- Username collection during signup
+- Automatic Firestore user document creation
+- Firebase Auth UID-based data ownership
 
-- `andri` (andrialexandrou) - email: <andri.j.alexandrou@gmail.com>
-- `camille` - email: <camille@example.com>
-- `lindsay` - email: <lindsay@example.com>
+**Signup Flow:**
+1. User provides username, email, password (or uses Google)
+2. Firebase Auth account created
+3. Username availability checked in Firestore
+4. User document created in `users` collection with `{username, email, createdAt}`
+5. Automatic sign-in and redirect to home
+
+**Login Flow:**
+1. User signs in with email/password or Google
+2. App fetches user document from Firestore by UID
+3. Sets `API.currentUser` with username, email, uid
+4. Loads user's data via userId-based queries
+
+**Key Files:**
+- `public/login.html` - Login page with email/password and Google options
+- `public/signup.html` - Signup page with username collection
+- `public/app.js` - Auth state handling, `onAuthStateChanged`
+
+### 6. Multi-User Architecture with UserId
+
+**Status: ✅ Complete**
+
+**Philosophy:** Each user has their own isolated data namespace. All data is owned by Firebase Auth UID (userId), not username. URLs use human-readable usernames, but queries use immutable userIds.
 
 **Data Isolation:**
-
-- All routes prefixed with `/:username`
-- Firestore documents include `username` field
+- All Firestore documents include both `username` (display) and `userId` (ownership)
+- Server queries by `userId` for security
 - Firebase Storage paths: `photos/{username}/{photoId}.jpg`
 - URL structure: `/{username}/recipes`, `/{username}/collections`, `/{username}/menus`
 
-**UI Indicators:**
+**Server Architecture:**
+- `validateUsername` middleware: Resolves username from URL → userId from Firestore
+- `buildUserQuery` helper: Queries by userId if available, falls back to username
+- All POST endpoints: Add `userId` to new documents
+- All PUT/DELETE endpoints: Verify `userId` matches before allowing operations
 
+**UI Indicators:**
 - Sidebar shows viewing user (Gravatar + @username)
 - Navbar dropdown shows current logged-in user
 - URLs clearly show whose catalog is being viewed
 
-**Migration:**
-
-- Run `POST /api/migrate-to-users` to add username to existing data
-- Migrates recipes, collections, menus, and photo storage paths
-
 **Key Files:**
+- `server.js` - `validateUsername` middleware, `buildUserQuery` helper, user-scoped queries
+- `public/app.js` - `API.currentUser`, `API.viewingUser`, dynamic username validation
 
-- `server.js` - `validateUsername` middleware, user-scoped queries
-- `public/app.js` - `API.currentUser`, `API.viewingUser`
-
-### 6. Gravatar Integration
+### 7. Gravatar Integration
 
 **Status: ✅ Complete**
 
@@ -355,14 +379,26 @@ These scenarios should be tested when making changes to ensure core functionalit
 - [ ] **Firebase Storage** - Check Debug modal to verify images uploaded to Firebase Storage
 - [ ] **Fallback Mode** - Disable Firebase (rename .env), paste image, verify base64 fallback works
 
-#### Multi-User Architecture
+#### Authentication System
 
-- [ ] **User Isolation** - Navigate to `/andri`, `/camille`, `/lindsay` - verify each shows different recipes
-- [ ] **Current User Display** - Open navbar menu dropdown, verify Gravatar and @andri shown
+- [ ] **Email/Password Signup** - Go to `/signup`, create account with username/email/password
+- [ ] **Email/Password Login** - Go to `/login`, sign in with credentials
+- [ ] **Google Sign-In (New User)** - Click "Continue with Google", enter username when prompted
+- [ ] **Google Sign-In (Returning User)** - Sign in with Google, verify auto-login without username prompt
+- [ ] **Auth Persistence** - Refresh page while logged in, verify stays logged in
+- [ ] **Logout** - Click logout from navbar menu, verify redirects to `/login`
+- [ ] **Protected Routes** - Try accessing `/` while logged out, verify redirects to `/login`
+
+#### Multi-User Architecture & Data Isolation
+
+- [ ] **User Isolation** - Create recipe as user A, sign in as user B, verify can't see user A's recipes
+- [ ] **Current User Display** - Open navbar menu dropdown, verify Gravatar and @username shown
 - [ ] **Viewing User Display** - Check sidebar, verify correct user's Gravatar and @username shown
-- [ ] **Create as Different User** - While viewing `/camille`, create recipe - verify it's created under andri (current user)
+- [ ] **UserId Queries** - Check console for `✅ Resolved username → userId: ...` messages
 - [ ] **URL Updates** - Navigate between views, verify URLs update with correct username prefix
 - [ ] **Browser Navigation** - Use back/forward buttons, verify views load correctly from URL
+- [ ] **Create Recipe** - Verify new recipe has `userId` field in Firestore
+- [ ] **Data Ownership** - Try editing another user's recipe via direct URL, verify fails
 
 #### Gravatar Integration
 
@@ -459,7 +495,7 @@ For rapid verification after deployments:
 - Global variables for current data (recipes, collections, menus)
 - `currentRecipeId`, `currentCollectionId`, `currentMenuId` track active item
 - `currentView` tracks which view is displayed
-- `API.currentUser` - logged in user (always "andri")
+- `API.currentUser` - logged in user (from Firebase Auth)
 - `API.viewingUser` - whose catalog we're viewing (changes per URL)
 
 ### URL Strategy
@@ -471,11 +507,20 @@ For rapid verification after deployments:
 
 ## Future Considerations
 
+### Feature Backlog
+
+- **Reset Password** - Allow users to reset their password via email
+- **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
+- **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
+- **Placeholder Content for Empty Fields** - Add skeleton screens/placeholder content while data is loading
+- **Avatar Loading States** - Show graceful fallback (skeleton/placeholder) when user avatars are loading
+- **Follow Users** - Allow users to follow other users to see their content
+- **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
+- **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
+
 ### Potential Features (Not Yet Implemented)
 
-- User authentication (currently hardcoded to "andri")
-- User switching UI (browse other users' catalogs)
-- Recipe sharing/permissions
+- Recipe sharing/permissions (public/private recipes)
 - Recipe tags/categories beyond collections
 - Search across all fields (not just title)
 - Recipe import from URLs
@@ -485,6 +530,8 @@ For rapid verification after deployments:
 - Recipe ratings/favorites
 - Comments on recipes
 - Activity feed
+- Follow users feature
+- Password reset via email
 
 ### Technical Debt
 
@@ -511,6 +558,7 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-11** - Added Firebase Authentication (email/password + Google Sign-In), userId-based data architecture, multi-user support
 - **2025-11-11** - Added multi-user architecture, Gravatar integration, navbar redesign, photo migration
 - **2025-11-11** - Added menus feature with full CRUD
 - **2025-11-11** - Added paste-to-upload image functionality with Firebase Storage

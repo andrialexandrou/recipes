@@ -1,5 +1,153 @@
+// Gravatar helper
+function getGravatarUrl(email, size = 40) {
+    // MD5 hash function for email
+    const md5 = (string) => {
+        const hash = CryptoJS.MD5(string.toLowerCase().trim());
+        return hash.toString();
+    };
+    
+    const hash = md5(email);
+    return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
+}
+
+// Gravatar helper
+function getGravatarUrl(email, size = 40) {
+    if (!email) return `https://www.gravatar.com/avatar/00000000000000000000000000000000?s=${size}&d=identicon`;
+    const hash = SparkMD5.hash(email.toLowerCase().trim());
+    return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
+}
+
 // API helper functions
 const API = {
+    currentUser: null,
+    viewingUser: null,
+    authInitialized: false,
+    
+    async initializeUsers() {
+        return new Promise((resolve, reject) => {
+            try {
+                console.log('👤 Initializing Firebase Auth...');
+                
+                // Get references to global auth and db (set in index.html)
+                const auth = window.auth;
+                const db = window.db;
+                
+                if (!auth) {
+                    console.error('❌ Firebase Auth not found on window object');
+                    reject(new Error('Firebase Auth not initialized'));
+                    return;
+                }
+                
+                if (!db) {
+                    console.error('❌ Firestore not found on window object');
+                    reject(new Error('Firestore not initialized'));
+                    return;
+                }
+                
+                console.log('✅ Firebase Auth and Firestore references obtained');
+                
+                // Listen for auth state changes
+                auth.onAuthStateChanged(async (firebaseUser) => {
+                    if (firebaseUser) {
+                        console.log('✅ User authenticated:', firebaseUser.email);
+                        
+                        try {
+                            // Try Firestore first if available
+                            if (db) {
+                                try {
+                                    console.log('🔍 Checking Firestore for user document...');
+                                    const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+                                    
+                                    if (userDoc.exists) {
+                                        const userData = userDoc.data();
+                                        this.currentUser = {
+                                            username: userData.username,
+                                            displayName: userData.username,
+                                            email: firebaseUser.email,
+                                            uid: firebaseUser.uid
+                                        };
+                                        console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`);
+                                        
+                                        // Set viewing user
+                                        if (!this.viewingUser) {
+                                            this.viewingUser = this.currentUser.username;
+                                        }
+                                        
+                                        this.authInitialized = true;
+                                        resolve();
+                                        return;
+                                    } else {
+                                        // This shouldn't happen for properly signed-up users
+                                        console.error('❌ No Firestore document found for authenticated user!');
+                                        console.error('This user needs to complete signup by creating a Firestore document.');
+                                        alert('Account setup incomplete. Please sign out and sign up again.');
+                                        await firebaseUser.getIdToken(true); // Force token refresh
+                                        reject(new Error('User document not found in Firestore'));
+                                        return;
+                                    }
+                                } catch (firestoreError) {
+                                    console.error('❌ Firestore query failed:', firestoreError.message);
+                                    reject(firestoreError);
+                                    return;
+                                }
+                            }
+                            
+                            // If we get here, Firestore is not available (development mode)
+                            console.log('🔍 Fetching user from server...');
+                            const users = await fetch('/api/users').then(r => r.json());
+                            const matchedUser = users.find(u => u.email === firebaseUser.email);
+                            
+                            if (matchedUser) {
+                                this.currentUser = {
+                                    username: matchedUser.username,
+                                    displayName: matchedUser.username,
+                                    email: firebaseUser.email,
+                                    uid: firebaseUser.uid
+                                };
+                                console.log('👤 Logged in as (server match):', this.currentUser.username, `(${this.currentUser.email})`);
+                            } else {
+                                // Extract username from email as fallback (development mode)
+                                const username = firebaseUser.email.split('@')[0].replace(/[^a-z0-9_-]/g, '');
+                                this.currentUser = {
+                                    username: username,
+                                    displayName: username,
+                                    email: firebaseUser.email,
+                                    uid: firebaseUser.uid
+                                };
+                                console.log('👤 Logged in as (email fallback):', this.currentUser.username, `(${this.currentUser.email})`);
+                            }
+                            
+                            // Set viewing user (will be overridden by URL if needed)
+                            if (!this.viewingUser) {
+                                this.viewingUser = this.currentUser.username;
+                            }
+                            
+                            this.authInitialized = true;
+                            resolve();
+                        } catch (error) {
+                            console.error('Failed to fetch user details:', error);
+                            reject(error);
+                        }
+                    } else {
+                        console.log('❌ No user authenticated - redirecting to login');
+                        this.currentUser = null;
+                        this.viewingUser = null;
+                        this.authInitialized = true;
+                        
+                        // Redirect to login page if not already there
+                        if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+                            window.location.href = '/login';
+                        }
+                        resolve();
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to initialize auth:', error);
+                reject(error);
+            }
+        });
+    },
+    
     async handleResponse(res) {
         if (!res.ok) {
             const error = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
@@ -10,7 +158,7 @@ const API = {
     
     async getRecipes() {
         console.log('🔄 Fetching recipes...');
-        const res = await fetch('/api/recipes');
+        const res = await fetch(`/api/${this.viewingUser}/recipes`);
         const data = await this.handleResponse(res);
         console.log('✅ Received recipes:', data.length, 'items');
         return data;
@@ -18,13 +166,13 @@ const API = {
     
     async getRecipe(id) {
         console.log('🔄 Fetching recipe:', id);
-        const res = await fetch(`/api/recipes/${id}`);
+        const res = await fetch(`/api/${this.viewingUser}/recipes/${id}`);
         return this.handleResponse(res);
     },
     
     async createRecipe(data) {
         console.log('🔄 Creating recipe:', data);
-        const res = await fetch('/api/recipes', {
+        const res = await fetch(`/api/${this.currentUser.username}/recipes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -36,7 +184,7 @@ const API = {
     
     async updateRecipe(id, data) {
         console.log('🔄 Updating recipe:', id, data);
-        const res = await fetch(`/api/recipes/${id}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/recipes/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -46,7 +194,7 @@ const API = {
     
     async deleteRecipe(id) {
         console.log('🔄 Deleting recipe:', id);
-        const res = await fetch(`/api/recipes/${id}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/recipes/${id}`, {
             method: 'DELETE'
         });
         return this.handleResponse(res);
@@ -54,7 +202,7 @@ const API = {
     
     async getCollections() {
         console.log('🔄 Fetching collections...');
-        const res = await fetch('/api/collections');
+        const res = await fetch(`/api/${this.viewingUser}/collections`);
         const data = await this.handleResponse(res);
         console.log('✅ Received collections:', data.length, 'items');
         return data;
@@ -62,7 +210,7 @@ const API = {
     
     async createCollection(data) {
         console.log('🔄 Creating collection:', data);
-        const res = await fetch('/api/collections', {
+        const res = await fetch(`/api/${this.currentUser.username}/collections`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -72,7 +220,7 @@ const API = {
     
     async updateCollection(id, data) {
         console.log('🔄 Updating collection:', id, data);
-        const res = await fetch(`/api/collections/${id}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/collections/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -82,7 +230,7 @@ const API = {
     
     async deleteCollection(id) {
         console.log('🔄 Deleting collection:', id);
-        const res = await fetch(`/api/collections/${id}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/collections/${id}`, {
             method: 'DELETE'
         });
         return this.handleResponse(res);
@@ -90,7 +238,7 @@ const API = {
     
     async removeRecipeFromCollection(collectionId, recipeId) {
         console.log('🔄 Removing recipe from collection:', { collectionId, recipeId });
-        const res = await fetch(`/api/collections/${collectionId}/recipes/${recipeId}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/collections/${collectionId}/recipes/${recipeId}`, {
             method: 'DELETE'
         });
         return this.handleResponse(res);
@@ -99,7 +247,7 @@ const API = {
     // Menu API methods
     async getMenus() {
         console.log('🔄 Fetching menus...');
-        const res = await fetch('/api/menus');
+        const res = await fetch(`/api/${this.viewingUser}/menus`);
         const data = await this.handleResponse(res);
         console.log('✅ Received menus:', data.length, 'items');
         return data;
@@ -107,7 +255,7 @@ const API = {
     
     async createMenu(data) {
         console.log('🔄 Creating menu:', data);
-        const res = await fetch('/api/menus', {
+        const res = await fetch(`/api/${this.currentUser.username}/menus`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -117,7 +265,7 @@ const API = {
     
     async updateMenu(id, data) {
         console.log('🔄 Updating menu:', id, data);
-        const res = await fetch(`/api/menus/${id}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/menus/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -127,7 +275,7 @@ const API = {
     
     async deleteMenu(id) {
         console.log('🔄 Deleting menu:', id);
-        const res = await fetch(`/api/menus/${id}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/menus/${id}`, {
             method: 'DELETE'
         });
         return this.handleResponse(res);
@@ -139,7 +287,7 @@ const API = {
         const formData = new FormData();
         formData.append('photo', file);
         
-        const res = await fetch('/api/photos', {
+        const res = await fetch(`/api/${this.currentUser.username}/photos`, {
             method: 'POST',
             body: formData
         });
@@ -150,7 +298,7 @@ const API = {
     
     async deletePhoto(id) {
         console.log('🔄 Deleting photo:', id);
-        const res = await fetch(`/api/photos/${id}`, {
+        const res = await fetch(`/api/${this.currentUser.username}/photos/${id}`, {
             method: 'DELETE'
         });
         return this.handleResponse(res);
@@ -201,7 +349,15 @@ const menusGrid = document.getElementById('menusGrid');
 const menusGridHome = document.getElementById('menusGridHome');
 const newMenuBtn = document.getElementById('newMenuBtn');
 const newMenuBtnHome = document.getElementById('newMenuBtnHome');
-const navMenusBtn = document.getElementById('navMenusBtn');
+
+// Navbar dropdown elements
+const navMenuBtn = document.getElementById('navMenuBtn');
+const navbarDropdown = document.getElementById('navbarDropdown');
+const dropdownCollections = document.getElementById('dropdownCollections');
+const dropdownMenus = document.getElementById('dropdownMenus');
+const dropdownNewRecipe = document.getElementById('dropdownNewRecipe');
+const dropdownShortcuts = document.getElementById('dropdownShortcuts');
+const dropdownDebug = document.getElementById('dropdownDebug');
 
 // Recipe elements
 const titleInput = document.getElementById('titleInput');
@@ -402,8 +558,46 @@ homeBtn.addEventListener('click', () => {
     showHomeView();
 });
 
+// Update user display in navbar
+function updateUserDisplay() {
+    // Update current user avatar in navbar (right side)
+    const currentUserAvatar = document.getElementById('currentUserAvatar');
+    if (currentUserAvatar && API.currentUser) {
+        const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
+        currentUserAvatar.src = gravatarUrl;
+        currentUserAvatar.title = `Logged in as @${API.currentUser.username}`;
+    }
+    
+    // Update viewing user in sidebar (shows whose catalog we're browsing)
+    const viewingUserAvatar = document.getElementById('viewingUserAvatar');
+    const viewingUsername = document.getElementById('viewingUsername');
+    
+    if (viewingUserAvatar && viewingUsername && API.viewingUser) {
+        // Find the viewing user's data to get their email
+        const viewingUserData = users.find(u => u.username === API.viewingUser) || API.currentUser;
+        const gravatarUrl = getGravatarUrl(viewingUserData.email, 128);
+        
+        viewingUserAvatar.src = gravatarUrl;
+        viewingUsername.textContent = `@${API.viewingUser}`;
+    }
+}
+
+// Helper to get list of users (we'll fetch this from the API)
+let users = [];
+
+async function fetchUsers() {
+    try {
+        const res = await fetch('/api/users');
+        users = await res.json();
+    } catch (error) {
+        console.error('Failed to fetch users:', error);
+    }
+}
+
 // Navigation system
 function switchToView(viewName) {
+    const username = API.currentUser?.username || API.viewingUser;
+    
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
         view.classList.add('hidden');
@@ -423,7 +617,7 @@ function switchToView(viewName) {
             collectionsView.classList.add('active');
             homeBtn.classList.add('active');
             renderCollectionsGrid();
-            history.pushState({ type: 'collections' }, '', '/collections');
+            history.pushState({ type: 'collections' }, '', `/${username}/collections`);
             break;
         case 'collection-detail':
             collectionDetailView.classList.remove('hidden');
@@ -435,7 +629,7 @@ function switchToView(viewName) {
             menusView.classList.add('active');
             navMenusBtn.classList.add('active');
             renderMenusGrid();
-            history.pushState({ type: 'menus' }, '', '/menus');
+            history.pushState({ type: 'menus' }, '', `/${username}/menus`);
             break;
         case 'menu-detail':
             menuDetailView.classList.remove('hidden');
@@ -459,8 +653,10 @@ function slugify(text) {
 }
 
 function updateURL(type, id) {
+    const username = API.currentUser?.username || API.viewingUser;
+    
     if (!id) {
-        history.pushState(null, '', '/');
+        history.pushState(null, '', `/${username}`);
         return;
     }
     
@@ -468,17 +664,17 @@ function updateURL(type, id) {
         const recipe = recipes.find(r => r.id === id);
         if (!recipe) return;
         const slug = recipe.title ? slugify(recipe.title) : 'untitled';
-        history.pushState({ type: 'recipe', id }, '', `/recipe/${slug}-${id}`);
+        history.pushState({ type: 'recipe', id }, '', `/${username}/recipe/${slug}-${id}`);
     } else if (type === 'collection') {
         const collection = collections.find(c => c.id === id);
         if (!collection) return;
         const slug = slugify(collection.name);
-        history.pushState({ type: 'collection', id }, '', `/collection/${slug}-${id}`);
+        history.pushState({ type: 'collection', id }, '', `/${username}/collection/${slug}-${id}`);
     } else if (type === 'menu') {
         const menu = menus.find(m => m.id === id);
         if (!menu) return;
         const slug = slugify(menu.name);
-        history.pushState({ type: 'menu', id }, '', `/menu/${slug}-${id}`);
+        history.pushState({ type: 'menu', id }, '', `/${username}/menu/${slug}-${id}`);
     }
 }
 
@@ -486,9 +682,19 @@ function loadFromURL() {
     const path = window.location.pathname;
     console.log('🔗 Loading from URL:', path);
     
-    const recipeMatch = path.match(/^\/recipe\/.+-([a-zA-Z0-9]+)$/);
-    const collectionMatch = path.match(/^\/collection\/.+-([a-zA-Z0-9]+)$/);
-    const menuMatch = path.match(/^\/menu\/.+-([a-zA-Z0-9]+)$/);
+    // Match username-prefixed URLs
+    const usernameMatch = path.match(/^\/([a-z]+)/);
+    if (usernameMatch) {
+        const username = usernameMatch[1];
+        // Set viewing user from URL (validation happens in loadAllData)
+        API.viewingUser = username;
+    }
+    
+    const recipeMatch = path.match(/^\/[a-z]+\/recipe\/.+-([a-zA-Z0-9]+)$/);
+    const collectionMatch = path.match(/^\/[a-z]+\/collection\/.+-([a-zA-Z0-9]+)$/);
+    const menuMatch = path.match(/^\/[a-z]+\/menu\/.+-([a-zA-Z0-9]+)$/);
+    const collectionsPageMatch = path.match(/^\/[a-z]+\/collections$/);
+    const menusPageMatch = path.match(/^\/[a-z]+\/menus$/);
     
     if (recipeMatch) {
         const id = recipeMatch[1];
@@ -516,9 +722,9 @@ function loadFromURL() {
         } else {
             console.warn('⚠️ Menu not found:', id, 'Available menu IDs:', menus.map(m => m.id));
         }
-    } else if (path === '/collections') {
+    } else if (collectionsPageMatch) {
         switchToView('collections');
-    } else if (path === '/menus') {
+    } else if (menusPageMatch) {
         switchToView('menus');
     } else {
         showHomeView();
@@ -996,6 +1202,49 @@ function showHomeView() {
 async function loadAllData() {
     console.log('🚀 Loading all data...');
     try {
+        // Initialize users first
+        await API.initializeUsers();
+        
+        // Don't load data if not authenticated
+        if (!API.currentUser) {
+            console.log('⚠️ No authenticated user, skipping data load');
+            return;
+        }
+        
+        // IMPORTANT: Set viewing user from URL BEFORE loading data
+        const path = window.location.pathname;
+        const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
+        if (usernameMatch) {
+            const username = usernameMatch[1];
+            // Validate username against known users or current user
+            if (username === API.currentUser.username) {
+                API.viewingUser = username;
+                console.log('👁️  Setting viewing user from URL (self):', username);
+            } else {
+                // Try to validate via server
+                try {
+                    const response = await fetch(`/api/${username}/recipes`);
+                    if (response.ok) {
+                        API.viewingUser = username;
+                        console.log('👁️  Setting viewing user from URL:', username);
+                    } else {
+                        // Invalid user, default to current user
+                        API.viewingUser = API.currentUser.username;
+                        console.log('⚠️ Invalid username in URL, defaulting to current user');
+                    }
+                } catch (err) {
+                    API.viewingUser = API.currentUser.username;
+                    console.log('⚠️ Error validating username, defaulting to current user');
+                }
+            }
+        } else {
+            // No username in URL, use current user
+            API.viewingUser = API.currentUser.username;
+        }
+        
+        // Fetch users list for gravatar lookups
+        await fetchUsers();
+        
         const [recipesData, collectionsData, menusData] = await Promise.all([
             API.getRecipes().catch(err => {
                 console.error('❌ Failed to load recipes:', err.message);
@@ -1018,6 +1267,7 @@ async function loadAllData() {
         console.log('📊 Data loaded - Recipes:', recipes.length, 'Collections:', collections.length, 'Menus:', menus.length);
         
         renderRecipeList();
+        updateUserDisplay();
         loadFromURL();
         
         if (!currentRecipeId && !currentCollectionId && !currentMenuId) {
@@ -1500,10 +1750,64 @@ if (navNewRecipeBtn) {
 }
 newCollectionBtn.addEventListener('click', createNewCollection);
 newCollectionBtnHome.addEventListener('click', createNewCollection);
-navCollectionsBtn.addEventListener('click', () => switchToView('collections'));
 newMenuBtn.addEventListener('click', createNewMenu);
 newMenuBtnHome.addEventListener('click', createNewMenu);
-navMenusBtn.addEventListener('click', () => switchToView('menus'));
+
+// Navbar dropdown handlers
+navMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navbarDropdown.classList.toggle('hidden');
+    
+    // Update user info in dropdown
+    if (!navbarDropdown.classList.contains('hidden') && API.currentUser) {
+        const dropdownUserAvatar = document.getElementById('dropdownUserAvatar');
+        const dropdownUsername = document.getElementById('dropdownUsername');
+        const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
+        dropdownUserAvatar.src = gravatarUrl;
+        dropdownUsername.textContent = `@${API.currentUser.username}`;
+    }
+});
+
+dropdownCollections.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    switchToView('collections');
+});
+
+dropdownMenus.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    switchToView('menus');
+});
+
+dropdownNewRecipe.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    createNewRecipe();
+});
+
+dropdownShortcuts.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    shortcutsModal.style.display = 'flex';
+});
+
+dropdownDebug.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    showDebugModal();
+});
+
+const dropdownLogout = document.getElementById('dropdownLogout');
+dropdownLogout.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    if (confirm('Are you sure you want to sign out?')) {
+        handleLogout();
+    }
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!navbarDropdown.contains(e.target) && !navMenuBtn.contains(e.target)) {
+        navbarDropdown.classList.add('hidden');
+    }
+});
+
 menuEditBtn.addEventListener('click', enterMenuEditMode);
 menuSaveBtn.addEventListener('click', saveMenuChanges);
 menuCancelBtn.addEventListener('click', exitMenuEditMode);
@@ -1627,12 +1931,11 @@ document.addEventListener('keydown', (e) => {
 loadAllData();
 
 // Debug functionality
-const debugBtn = document.getElementById('debugBtn');
 const debugModal = document.getElementById('debugModal');
 const debugContent = document.getElementById('debugContent');
 const debugCloseBtn = document.getElementById('debugCloseBtn');
 
-debugBtn?.addEventListener('click', async () => {
+async function showDebugModal() {
     debugModal.style.display = 'flex';
     debugModal.focus();
     debugContent.textContent = 'Loading debug info...';
@@ -1668,7 +1971,7 @@ debugBtn?.addEventListener('click', async () => {
     } catch (error) {
         debugContent.textContent = `Error fetching debug info: ${error.message}`;
     }
-});
+}
 
 debugCloseBtn?.addEventListener('click', () => {
     debugModal.style.display = 'none';
@@ -1702,14 +2005,8 @@ debugModal?.addEventListener('keydown', (e) => {
 });
 
 // Shortcuts modal functionality
-const shortcutsBtn = document.getElementById('shortcutsBtn');
 const shortcutsModal = document.getElementById('shortcutsModal');
 const shortcutsCloseBtn = document.getElementById('shortcutsCloseBtn');
-
-shortcutsBtn?.addEventListener('click', () => {
-    shortcutsModal.style.display = 'flex';
-    shortcutsModal.focus();
-});
 
 shortcutsCloseBtn?.addEventListener('click', () => {
     shortcutsModal.style.display = 'none';
@@ -1741,3 +2038,31 @@ shortcutsModal?.addEventListener('keydown', (e) => {
         }
     }
 });
+
+// Logout functionality
+
+async function handleLogout() {
+    try {
+        console.log('🔐 Logging out...');
+        await auth.signOut();
+        console.log('✅ Logout successful');
+        
+        // Clear data
+        recipes = [];
+        collections = [];
+        menus = [];
+        currentRecipeId = null;
+        currentCollectionId = null;
+        currentMenuId = null;
+        
+        // Redirect to login page
+        window.location.href = '/login';
+        
+    } catch (error) {
+        console.error('❌ Logout failed:', error);
+        alert('Failed to log out: ' + error.message);
+    }
+}
+
+// Logout button handler
+

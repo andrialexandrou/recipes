@@ -215,16 +215,67 @@ async function ensureFirebaseInitialized(req, res, next) {
 // Apply middleware to all API routes
 app.use('/api', ensureFirebaseInitialized);
 
-// In-memory storage fallback
+// Users (fallback for development - production uses Firestore)
+const users = [];
+
+// In-memory storage fallback - now organized by user
 let recipes = [];
-let collections = [
-    { id: '1', name: 'Freezer Friendly', description: 'Meals that freeze well for busy weeknights', recipeIds: [] },
-    { id: '2', name: 'Healthy Treats', description: 'Guilt-free desserts and snacks', recipeIds: [] },
-    { id: '3', name: 'Quick Dinners', description: '30 minutes or less from start to finish', recipeIds: [] },
-    { id: '4', name: 'Potluck Friendly', description: 'Crowd-pleasers that travel well', recipeIds: [] }
-];
+let collections = [];
 let menus = [];
 let photos = [];
+
+// Middleware to validate username and resolve to userId
+async function validateUsername(req, res, next) {
+    const username = req.params.username;
+    
+    // Try to resolve username to userId from Firestore first (primary source of truth)
+    if (useFirebase && db) {
+        try {
+            const usersSnapshot = await db.collection('users').where('username', '==', username).limit(1).get();
+            if (!usersSnapshot.empty) {
+                const userDoc = usersSnapshot.docs[0];
+                req.userId = userDoc.id; // Store Firebase Auth UID
+                req.username = username;
+                console.log(`✅ Resolved ${username} → userId: ${req.userId}`);
+                return next();
+            } else {
+                // Not in Firestore, check hardcoded list as fallback
+                const user = users.find(u => u.username === username);
+                if (user) {
+                    console.log(`⚠️ User ${username} found in hardcoded list but not in Firestore`);
+                    req.userId = null;
+                    req.username = username;
+                    return next();
+                } else {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+            }
+        } catch (error) {
+            console.error('Error resolving userId:', error);
+            // Fall through to hardcoded list check
+        }
+    }
+    
+    // Fallback: Check hardcoded users list (for development/offline mode)
+    const user = users.find(u => u.username === username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    req.userId = null;
+    req.username = username;
+    next();
+}
+
+// Helper function to build query for user's data
+function buildUserQuery(collection, req) {
+    // If we have a userId, query by userId (preferred)
+    if (req.userId) {
+        return collection.where('userId', '==', req.userId);
+    }
+    // Fallback to username for legacy data
+    return collection.where('username', '==', req.username);
+}
 
 // API Routes
 
@@ -246,29 +297,43 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Get all recipes
-app.get('/api/recipes', async (req, res) => {
+// Get users list
+app.get('/api/users', (req, res) => {
+    res.json(users);
+});
+
+// Get current user (deprecated - auth handled by Firebase)
+app.get('/api/me', (req, res) => {
+    res.status(410).json({ error: 'Endpoint deprecated. Use Firebase Auth instead.' });
+});
+
+// Get all recipes for a user
+app.get('/api/:username/recipes', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const querySnapshot = await db.collection('recipes').get();
+                const query = buildUserQuery(db.collection('recipes'), req);
+                const querySnapshot = await query.get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
                     createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
                     updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().updatedAt
                 }));
-                console.log(`🔥 Retrieved ${data.length} recipes from Firebase`);
+                console.log(`🔥 Retrieved ${data.length} recipes for ${username} from Firebase`);
                 res.json(data);
             } catch (firebaseError) {
                 console.error('❌ Firebase recipes fetch failed:', firebaseError.message);
                 disableFirebaseMode('Recipe fetch failed: ' + firebaseError.message);
                 console.log('📝 Using memory storage for this and all future requests');
-                res.json(recipes);
+                const userRecipes = recipes.filter(r => r.username === username);
+                res.json(userRecipes);
             }
         } else {
             console.log('📝 Retrieved recipes from memory storage');
-            res.json(recipes);
+            const userRecipes = recipes.filter(r => r.username === username);
+            res.json(userRecipes);
         }
     } catch (error) {
         console.error('Error fetching recipes:', error);
@@ -277,20 +342,28 @@ app.get('/api/recipes', async (req, res) => {
 });
 
 // Get single recipe
-app.get('/api/recipes/:id', async (req, res) => {
+app.get('/api/:username/recipes/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const docRef = db.collection('recipes').doc(req.params.id);
                 const docSnap = await docRef.get();
-                if (!docSnap.exists) {
+                
+                // Check if recipe belongs to user (by userId or username fallback)
+                const recipeData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? recipeData.userId === req.userId 
+                    : recipeData.username === username;
+                
+                if (!docSnap.exists || !belongsToUser) {
                     return res.status(404).json({ error: 'Recipe not found' });
                 }
                 const data = {
                     id: docSnap.id,
-                    ...docSnap.data(),
-                    createdAt: docSnap.data().createdAt?.toDate?.()?.toISOString() || docSnap.data().createdAt,
-                    updatedAt: docSnap.data().updatedAt?.toDate?.()?.toISOString() || docSnap.data().updatedAt
+                    ...recipeData,
+                    createdAt: recipeData.createdAt?.toDate?.()?.toISOString() || recipeData.createdAt,
+                    updatedAt: recipeData.updatedAt?.toDate?.()?.toISOString() || recipeData.updatedAt
                 };
                 console.log('🔥 Retrieved recipe from Firebase:', req.params.id);
                 res.json(data);
@@ -320,7 +393,8 @@ app.get('/api/recipes/:id', async (req, res) => {
 });
 
 // Create recipe
-app.post('/api/recipes', async (req, res) => {
+app.post('/api/:username/recipes', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { title, content } = req.body;
         
@@ -329,6 +403,8 @@ app.post('/api/recipes', async (req, res) => {
                 const newRecipe = {
                     title: title || '',
                     content: content || '',
+                    username: username,
+                    userId: req.userId || null,
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 };
@@ -337,6 +413,8 @@ app.post('/api/recipes', async (req, res) => {
                     id: docRef.id,
                     title: title || '',
                     content: content || '',
+                    username: username,
+                    userId: req.userId || null,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -350,6 +428,7 @@ app.post('/api/recipes', async (req, res) => {
                     id: Date.now().toString(),
                     title: title || '',
                     content: content || '',
+                    username: username,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -362,6 +441,7 @@ app.post('/api/recipes', async (req, res) => {
                 id: Date.now().toString(),
                 title: title || '',
                 content: content || '',
+                username: username,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -376,13 +456,23 @@ app.post('/api/recipes', async (req, res) => {
 });
 
 // Update recipe
-app.put('/api/recipes/:id', async (req, res) => {
+app.put('/api/:username/recipes/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { title, content } = req.body;
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const docRef = db.collection('recipes').doc(req.params.id);
+                const docSnap = await docRef.get();
+                const recipeData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? recipeData.userId === req.userId 
+                    : recipeData.username === username;
+                
+                if (!docSnap.exists || !belongsToUser) {
+                    return res.status(404).json({ error: 'Recipe not found' });
+                }
                 const updates = {
                     title: title || '',
                     content: content || '',
@@ -401,7 +491,7 @@ app.put('/api/recipes/:id', async (req, res) => {
                 console.error('❌ Firebase recipe update failed:', firebaseError.message);
                 disableFirebaseMode('Recipe update failed: ' + firebaseError.message);
                 // Fall back to memory storage
-                const recipe = recipes.find(r => r.id === req.params.id);
+                const recipe = recipes.find(r => r.id === req.params.id && r.username === username);
                 if (!recipe) {
                     return res.status(404).json({ error: 'Recipe not found' });
                 }
@@ -411,7 +501,7 @@ app.put('/api/recipes/:id', async (req, res) => {
                 res.json(recipe);
             }
         } else {
-            const recipe = recipes.find(r => r.id === req.params.id);
+            const recipe = recipes.find(r => r.id === req.params.id && r.username === username);
             if (!recipe) {
                 return res.status(404).json({ error: 'Recipe not found' });
             }
@@ -427,11 +517,21 @@ app.put('/api/recipes/:id', async (req, res) => {
 });
 
 // Delete recipe
-app.delete('/api/recipes/:id', async (req, res) => {
+app.delete('/api/:username/recipes/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const docRef = db.collection('recipes').doc(req.params.id);
+                const docSnap = await docRef.get();
+                const recipeData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? recipeData.userId === req.userId 
+                    : recipeData.username === username;
+                
+                if (!docSnap.exists || !belongsToUser) {
+                    return res.status(404).json({ error: 'Recipe not found' });
+                }
                 await docRef.delete();
                 console.log('🔥 Recipe deleted from Firebase:', req.params.id);
                 res.json({ success: true });
@@ -439,7 +539,7 @@ app.delete('/api/recipes/:id', async (req, res) => {
                 console.error('❌ Firebase recipe deletion failed:', firebaseError.message);
                 disableFirebaseMode('Recipe deletion failed: ' + firebaseError.message);
                 // Fall back to memory storage
-                const index = recipes.findIndex(r => r.id === req.params.id);
+                const index = recipes.findIndex(r => r.id === req.params.id && r.username === username);
                 if (index === -1) {
                     return res.status(404).json({ error: 'Recipe not found' });
                 }
@@ -448,7 +548,7 @@ app.delete('/api/recipes/:id', async (req, res) => {
                 res.json({ success: true });
             }
         } else {
-            const index = recipes.findIndex(r => r.id === req.params.id);
+            const index = recipes.findIndex(r => r.id === req.params.id && r.username === username);
             if (index === -1) {
                 return res.status(404).json({ error: 'Recipe not found' });
             }
@@ -463,11 +563,13 @@ app.delete('/api/recipes/:id', async (req, res) => {
 });
 
 // Get all collections
-app.get('/api/collections', async (req, res) => {
+app.get('/api/:username/collections', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const querySnapshot = await db.collection('collections').get();
+                const collectionsRef = buildUserQuery(db.collection('collections'), req);
+                const querySnapshot = await collectionsRef.get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -485,11 +587,13 @@ app.get('/api/collections', async (req, res) => {
                 console.error('❌ Firebase collections fetch failed:', firebaseError.message);
                 disableFirebaseMode('Collections fetch failed: ' + firebaseError.message);
                 console.log('📝 Using memory storage for this and all future requests');
-                res.json(collections);
+                const userCollections = collections.filter(c => c.username === username);
+                res.json(userCollections);
             }
         } else {
             console.log('📝 Retrieved collections from memory storage');
-            res.json(collections);
+            const userCollections = collections.filter(c => c.username === username);
+            res.json(userCollections);
         }
     } catch (error) {
         console.error('Error fetching collections:', error);
@@ -498,7 +602,8 @@ app.get('/api/collections', async (req, res) => {
 });
 
 // Create collection
-app.post('/api/collections', async (req, res) => {
+app.post('/api/:username/collections', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { name, description } = req.body;
         
@@ -507,6 +612,8 @@ app.post('/api/collections', async (req, res) => {
                 const newCollection = {
                     name: name || '',
                     description: description || '',
+                    username: username,
+                    userId: req.userId || null,
                     recipeIds: []
                 };
                 const docRef = await db.collection('collections').add(newCollection);
@@ -514,6 +621,8 @@ app.post('/api/collections', async (req, res) => {
                     id: docRef.id,
                     name: name || '',
                     description: description || '',
+                    username: username,
+                    userId: req.userId || null,
                     recipeIds: []
                 };
                 console.log('🔥 Collection created in Firebase:', docRef.id);
@@ -526,6 +635,7 @@ app.post('/api/collections', async (req, res) => {
                     id: Date.now().toString(),
                     name: name || '',
                     description: description || '',
+                    username: username,
                     recipeIds: []
                 };
                 collections.push(newCollection);
@@ -537,6 +647,7 @@ app.post('/api/collections', async (req, res) => {
                 id: Date.now().toString(),
                 name: name || '',
                 description: description || '',
+                username: username,
                 recipeIds: []
             };
             collections.push(newCollection);
@@ -550,13 +661,23 @@ app.post('/api/collections', async (req, res) => {
 });
 
 // Update collection
-app.put('/api/collections/:id', async (req, res) => {
+app.put('/api/:username/collections/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { name, description, recipeIds } = req.body;
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const docRef = db.collection('collections').doc(req.params.id);
+                const docSnap = await docRef.get();
+                const collectionData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? collectionData.userId === req.userId 
+                    : collectionData.username === username;
+                
+                if (!docSnap.exists || !belongsToUser) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
                 const updates = { name, description, recipeIds: recipeIds || [] };
                 await docRef.update(updates);
                 console.log('🔥 Collection updated in Firebase:', req.params.id);
@@ -575,7 +696,7 @@ app.put('/api/collections/:id', async (req, res) => {
                 res.json(collection);
             }
         } else {
-            const collection = collections.find(c => c.id === req.params.id);
+            const collection = collections.find(c => c.id === req.params.id && c.username === username);
             if (!collection) {
                 return res.status(404).json({ error: 'Collection not found' });
             }
@@ -591,7 +712,8 @@ app.put('/api/collections/:id', async (req, res) => {
 });
 
 // Add recipe to collection
-app.post('/api/collections/:id/recipes', async (req, res) => {
+app.post('/api/:username/collections/:id/recipes', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { recipeId } = req.body;
         
@@ -599,8 +721,12 @@ app.post('/api/collections/:id/recipes', async (req, res) => {
             try {
                 const docRef = db.collection('collections').doc(req.params.id);
                 const docSnap = await docRef.get();
+                const collectionData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? collectionData.userId === req.userId 
+                    : collectionData.username === username;
                 
-                if (!docSnap.exists) {
+                if (!docSnap.exists || !belongsToUser) {
                     return res.status(404).json({ error: 'Collection not found' });
                 }
                 
@@ -632,7 +758,7 @@ app.post('/api/collections/:id/recipes', async (req, res) => {
                 res.json({ success: true });
             }
         } else {
-            const collection = collections.find(c => c.id === req.params.id);
+            const collection = collections.find(c => c.id === req.params.id && c.username === username);
             if (!collection) {
                 return res.status(404).json({ error: 'Collection not found' });
             }
@@ -655,11 +781,21 @@ app.post('/api/collections/:id/recipes', async (req, res) => {
 });
 
 // Delete collection
-app.delete('/api/collections/:id', async (req, res) => {
+app.delete('/api/:username/collections/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const docRef = db.collection('collections').doc(req.params.id);
+                const docSnap = await docRef.get();
+                const collectionData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? collectionData.userId === req.userId 
+                    : collectionData.username === username;
+                
+                if (!docSnap.exists || !belongsToUser) {
+                    return res.status(404).json({ error: 'Collection not found' });
+                }
                 await docRef.delete();
                 console.log('🔥 Collection deleted from Firebase:', req.params.id);
                 res.json({ success: true });
@@ -667,7 +803,7 @@ app.delete('/api/collections/:id', async (req, res) => {
                 console.error('❌ Firebase collection deletion failed:', firebaseError.message);
                 disableFirebaseMode('Collection deletion failed: ' + firebaseError.message);
                 // Fall back to memory storage
-                const index = collections.findIndex(c => c.id === req.params.id);
+                const index = collections.findIndex(c => c.id === req.params.id && c.username === username);
                 if (index === -1) {
                     return res.status(404).json({ error: 'Collection not found' });
                 }
@@ -676,7 +812,7 @@ app.delete('/api/collections/:id', async (req, res) => {
                 res.json({ success: true });
             }
         } else {
-            const index = collections.findIndex(c => c.id === req.params.id);
+            const index = collections.findIndex(c => c.id === req.params.id && c.username === username);
             if (index === -1) {
                 return res.status(404).json({ error: 'Collection not found' });
             }
@@ -691,7 +827,8 @@ app.delete('/api/collections/:id', async (req, res) => {
 });
 
 // Remove recipe from collection
-app.delete('/api/collections/:id/recipes/:recipeId', async (req, res) => {
+app.delete('/api/:username/collections/:id/recipes/:recipeId', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { id: collectionId, recipeId } = req.params;
         
@@ -699,8 +836,12 @@ app.delete('/api/collections/:id/recipes/:recipeId', async (req, res) => {
             try {
                 const docRef = db.collection('collections').doc(collectionId);
                 const docSnap = await docRef.get();
+                const collectionData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? collectionData.userId === req.userId 
+                    : collectionData.username === username;
                 
-                if (!docSnap.exists) {
+                if (!docSnap.exists || !belongsToUser) {
                     return res.status(404).json({ error: 'Collection not found' });
                 }
                 
@@ -749,11 +890,13 @@ app.delete('/api/collections/:id/recipes/:recipeId', async (req, res) => {
 // ==================== MENUS ROUTES ====================
 
 // Get all menus
-app.get('/api/menus', async (req, res) => {
-    try {
+app.get('/api/:username/menus', validateUsername, async (req, res) => {
+    const username = req.params.username;
+    try{
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const querySnapshot = await db.collection('menus').get();
+                const menusRef = buildUserQuery(db.collection('menus'), req);
+                const querySnapshot = await menusRef.get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -764,11 +907,13 @@ app.get('/api/menus', async (req, res) => {
             } catch (firebaseError) {
                 console.error('❌ Firebase menus fetch failed:', firebaseError.message);
                 disableFirebaseMode('Menus fetch failed: ' + firebaseError.message);
-                res.json(menus);
+                const userMenus = menus.filter(m => m.username === username);
+                res.json(userMenus);
             }
         } else {
             console.log('📝 Retrieved menus from memory storage');
-            res.json(menus);
+            const userMenus = menus.filter(m => m.username === username);
+            res.json(userMenus);
         }
     } catch (error) {
         console.error('Error fetching menus:', error);
@@ -777,7 +922,8 @@ app.get('/api/menus', async (req, res) => {
 });
 
 // Create menu
-app.post('/api/menus', async (req, res) => {
+app.post('/api/:username/menus', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { name, description, content, recipeIds } = req.body;
         
@@ -788,6 +934,8 @@ app.post('/api/menus', async (req, res) => {
                     description: description || '',
                     content: content || '',
                     recipeIds: recipeIds || [],
+                    username: username,
+                    userId: req.userId || null,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -804,6 +952,7 @@ app.post('/api/menus', async (req, res) => {
                     description: description || '',
                     content: content || '',
                     recipeIds: recipeIds || [],
+                    username: username,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -818,6 +967,7 @@ app.post('/api/menus', async (req, res) => {
                 description: description || '',
                 content: content || '',
                 recipeIds: recipeIds || [],
+                username: username,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -832,13 +982,23 @@ app.post('/api/menus', async (req, res) => {
 });
 
 // Update menu
-app.put('/api/menus/:id', async (req, res) => {
+app.put('/api/:username/menus/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const { name, description, content, recipeIds } = req.body;
         
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
                 const docRef = db.collection('menus').doc(req.params.id);
+                const docSnap = await docRef.get();
+                const menuData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? menuData.userId === req.userId 
+                    : menuData.username === username;
+                
+                if (!docSnap.exists || !belongsToUser) {
+                    return res.status(404).json({ error: 'Menu not found' });
+                }
                 const updates = { 
                     name, 
                     description, 
@@ -852,7 +1012,7 @@ app.put('/api/menus/:id', async (req, res) => {
             } catch (firebaseError) {
                 console.error('❌ Firebase menu update failed:', firebaseError.message);
                 disableFirebaseMode('Menu update failed: ' + firebaseError.message);
-                const menu = menus.find(m => m.id === req.params.id);
+                const menu = menus.find(m => m.id === req.params.id && m.username === username);
                 if (!menu) {
                     return res.status(404).json({ error: 'Menu not found' });
                 }
@@ -861,7 +1021,7 @@ app.put('/api/menus/:id', async (req, res) => {
                 res.json(menu);
             }
         } else {
-            const menu = menus.find(m => m.id === req.params.id);
+            const menu = menus.find(m => m.id === req.params.id && m.username === username);
             if (!menu) {
                 return res.status(404).json({ error: 'Menu not found' });
             }
@@ -876,17 +1036,28 @@ app.put('/api/menus/:id', async (req, res) => {
 });
 
 // Delete menu
-app.delete('/api/menus/:id', async (req, res) => {
+app.delete('/api/:username/menus/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                await db.collection('menus').doc(req.params.id).delete();
+                const docRef = db.collection('menus').doc(req.params.id);
+                const docSnap = await docRef.get();
+                const menuData = docSnap.data();
+                const belongsToUser = req.userId 
+                    ? menuData.userId === req.userId 
+                    : menuData.username === username;
+                
+                if (!docSnap.exists || !belongsToUser) {
+                    return res.status(404).json({ error: 'Menu not found' });
+                }
+                await docRef.delete();
                 console.log('🔥 Menu deleted from Firebase:', req.params.id);
                 res.json({ success: true });
             } catch (firebaseError) {
                 console.error('❌ Firebase menu deletion failed:', firebaseError.message);
                 disableFirebaseMode('Menu deletion failed: ' + firebaseError.message);
-                const index = menus.findIndex(m => m.id === req.params.id);
+                const index = menus.findIndex(m => m.id === req.params.id && m.username === username);
                 if (index === -1) {
                     return res.status(404).json({ error: 'Menu not found' });
                 }
@@ -895,7 +1066,7 @@ app.delete('/api/menus/:id', async (req, res) => {
                 res.json({ success: true });
             }
         } else {
-            const index = menus.findIndex(m => m.id === req.params.id);
+            const index = menus.findIndex(m => m.id === req.params.id && m.username === username);
             if (index === -1) {
                 return res.status(404).json({ error: 'Menu not found' });
             }
@@ -912,7 +1083,8 @@ app.delete('/api/menus/:id', async (req, res) => {
 // === PHOTO ENDPOINTS ===
 
 // Upload photo
-app.post('/api/photos', upload.single('photo'), async (req, res) => {
+app.post('/api/:username/photos', validateUsername, upload.single('photo'), async (req, res) => {
+    const username = req.params.username;
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -924,8 +1096,8 @@ app.post('/api/photos', upload.single('photo'), async (req, res) => {
         
         if (useFirebase && bucket && !firebaseFailureDetected) {
             try {
-                // Upload to Firebase Storage
-                const fileUpload = bucket.file(`photos/${filename}`);
+                // Upload to Firebase Storage with user-scoped path
+                const fileUpload = bucket.file(`photos/${username}/${filename}`);
                 await fileUpload.save(file.buffer, {
                     metadata: {
                         contentType: file.mimetype,
@@ -934,12 +1106,14 @@ app.post('/api/photos', upload.single('photo'), async (req, res) => {
                 });
                 
                 // Get public URL
-                const publicUrl = `https://storage.googleapis.com/${bucket.name}/photos/${filename}`;
+                const publicUrl = `https://storage.googleapis.com/${bucket.name}/photos/${username}/${filename}`;
                 
                 // Save metadata to Firestore
                 const photoData = {
                     filename: file.originalname,
                     url: publicUrl,
+                    username: username,
+                    userId: req.userId || null,
                     uploadedAt: new Date().toISOString(),
                     size: file.size,
                     mimetype: file.mimetype
@@ -958,6 +1132,7 @@ app.post('/api/photos', upload.single('photo'), async (req, res) => {
                     id: photoId,
                     filename: file.originalname,
                     url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+                    username: username,
                     uploadedAt: new Date().toISOString(),
                     size: file.size,
                     mimetype: file.mimetype
@@ -972,6 +1147,7 @@ app.post('/api/photos', upload.single('photo'), async (req, res) => {
                 id: photoId,
                 filename: file.originalname,
                 url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+                username: username,
                 uploadedAt: new Date().toISOString(),
                 size: file.size,
                 mimetype: file.mimetype
@@ -987,7 +1163,8 @@ app.post('/api/photos', upload.single('photo'), async (req, res) => {
 });
 
 // Delete photo
-app.delete('/api/photos/:id', async (req, res) => {
+app.delete('/api/:username/photos/:id', validateUsername, async (req, res) => {
+    const username = req.params.username;
     try {
         const photoId = req.params.id;
         
@@ -995,13 +1172,18 @@ app.delete('/api/photos/:id', async (req, res) => {
             try {
                 // Get photo metadata
                 const photoDoc = await db.collection('photos').doc(photoId).get();
-                if (!photoDoc.exists) {
+                const photoData = photoDoc.data();
+                const belongsToUser = req.userId 
+                    ? photoData.userId === req.userId 
+                    : photoData.username === username;
+                
+                if (!photoDoc.exists || !belongsToUser) {
                     return res.status(404).json({ error: 'Photo not found' });
                 }
                 
-                // Delete from Storage
+                // Delete from Storage with user-scoped path
                 const filename = `${photoId}.jpg`;
-                await bucket.file(`photos/${filename}`).delete();
+                await bucket.file(`photos/${username}/${filename}`).delete();
                 
                 // Delete metadata from Firestore
                 await db.collection('photos').doc(photoId).delete();
@@ -1013,7 +1195,7 @@ app.delete('/api/photos/:id', async (req, res) => {
                 disableFirebaseMode('Photo deletion failed: ' + firebaseError.message);
                 
                 // Fallback to memory
-                const index = photos.findIndex(p => p.id === photoId);
+                const index = photos.findIndex(p => p.id === photoId && p.username === username);
                 if (index === -1) {
                     return res.status(404).json({ error: 'Photo not found' });
                 }
@@ -1022,7 +1204,7 @@ app.delete('/api/photos/:id', async (req, res) => {
                 res.json({ success: true });
             }
         } else {
-            const index = photos.findIndex(p => p.id === photoId);
+            const index = photos.findIndex(p => p.id === photoId && p.username === username);
             if (index === -1) {
                 return res.status(404).json({ error: 'Photo not found' });
             }
@@ -1058,6 +1240,15 @@ app.get('*', (req, res) => {
         return res.status(404).send('File not found');
     }
     
+    // Serve dedicated auth pages
+    if (req.path === '/login') {
+        return res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    }
+    if (req.path === '/signup') {
+        return res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+    }
+    
+    // Default to main SPA
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
