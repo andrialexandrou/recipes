@@ -112,6 +112,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 **Firebase Authentication with Email/Password + Google Sign-In**
 
 **Features:**
+
 - Email/password signup and login
 - Google OAuth authentication
 - Dedicated `/login` and `/signup` routes (no modals)
@@ -120,6 +121,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Firebase Auth UID-based data ownership
 
 **Signup Flow:**
+
 1. User provides username, email, password (or uses Google)
 2. Firebase Auth account created
 3. Username availability checked in Firestore
@@ -127,23 +129,27 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 5. Automatic sign-in and redirect to home
 
 **Login Flow:**
+
 1. User signs in with email/password or Google
 2. App fetches user document from Firestore by UID
 3. Sets `API.currentUser` with username, email, uid
 4. Loads user's data via userId-based queries
 
 **Staff Users:**
+
 - User documents can have `isStaff: true` field
 - Staff users see Debug Info menu item
 - Set manually in Firestore Console: `users/{uid}` → add `isStaff` boolean field
 - Console logs show 🛠️ Staff indicator for staff users
 
 **Deployment Notes:**
+
 - Production domain must be added to Firebase Console → Authentication → Settings → Authorized domains
 - Required for Google OAuth to work on deployed app
 - Add both preview and production Vercel URLs
 
 **Key Files:**
+
 - `public/login.html` - Login page with email/password and Google options
 - `public/signup.html` - Signup page with username collection
 - `public/app.js` - Auth state handling, `onAuthStateChanged`, `isStaff` check
@@ -155,18 +161,21 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 **Philosophy:** Each user has their own isolated data namespace. All data is owned by Firebase Auth UID (userId), not username. URLs use human-readable usernames, but queries use immutable userIds.
 
 **Data Isolation:**
+
 - All Firestore documents include both `username` (display) and `userId` (ownership)
 - Server queries by `userId` for security
 - Firebase Storage paths: `photos/{username}/{photoId}.jpg`
 - URL structure: `/{username}/recipes`, `/{username}/collections`, `/{username}/menus`
 
 **Server Architecture:**
+
 - `validateUsername` middleware: Resolves username from URL → userId from Firestore
 - `buildUserQuery` helper: Queries by userId if available, falls back to username
 - All POST endpoints: Add `userId` to new documents
 - All PUT/DELETE endpoints: Verify `userId` matches before allowing operations
 
 **UI Indicators:**
+
 - Sidebar shows viewing user (Gravatar + @username)
 - Navbar dropdown shows current logged-in user
 - URLs clearly show whose catalog is being viewed
@@ -547,6 +556,7 @@ For rapid verification after deployments:
 The application uses a modular state management approach:
 
 **State Module** - Centralized state in `State` object:
+
 - `recipes`, `collections`, `menus` - Content arrays
 - `currentRecipeId`, `currentCollectionId`, `currentMenuId` - Active item tracking
 - `currentView` - Current view name
@@ -554,17 +564,20 @@ The application uses a modular state management approach:
 - `users` - Cached user data
 
 **DOM Module** - All DOM elements organized in `DOM` object:
+
 - Sidebar, navbar, view sections
 - Collections, menus, recipes elements
 - Buttons, inputs, and controls
 - Centralized element access reduces global scope pollution
 
 **Helper Modules**:
+
 - `SkeletonUI` - Reusable skeleton loading state functions
 - `CONSTANTS` - Magic numbers and strings in one place
 - JSDoc comments for type hints and documentation
 
 **API State**:
+
 - `API.currentUser` - Logged in user (from Firebase Auth)
 - `API.viewingUser` - Whose catalog we're viewing (changes per URL)
 - `API.authInitialized` - Auth setup completion flag
@@ -580,12 +593,21 @@ The application uses a modular state management approach:
 
 ### Feature Backlog
 
-- **Public Content Viewing (Logged Out)** - Allow viewing user content via direct links when logged out, only redirect to login for app navigation
-- **Vertical Menu Cards with Header Images** - Make menu cards vertical (Pinterest-style) with optional header images for better visual appeal and social sharing
+**Quick Wins (Small):**
+
+- **Center Auth Pages** - Center the login/signup screens vertically and horizontally for better visual balance
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
+
+**Medium Effort:**
+
+- **Vertical Menu Cards with Header Images** - Make menu cards vertical (Pinterest-style) with optional header images for better visual appeal and social sharing
+- **Public Content Viewing (Logged Out)** - Allow viewing user content via direct links when logged out, only redirect to login for app navigation
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
+
+**Large Features:**
+
 - **Follow Users** - Allow users to follow other users to see their content
 - **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
 - **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
