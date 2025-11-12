@@ -105,23 +105,45 @@
         
         <div class="content-area">
             <div id="homeView" class="view-section active">
-                <div class="home-section">
-                    <div class="collections-header">
-                        <h2>Collections</h2>
-                        <button class="new-collection-btn" id="newCollectionBtnHome" title="New Collection">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
+                <!-- Skeleton loading state -->
+                <div id="homeViewSkeleton" class="home-skeleton">
+                    <div class="home-section">
+                        <div class="skeleton-header"></div>
+                        <div class="collections-grid">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
                     </div>
-                    <div class="collections-grid" id="collectionsGridHome"></div>
+                    <div class="home-section">
+                        <div class="skeleton-header"></div>
+                        <div class="collections-grid">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="home-section">
-                    <div class="collections-header">
-                        <h2>Menus</h2>
-                        <button class="new-collection-btn" id="newMenuBtnHome" title="New Menu">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
+                <!-- Actual content (hidden initially) -->
+                <div id="homeViewContent" class="hidden">
+                    <div class="home-section">
+                        <div class="collections-header">
+                            <h2>Collections</h2>
+                            <button class="new-collection-btn" id="newCollectionBtnHome" title="New Collection">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="collections-grid" id="collectionsGridHome"></div>
                     </div>
-                    <div class="collections-grid" id="menusGridHome"></div>
+                    <div class="home-section">
+                        <div class="collections-header">
+                            <h2>Menus</h2>
+                            <button class="new-collection-btn" id="newMenuBtnHome" title="New Menu">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="collections-grid" id="menusGridHome"></div>
+                    </div>
                 </div>
             </div>
             

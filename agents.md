@@ -370,6 +370,14 @@ npm run dev  # Starts server on port 3000 (or 3001 if 3000 occupied)
 
 These scenarios should be tested when making changes to ensure core functionality remains intact:
 
+#### First-Time User Experience
+
+- [ ] **Onboarding Banner** - Sign up as new user, verify Welcome banner displays with CTA buttons
+- [ ] **Skeleton Loading** - On page load, verify skeleton UI displays before content loads
+- [ ] **Skeleton Transition** - Verify smooth transition from skeleton to actual content
+- [ ] **Add First Recipe** - Click "Add your first recipe" button, verify creates new recipe
+- [ ] **Create Menu from Banner** - Click "Create a menu" button, verify menu creation flow
+
 #### Recipe Management
 
 - [ ] **Create Recipe** - Press `N` or use navbar menu → New Recipe, enter title and content, save
@@ -556,8 +564,6 @@ For rapid verification after deployments:
 - **Reset Password** - Allow users to reset their password via email
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
-- ~~**Placeholder Content for Empty Fields**~~ - ✅ DONE: Added empty state messages for collections/menus
-- ~~**Avatar Loading States**~~ - ✅ DONE: Added gray placeholders while Gravatars load
 - **Follow Users** - Allow users to follow other users to see their content
 - **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
 - **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
@@ -602,6 +608,9 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-11** - Added first-time user onboarding banner with CTA buttons, skeleton loading UI with shimmer effect
+- **2025-11-11** - Added sidebar collapse state persistence with localStorage
+- **2025-11-11** - Added print styles for complete PDF output of recipes and menus
 - **2025-11-11** - Added empty state messages for collections/menus, avatar loading placeholders
 - **2025-11-11** - Navigate to home after entity deletion, update URLs after saving entities
 - **2025-11-11** - Removed "No description" placeholder text for cleaner cards

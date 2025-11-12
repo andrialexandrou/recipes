@@ -526,14 +526,23 @@ async function handleImagePaste(e, textarea) {
 // Sidebar toggle
 sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
+    // Save state to localStorage
+    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
 });
 
+// Auto-collapse sidebar on narrow screens
 // Auto-collapse sidebar on narrow screens
 function handleResize() {
     if (window.innerWidth <= 768) {
         sidebar.classList.add('collapsed');
     } else {
-        sidebar.classList.remove('collapsed');
+        // On wider screens, restore saved state
+        const wasCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (wasCollapsed) {
+            sidebar.classList.add('collapsed');
+        } else {
+            sidebar.classList.remove('collapsed');
+        }
     }
 }
 
@@ -1068,6 +1077,17 @@ function renderRecipeList(filter = '') {
 
     filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
+    // Show welcome message for new users with no recipes
+    if (recipes.length === 0 && API.viewingUser === API.currentUser?.username) {
+        recipeList.innerHTML = `
+            <div style="padding: 2rem 1rem; text-align: center; color: #999;">
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.95rem; font-weight: 500;">Welcome to Sous! 🎉</p>
+                <p style="margin: 0; font-size: 0.875rem;">Press <kbd style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-family: monospace;">N</kbd> or use the menu to create your first recipe</p>
+            </div>
+        `;
+        return;
+    }
+
     recipeList.innerHTML = filtered.map(recipe => {
         // Only highlight as active if we're in recipe view AND came from sidebar (no currentCollectionId)
         const isActive = currentView === 'recipe-detail' && 
@@ -1329,9 +1349,49 @@ function showHomeView() {
     currentCollectionId = null;
     currentMenuId = null;
     
-    // Render both collections and menus on home
-    renderCollectionsGridHome();
-    renderMenusGridHome();
+    const skeleton = document.getElementById('homeViewSkeleton');
+    const content = document.getElementById('homeViewContent');
+    
+    // Check if this is a first-time user with no content (only show for owner)
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    const hasNoContent = recipes.length === 0 && collections.length === 0 && menus.length === 0;
+    
+    if (isOwner && hasNoContent) {
+        // Hide skeleton, show onboarding banner
+        if (skeleton) skeleton.classList.add('hidden');
+        if (content) content.classList.add('hidden');
+        
+        // Replace homeView content with onboarding banner
+        const existingBanner = homeView.querySelector('.onboarding-banner');
+        if (!existingBanner) {
+            const banner = document.createElement('div');
+            banner.className = 'onboarding-banner';
+            banner.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 40px;">
+                    <div style="text-align: center; max-width: 500px;">
+                        <h1 style="font-family: 'Cinzel', serif; font-size: 48px; margin: 0 0 16px 0; color: #6b5d52;">Welcome to Sous</h1>
+                        <p style="font-size: 18px; line-height: 1.6; color: #666; margin: 0 0 32px 0;">Your personal recipe manager. Get started by adding your first recipe or creating a curated menu.</p>
+                        <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                            <button onclick="createNewRecipe()" style="padding: 14px 28px; font-size: 16px; font-weight: 500; background: #6b5d52; color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-family: inherit;" onmouseover="this.style.background='#5a4d42'" onmouseout="this.style.background='#6b5d52'">📝 Add your first recipe</button>
+                            <button onclick="createNewMenu()" style="padding: 14px 28px; font-size: 16px; font-weight: 500; background: white; color: #6b5d52; border: 2px solid #6b5d52; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-family: inherit;" onmouseover="this.style.background='#f9f7f4'" onmouseout="this.style.background='white'">🍽️ Create a menu</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            homeView.appendChild(banner);
+        }
+    } else {
+        // Hide skeleton and any onboarding banner, show normal content
+        if (skeleton) skeleton.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
+        
+        const banner = homeView.querySelector('.onboarding-banner');
+        if (banner) banner.remove();
+        
+        // Render normal home view
+        renderCollectionsGridHome();
+        renderMenusGridHome();
+    }
     
     updateEditControls(); // Show/hide create buttons based on ownership
     
