@@ -646,50 +646,77 @@ async function updateUserDisplay() {
     const viewingUserAvatar = document.getElementById('viewingUserAvatar');
     const viewingUsername = document.getElementById('viewingUsername');
     
-    if (viewingUserAvatar && viewingUsername && API.viewingUser) {
-        // If viewing ourselves, use current user data
-        if (API.viewingUser === API.currentUser?.username) {
-            viewingUserAvatar.style.background = '#e0e0e0';
-            const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
-            viewingUserAvatar.src = gravatarUrl;
-            viewingUsername.textContent = `@${API.viewingUser}`;
-            viewingUserAvatar.onload = () => { viewingUserAvatar.style.background = 'transparent'; };
+    // Remove skeleton classes and convert div to img when updating
+    if (viewingUserAvatar) {
+        viewingUserAvatar.classList.remove('skeleton-avatar');
+        
+        // If it's a div, convert it to an img element
+        if (viewingUserAvatar.tagName === 'DIV') {
+            const img = document.createElement('img');
+            img.id = 'viewingUserAvatar';
+            img.className = 'user-avatar';
+            img.alt = 'Viewing user';
+            img.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; background: #e0e0e0;';
+            viewingUserAvatar.parentNode.replaceChild(img, viewingUserAvatar);
+            // Update reference
+            const newViewingUserAvatar = document.getElementById('viewingUserAvatar');
+            
+            if (newViewingUserAvatar && viewingUsername && API.viewingUser) {
+                loadViewingUserAvatar(newViewingUserAvatar, viewingUsername);
+            }
         } else {
-            // Fetch the viewing user's email from Firestore
-            try {
-                if (window.db) {
-                    const usersSnapshot = await window.db.collection('users')
-                        .where('username', '==', API.viewingUser)
-                        .limit(1)
-                        .get();
-                    
-                    if (!usersSnapshot.empty) {
-                        const userData = usersSnapshot.docs[0].data();
-                        viewingUserAvatar.style.background = '#e0e0e0';
-                        const gravatarUrl = getGravatarUrl(userData.email, 128);
-                        viewingUserAvatar.src = gravatarUrl;
-                        viewingUsername.textContent = `@${API.viewingUser}`;
-                        viewingUserAvatar.onload = () => { viewingUserAvatar.style.background = 'transparent'; };
-                    } else {
-                        // Fallback to default avatar if user not found
-                        viewingUserAvatar.src = getGravatarUrl('unknown@example.com', 128);
-                        viewingUsername.textContent = `@${API.viewingUser}`;
-                    }
-                } else {
-                    // No Firestore, use fallback
-                    viewingUserAvatar.src = getGravatarUrl('unknown@example.com', 128);
-                    viewingUsername.textContent = `@${API.viewingUser}`;
-                }
-            } catch (error) {
-                console.error('Failed to fetch viewing user email:', error);
-                viewingUserAvatar.src = getGravatarUrl('unknown@example.com', 128);
-                viewingUsername.textContent = `@${API.viewingUser}`;
+            if (viewingUserAvatar && viewingUsername && API.viewingUser) {
+                loadViewingUserAvatar(viewingUserAvatar, viewingUsername);
             }
         }
     }
     
+    if (viewingUsername) viewingUsername.classList.remove('skeleton-text');
+    
     // Update edit controls visibility based on ownership
     updateEditControls();
+}
+
+async function loadViewingUserAvatar(avatarElement, usernameElement) {
+    // If viewing ourselves, use current user data
+    if (API.viewingUser === API.currentUser?.username) {
+        avatarElement.style.background = '#e0e0e0';
+        const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
+        avatarElement.src = gravatarUrl;
+        usernameElement.textContent = `@${API.viewingUser}`;
+        avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
+    } else {
+        // Fetch the viewing user's email from Firestore
+        try {
+            if (window.db) {
+                const usersSnapshot = await window.db.collection('users')
+                    .where('username', '==', API.viewingUser)
+                    .limit(1)
+                    .get();
+                
+                if (!usersSnapshot.empty) {
+                    const userData = usersSnapshot.docs[0].data();
+                    avatarElement.style.background = '#e0e0e0';
+                    const gravatarUrl = getGravatarUrl(userData.email, 128);
+                    avatarElement.src = gravatarUrl;
+                    usernameElement.textContent = `@${API.viewingUser}`;
+                    avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
+                } else {
+                    // Fallback to default avatar if user not found
+                    avatarElement.src = getGravatarUrl('unknown@example.com', 128);
+                    usernameElement.textContent = `@${API.viewingUser}`;
+                }
+            } else {
+                // No Firestore, use fallback
+                avatarElement.src = getGravatarUrl('unknown@example.com', 128);
+                usernameElement.textContent = `@${API.viewingUser}`;
+            }
+        } catch (error) {
+            console.error('Failed to fetch viewing user email:', error);
+            avatarElement.src = getGravatarUrl('unknown@example.com', 128);
+            usernameElement.textContent = `@${API.viewingUser}`;
+        }
+    }
 }
 
 // Helper to get list of users (we'll fetch this from the API)
@@ -1069,6 +1096,10 @@ function renderMenusGridHome() {
 
 // Render recipe list
 function renderRecipeList(filter = '') {
+    // Remove skeleton on first render
+    const skeleton = recipeList.querySelector('.sidebar-skeleton');
+    if (skeleton) skeleton.remove();
+    
     const lowerFilter = filter.toLowerCase();
     const filtered = recipes.filter(recipe => 
         recipe.title.toLowerCase().includes(lowerFilter) ||

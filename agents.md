@@ -564,6 +564,8 @@ For rapid verification after deployments:
 - **Reset Password** - Allow users to reset their password via email
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
+- ~~**Placeholder Content for Empty Fields**~~ - ✅ DONE: Added empty state messages for collections/menus
+- ~~**Avatar Loading States**~~ - ✅ DONE: Added gray placeholders while Gravatars load
 - **Follow Users** - Allow users to follow other users to see their content
 - **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
 - **Offline Support** - Allow users to create/edit recipes offline with sync when back online (PWA)
@@ -608,6 +610,7 @@ When working on this codebase:
 
 ## Changelog
 
+- **2025-11-11** - Added skeleton loading for sidebar user avatar and recipe list
 - **2025-11-11** - Added first-time user onboarding banner with CTA buttons, skeleton loading UI with shimmer effect
 - **2025-11-11** - Added sidebar collapse state persistence with localStorage
 - **2025-11-11** - Added print styles for complete PDF output of recipes and menus
