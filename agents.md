@@ -589,60 +589,6 @@ The application uses a modular state management approach:
 - `popstate` listener handles back/forward
 - `loadFromURL()` on page load reads current URL
 
-## Future Considerations
-
-### Feature Backlog
-
-**Quick Wins (Small):**
-
-- ✅ **Center Auth Pages** - DONE: Fixed body flexbox conflict with :has() selector
-- **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
-- **Reset Password** - Allow users to reset their password via email
-- ✅ **Menus Above Collections** - DONE: Reordered home view rendering and HTML sections
-- ✅ **Firebase Connection Error UI** - DONE: Added dismissible banner that shows when server/Firebase connection fails
-- ✅ **Clear Metadata on New Recipe** - DONE: Metadata now properly resets when creating new recipe
-- ✅ **Recipe Author Display** - DONE: Shows @username at top of recipe metadata
-- ✅ **Remove Recipe Count from Menu Cards** - DONE: Removed from both home and full menus view
-- **Fix User Menu Alignment** - Fix alignment bugs in the navbar user dropdown menu
-
-**Medium Effort:**
-
-- **Open Graph Cards for Social Sharing** - Generate Open Graph meta tags for recipes, collections, and menus to create rich preview cards when sharing links. Use page content and user-provided images to auto-generate cards. Optional: As a pro feature, use AI to generate enhanced cards with title, estimated duration from recipe notes, basic instructions, etc.
-- **Vertical Menu Cards with Header Images** - Make menu cards vertical (Pinterest-style) with optional header images for better visual appeal and social sharing
-- **Public Content Viewing (Logged Out)** - Allow viewing user content via direct links when logged out, only redirect to login for app navigation
-- **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
-- **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
-- **Import/Migration Tool** - Allow users to bulk import recipes from various file formats (PDF, Markdown, HTML, text files) to populate their catalog after account creation. Implementation: Use Vercel AI SDK with user-provided API keys stored securely in their Firestore user document. Let users attach their own OpenAI/Anthropic key for AI-powered parsing, or start with simple markdown/text imports without AI. Trade-off: User provides key (no cost to app) vs. built-in credits (simpler UX but ongoing costs).
-
-**Large Features:**
-
-- **Follow Users** - Allow users to follow other users to see their content
-- **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
-- **Progressive Web App (PWA)** - Add manifest.json and service worker for offline support, home screen installation that opens as standalone app without browser chrome
-
-### Potential Features (Not Yet Implemented)
-
-- Recipe sharing/permissions (public/private recipes)
-- Recipe tags/categories beyond collections
-- Search across all fields (not just title)
-- Recipe import from URLs
-- Print-friendly recipe view
-- Meal planning calendar
-- Shopping list generation
-- Recipe ratings/favorites
-- Comments on recipes
-- Activity feed
-- Follow users feature
-- Password reset via email
-
-### Technical Debt
-
-- No automated tests yet (need tests that load each view across multiple users to verify data isolation and permissions)
-- No TypeScript (pure JavaScript)
-- No build process (ships raw files)
-- Memory storage fallback loses data on restart
-- No offline support (PWA)
-
 ## Notes for AI Agents
 
 When working on this codebase:
@@ -658,33 +604,11 @@ When working on this codebase:
 9. **Keep URLs semantic and clean** - they're shareable
 10. **Mobile-first** - test responsive behavior
 
-## Changelog
+## Related Documentation
 
-- **2025-11-12** - Added Firebase connection error UI with dismissible banner for server failures
-- **2025-11-12** - Implemented Quick Wins: Reordered home view (menus before collections), added author display to recipe metadata (at top), removed recipe count from menu cards, fixed auth page centering with :has() selector, cleared metadata on new recipe creation
-- **2025-11-11** - Removed floating action buttons completely, replaced with inline icon-only metadata buttons, built Spotify-style collections dropdown with search and creation, fixed multiple console errors (function references), removed menus from recipe metadata
-- **2025-11-11** - Code refactoring: Organized code into modules (State, DOM, SkeletonUI, CONSTANTS), extracted helper functions, added JSDoc comments, removed duplicate code
-- **2025-11-11** - Added skeleton loading for sidebar user avatar and recipe list
-- **2025-11-11** - Added first-time user onboarding banner with CTA buttons, skeleton loading UI with shimmer effect
-- **2025-11-11** - Added sidebar collapse state persistence with localStorage
-- **2025-11-11** - Added print styles for complete PDF output of recipes and menus
-- **2025-11-11** - Added empty state messages for collections/menus, avatar loading placeholders
-- **2025-11-11** - Navigate to home after entity deletion, update URLs after saving entities
-- **2025-11-11** - Removed "No description" placeholder text for cleaner cards
-- **2025-11-11** - Added `isStaff` user field, Debug menu only visible to staff users
-- **2025-11-11** - Extended permission-based UI to collections/menus list and detail views
-- **2025-11-11** - Made sidebar username/avatar clickable link to user's home page
-- **2025-11-11** - Hidden "Add to Collection" button when viewing other users' recipes
-- **2025-11-11** - Added permission-based UI (read-only mode when viewing other users' content)
-- **2025-11-11** - Fixed URL persistence and navigation bugs in multi-user architecture
-- **2025-11-11** - Fixed Gravatar lookup to fetch viewing user's email from Firestore
-- **2025-11-11** - Added Firebase Authentication (email/password + Google Sign-In), userId-based data architecture, multi-user support
-- **2025-11-11** - Added multi-user architecture, Gravatar integration, navbar redesign, photo migration
-- **2025-11-11** - Added menus feature with full CRUD
-- **2025-11-11** - Added paste-to-upload image functionality with Firebase Storage
-- **2025-11-11** - Initial collections implementation
-- **Earlier** - Core recipe management, Firebase integration
+- **changelog.md** - Historical record of all changes and when they were implemented
+- **backlog.md** - Future features and improvements planned
 
 ---
 
-*Keep this document updated as the project evolves. It's your roadmap and context for future development.*
+*Keep this document updated as the project evolves. It's your roadmap and context for current functionality.*
