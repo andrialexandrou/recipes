@@ -517,6 +517,72 @@ const menuDescriptionDisplay = DOM.menuDescriptionDisplay;
 const menuMarkdownTextarea = DOM.menuMarkdownTextarea;
 const menuPreviewContent = DOM.menuPreviewContent;
 
+// Initialize EasyMDE editors
+let recipeEditor = null;
+let menuEditor = null;
+
+function initializeRecipeEditor() {
+    if (recipeEditor) {
+        recipeEditor.toTextArea();
+        recipeEditor = null;
+    }
+    
+    recipeEditor = new EasyMDE({
+        element: markdownTextarea,
+        spellChecker: false,
+        status: false,
+        toolbar: [
+            'bold', 'italic', 'strikethrough', '|',
+            'heading-1', 'heading-2', 'heading-3', '|',
+            'quote', 'unordered-list', 'ordered-list', '|',
+            'link', 'image', '|',
+            'preview', 'side-by-side', 'fullscreen', '|',
+            'guide'
+        ],
+        autoDownloadFontAwesome: false,
+        hideIcons: ['side-by-side'], // Hide side-by-side for cleaner UI
+        placeholder: 'Write your recipe in markdown...',
+        minHeight: '500px',
+        sideBySideFullscreen: false,
+    });
+    
+    // Sync changes back to the original textarea
+    recipeEditor.codemirror.on('change', () => {
+        markdownTextarea.value = recipeEditor.value();
+    });
+}
+
+function initializeMenuEditor() {
+    if (menuEditor) {
+        menuEditor.toTextArea();
+        menuEditor = null;
+    }
+    
+    menuEditor = new EasyMDE({
+        element: menuMarkdownTextarea,
+        spellChecker: false,
+        status: false,
+        toolbar: [
+            'bold', 'italic', 'strikethrough', '|',
+            'heading-1', 'heading-2', 'heading-3', '|',
+            'quote', 'unordered-list', 'ordered-list', '|',
+            'link', 'image', '|',
+            'preview', 'side-by-side', 'fullscreen', '|',
+            'guide'
+        ],
+        autoDownloadFontAwesome: false,
+        hideIcons: ['side-by-side'],
+        placeholder: 'Write your menu in markdown...',
+        minHeight: '500px',
+        sideBySideFullscreen: false,
+    });
+    
+    // Sync changes back to the original textarea
+    menuEditor.codemirror.on('change', () => {
+        menuMarkdownTextarea.value = menuEditor.value();
+    });
+}
+
 // Metadata elements
 const metadataCreated = document.getElementById('metadataCreated');
 const metadataEdited = document.getElementById('metadataEdited');
@@ -1509,10 +1575,11 @@ function enterEditMode() {
     titleInput.classList.remove('hidden');
     titleDisplay.classList.add('hidden');
     
-    markdownTextarea.classList.remove('hidden');
+    // Hide preview content in edit mode
     previewContent.classList.add('hidden');
     
-    markdownTextarea.focus();
+    // Initialize EasyMDE editor when entering edit mode
+    initializeRecipeEditor();
     
     // Update action buttons for edit mode
     const recipe = recipes.find(r => r.id === currentRecipeId);
@@ -1522,6 +1589,13 @@ function enterEditMode() {
 // Switch to view mode
 function enterViewMode() {
     isEditMode = false;
+    
+    // Clean up EasyMDE editor when exiting edit mode
+    if (recipeEditor) {
+        markdownTextarea.value = recipeEditor.value();
+        recipeEditor.toTextArea();
+        recipeEditor = null;
+    }
     
     titleInput.classList.add('hidden');
     titleDisplay.classList.remove('hidden');
@@ -2125,8 +2199,12 @@ function enterMenuEditMode() {
     menuTitleInput.classList.remove('hidden');
     menuDescriptionDisplay.classList.add('hidden');
     menuDescriptionInput.classList.remove('hidden');
+    
+    // Hide preview content in edit mode
     menuPreviewContent.classList.add('hidden');
-    menuMarkdownTextarea.classList.remove('hidden');
+    
+    // Initialize EasyMDE editor when entering edit mode
+    initializeMenuEditor();
     
     menuTitleInput.focus();
 }
@@ -2136,6 +2214,13 @@ function exitMenuEditMode() {
     if (!menu) return;
     
     isMenuEditMode = false;
+    
+    // Clean up EasyMDE editor when exiting edit mode
+    if (menuEditor) {
+        menuMarkdownTextarea.value = menuEditor.value();
+        menuEditor.toTextArea();
+        menuEditor = null;
+    }
     
     // Revert to saved values
     menuTitleInput.value = menu.name;

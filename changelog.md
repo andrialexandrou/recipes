@@ -4,6 +4,15 @@ All notable changes to the Sous recipe manager.
 
 ## 2025-11-12
 
+### WYSIWYG Markdown Editor
+- Implemented EasyMDE for visual markdown editing with toolbar buttons
+- Added toolbar with bold, italic, strikethrough, headings (H1-H3), lists, links, images, preview, fullscreen, and guide
+- Styled editor to match website aesthetic with warm neutral palette and Georgia serif font
+- Added prominent 2px border around editor for clear visual separation
+- Configured markdown syntax highlighting in editor to match preview styles
+- Hidden preview content below editor during edit mode for focused editing experience
+- Integrated with both recipe and menu editing workflows
+
 ### Layout & UI Improvements
 - Refactored recipe layout from absolute positioning to flexbox for cleaner, more maintainable code
 - Fixed collections menu to scroll with content and position intelligently (viewport-aware)

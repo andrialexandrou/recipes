@@ -1973,6 +1973,125 @@ body:has(.auth-container) {
     text-decoration: underline;
 }
 
+/* EasyMDE Customization */
+.EasyMDEContainer {
+    background: #fcfbf9;
+    border: 2px solid #d9d4cb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.EasyMDEContainer .CodeMirror {
+    font-family: 'Georgia', serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #3d3d3d;
+    background: #fcfbf9;
+    border: none;
+    padding: 40px;
+    height: auto;
+    min-height: 500px;
+}
+
+.EasyMDEContainer .CodeMirror-scroll {
+    min-height: 500px;
+}
+
+.EasyMDEContainer .editor-toolbar {
+    background: #f9f7f4;
+    border: none;
+    border-bottom: 1px solid #e5e0d8;
+    padding: 8px;
+}
+
+.EasyMDEContainer .editor-toolbar button {
+    color: #6b5d52;
+    border: none;
+    background: transparent;
+}
+
+.EasyMDEContainer .editor-toolbar button:hover,
+.EasyMDEContainer .editor-toolbar button.active {
+    background: #e5e0d8;
+    border-color: #e5e0d8;
+}
+
+.EasyMDEContainer .editor-toolbar i.separator {
+    border-left-color: #d9d4cb;
+    border-right-color: #f9f7f4;
+}
+
+.EasyMDEContainer .editor-preview {
+    font-family: 'Georgia', serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #3d3d3d;
+    padding: 40px;
+    background: #fcfbf9;
+}
+
+/* Style markdown syntax in editor to match preview */
+.EasyMDEContainer .cm-header-1 {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #2d2d2d;
+}
+
+.EasyMDEContainer .cm-header-2 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #2d2d2d;
+}
+
+.EasyMDEContainer .cm-header-3 {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #2d2d2d;
+}
+
+.EasyMDEContainer .cm-strong {
+    font-weight: 600;
+    color: #2d2d2d;
+}
+
+.EasyMDEContainer .cm-em {
+    font-style: italic;
+}
+
+.EasyMDEContainer .cm-link {
+    color: #6b5d52;
+    text-decoration: underline;
+}
+
+.EasyMDEContainer .cm-url {
+    color: #8a7a6a;
+}
+
+.EasyMDEContainer .cm-quote {
+    color: #5a5a5a;
+    font-style: italic;
+}
+
+.EasyMDEContainer .CodeMirror-cursor {
+    border-left-color: #6b5d52;
+}
+
+.EasyMDEContainer .CodeMirror-selected {
+    background: rgba(107, 93, 82, 0.1);
+}
+
+.EasyMDEContainer .CodeMirror-focused .CodeMirror-selected {
+    background: rgba(107, 93, 82, 0.15);
+}
+
+/* Hide the original textarea when EasyMDE is active */
+.EasyMDEContainer + textarea {
+    display: none !important;
+}
+
 @media (max-width: 480px) {
     .auth-box {
         padding: 32px 24px;

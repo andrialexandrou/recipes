@@ -38,16 +38,18 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 **Status: ✅ Complete**
 
 - Create/edit/delete recipes using Markdown
+- WYSIWYG toolbar with EasyMDE for markdown editing
 - Auto-save on edit
 - Full preview with marked.js rendering
 - Metadata tracking (created, updated dates)
 - Slug-based URLs: `/{username}/recipe/alabama-white-sauce-ABC123`
 - Edit/view mode toggle
 - Copy link functionality
+- Toolbar buttons: bold, italic, strikethrough, headings, lists, links, images, preview, fullscreen
 
 **Key Files:**
 
-- `public/app.js` - Recipe CRUD operations
+- `public/app.js` - Recipe CRUD operations, EasyMDE initialization
 - `server.js` - `/api/:username/recipes` endpoints
 
 ### 2. Collections System
@@ -70,6 +72,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 **Status: ✅ Complete**
 
 - Create curated menus with Markdown content
+- WYSIWYG toolbar with EasyMDE for markdown editing
 - Optional description field
 - Reference recipes within menus
 - Edit/view mode toggle
@@ -77,7 +80,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **Key Files:**
 
-- `public/app.js` - Menu CRUD operations
+- `public/app.js` - Menu CRUD operations, EasyMDE initialization
 - `server.js` - `/api/:username/menus` endpoints
 
 ### 4. Image Upload (Paste-to-Upload)
@@ -329,6 +332,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 
 - **No Framework** - Vanilla JavaScript
 - **marked.js** - Markdown rendering
+- **EasyMDE** - WYSIWYG markdown editor with toolbar
 - **SparkMD5** - MD5 hashing for Gravatars
 - **Font Awesome** - Icons
 - **Google Fonts** - Cinzel (headings)
