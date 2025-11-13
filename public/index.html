@@ -246,6 +246,20 @@
                                 <!-- Buttons inserted here by JS -->
                             </div>
                         </div>
+                        
+                        <!-- Collections Dropdown Menu -->
+                        <div class="collections-menu" id="collectionsMenu" style="display: none;">
+                            <div class="collections-menu-search">
+                                <input type="text" id="collectionsSearch" placeholder="Find a collection" autocomplete="off">
+                            </div>
+                            <button class="collections-menu-new-btn" id="newCollectionMenuBtn">
+                                <i class="fa-solid fa-plus"></i> New collection
+                            </button>
+                            <div class="collections-menu-divider"></div>
+                            <div class="collections-menu-content" id="collectionsMenuContent">
+                                <!-- Collection checkboxes inserted here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -290,20 +304,6 @@
             <div class="modal-actions">
                 <button id="debugCloseBtn">Close</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Collections Dropdown Menu -->
-    <div class="collections-menu" id="collectionsMenu" style="display: none;">
-        <div class="collections-menu-search">
-            <input type="text" id="collectionsSearch" placeholder="Find a collection" autocomplete="off">
-        </div>
-        <button class="collections-menu-new-btn" id="newCollectionMenuBtn">
-            <i class="fa-solid fa-plus"></i> New collection
-        </button>
-        <div class="collections-menu-divider"></div>
-        <div class="collections-menu-content" id="collectionsMenuContent">
-            <!-- Collection checkboxes inserted here -->
         </div>
     </div>
 

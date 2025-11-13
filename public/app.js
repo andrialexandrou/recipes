@@ -1862,28 +1862,39 @@ function showCollectionModal(event) {
         }
     };
     
-    // Position menu near the button, ensuring it stays in viewport
+    // Position menu near the button - now uses absolute positioning relative to metadata
     if (button) {
-        const rect = button.getBoundingClientRect();
-        const menuHeight = 400; // max height
+        const metadata = button.closest('.recipe-metadata');
+        const buttonRect = button.getBoundingClientRect();
+        const metadataRect = metadata.getBoundingClientRect();
+        
+        const menuHeight = 400; // max-height
         const menuWidth = 240;
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
         
-        let top = rect.bottom + 8;
-        let left = rect.left;
+        // Calculate position relative to metadata container
+        let top = buttonRect.bottom - metadataRect.top + 8;
+        let left = buttonRect.left - metadataRect.left;
         
-        // Adjust if menu goes off bottom of viewport
-        if (top + menuHeight > window.innerHeight) {
-            top = rect.top - menuHeight - 8;
+        // Check if menu would go off the right edge of viewport
+        if (buttonRect.left + menuWidth > viewportWidth - 16) {
+            // Position menu to the left of the button
+            left = buttonRect.right - metadataRect.left - menuWidth;
         }
         
-        // Adjust if menu goes off right of viewport
-        if (left + menuWidth > window.innerWidth) {
-            left = window.innerWidth - menuWidth - 16;
+        // Check if menu would go off the bottom of viewport
+        const spaceBelow = viewportHeight - buttonRect.bottom;
+        const spaceAbove = buttonRect.top;
+        
+        if (spaceBelow < menuHeight + 16 && spaceAbove > spaceBelow) {
+            // Show above the button - closer spacing
+            top = buttonRect.top - metadataRect.top - menuHeight - 4;
         }
         
-        // Adjust if menu goes off left of viewport
-        if (left < 16) {
-            left = 16;
+        // Ensure menu doesn't go off the top (below navbar)
+        if (top < 50 - metadataRect.top) {
+            top = 50 - metadataRect.top;
         }
         
         collectionsMenu.style.top = `${top}px`;
