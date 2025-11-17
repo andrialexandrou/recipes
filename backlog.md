@@ -5,10 +5,14 @@ Future features and improvements for Sous.
 ## 🚀 GA Blockers (Must-Have Before Launch)
 
 - **User Account Settings Page** - Create `/settings` page where users can adjust account settings, manage API keys for various services (AI parsing, etc.), update email/password, view usage stats
-- **Follow Users** - Allow users to follow other users to see their content in activity feed
-- **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users. Display on login/home page
 - **User Search** - Search for users in the system by username or name to discover and follow them
+- **Following/Followers List View** - Display lists of users you're following and users who follow you. Needs a reasonable placement (perhaps in user profile/settings, or as a dedicated view accessible from profile). Should show avatars, usernames, and allow quick follow/unfollow actions.
 - **Public Changelog & Blog** - Set up public-facing changelog URL (maybe `/changelog` or separate site) that updates as features ship. Also support blog posts from site runners. Consider: Same site vs. separate marketing site, CMS vs. markdown files, update workflow
+
+## Recently Completed ✅
+
+- **Follow Users** - ✅ Implemented fan-out architecture for follows
+- **Activity Feed/Wall** - ✅ Personal feed showing followed users' content
 
 ## Quick Wins (Small Effort)
 
@@ -29,6 +33,14 @@ Future features and improvements for Sous.
 ## Large Features
 
 - **Redesign Mobile Experience** - The current responsive web experience feels odd on mobile. Need to fully redesign the mobile experience to be truly mobile-first with native-feeling interactions, gestures, and navigation patterns. May require building a separate mobile-optimized app/view rather than just responsive CSS adjustments. Consider: touch-first interactions, bottom navigation, card-based UI, swipe gestures, mobile-specific editing UX.
+- **Pinned Content & User Overview Page Redesign** - Restructure the user overview page (`/{username}`) to show content in this order: Recipes, Menus, Collections. Add a "Pinned" section at the top where users can pin their favorite/featured items. On mobile, show grouped sections that display up to 6-8 items of each type with a "View All" link to see the full list. Implementation details:
+  - Add `isPinned` boolean field to recipes, menus, and collections
+  - Add pin/unpin action button to each item (star icon or pin icon)
+  - Set max pinned items limit (6 or 8 total across all types)
+  - When limit exceeded, show dialog: "You need to unpin another item before you can pin this one"
+  - Pinned section shows mixed content types in order of pinning (or by type grouping - TBD)
+  - Mobile view: Cap sections at 6-8 items each with "See all [count] recipes" link
+  - Desktop view: Show more items or full scrollable sections (UX TBD)
 
 ## Potential Features (Brainstorming)
 

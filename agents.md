@@ -279,17 +279,58 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 - `public/app.js` - Keyboard event handlers
 
-### 9. Firebase Integration
+### 9. Activity Feed & Follow System
+
+**Status: ✅ Complete**
+
+**Philosophy:** Enable social discovery and content sharing through follows and an activity feed showing recipes, collections, and menus created by followed users.
+
+**Features:**
+
+- Follow/unfollow users with atomic updates
+- Real-time activity feed using fan-out architecture
+- Activity types: recipe_created, collection_created, menu_created
+- Personal feed with ultra-fast queries (no user limit)
+- Following/followers counts on user profiles
+- Activity feed navigation from navbar
+
+**Data Model:**
+
+- `users` - Extended with `following[]`, `followers[]`, counts
+- `activities` - Master activity records
+- `feeds/{userId}/activities` - Personal feed subcollections (fanned out)
+
+**Architecture Highlights:**
+
+- **Fan-Out on Write**: When user creates content, activity is written to all followers' personal feeds
+- **Fast Reads**: O(1) query per feed, no joins or batching needed
+- **Scalable**: Works for unlimited followed users
+- **Trade-off**: More writes (1 post = N writes for N followers), but optimal read performance
+
+**Key Files:**
+
+- `server.js` - Follow/unfollow endpoints, fan-out helper, feed API
+- `public/app.js` - Feed rendering, follow UI, activity navigation
+- `public/index.html` - Feed view, feed navbar button
+- `public/styles.css` - Feed styling, activity cards
+
+**Documentation:**
+
+- 📚 [Activity Feed & Follow System Architecture](docs/architecture/activity-feed-and-follows.md) - Detailed architecture, data flow, and scaling considerations
+
+### 10. Firebase Integration
 
 **Status: ✅ Complete**
 
 **Firestore Collections:**
 
-- `users` - {username, email, createdAt, isStaff (optional boolean)}
+- `users` - {username, email, following[], followers[], followingCount, followersCount, createdAt, isStaff (optional boolean)}
 - `recipes` - {id, title, content, username, userId, createdAt, updatedAt}
 - `collections` - {id, name, description, username, userId, recipeIds[]}
 - `menus` - {id, name, description, content, username, userId, recipeIds[], createdAt, updatedAt}
 - `photos` - {id, filename, url, username, uploadedAt, size, mimetype}
+- `activities` - {userId, username, type, entityId, entityTitle, entitySlug, createdAt}
+- `feeds/{userId}/activities` - Personal feed subcollections (fanned out from activities)
 
 **Firebase Storage:**
 
@@ -315,7 +356,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 - `server.js` - Firebase Admin initialization
 - `.env` - Environment configuration
 
-### 10. URL Routing
+### 11. URL Routing
 
 **Status: ✅ Complete**
 
