@@ -2052,6 +2052,14 @@ async function renderFeed(activities) {
         const actionText = getActionText(activity.type);
         const icon = getActivityIcon(activity.type);
         
+        // Debug: Log what we're getting
+        console.log('🔍 Activity:', {
+            type: activity.type,
+            entityId: activity.entityId,
+            entitySlug: activity.entitySlug,
+            entityTitle: activity.entityTitle
+        });
+        
         // Build URL based on entity type
         let entityUrl = '';
         if (activity.type === 'recipe_created') {
@@ -2061,6 +2069,8 @@ async function renderFeed(activities) {
         } else if (activity.type === 'menu_created') {
             entityUrl = `/${activity.username}/menu/${activity.entitySlug}`;
         }
+        
+        console.log('🔗 Generated URL:', entityUrl);
         
         // Get avatar HTML (Gravatar with initials fallback)
         const avatarHtml = getAvatarHtml(activity.username, userGravatars[activity.username], 40);
@@ -2072,7 +2082,7 @@ async function renderFeed(activities) {
                     <div class="feed-header-text">
                         <a href="/${activity.username}" class="feed-username">@${activity.username}</a>
                         <span class="feed-action">${actionText}</span>
-                        <a href="${entityUrl}" class="feed-entity-title" onclick="navigateToEntity(event, '${activity.type}', '${activity.entityId}', '${activity.entitySlug}', '${activity.username}')">${activity.entityTitle}</a>
+                        <a href="${entityUrl}" class="feed-entity-title">${activity.entityTitle}</a>
                     </div>
                     ${activity.preview ? `<div class="feed-preview">${activity.preview}</div>` : ''}
                     <div class="feed-timestamp">${icon} ${timeAgo}</div>
@@ -2120,24 +2130,6 @@ function formatTimeAgo(date) {
     }
     
     return 'just now';
-}
-
-function navigateToEntity(event, type, entityId, entitySlug, username) {
-    event.preventDefault();
-    
-    // Set viewing user
-    API.viewingUser = username;
-    
-    if (type === 'recipe_created') {
-        showRecipeDetail(entityId);
-        updateURL('recipe', `${entitySlug}`);
-    } else if (type === 'collection_created') {
-        showCollectionDetail(entityId);
-        updateURL('collection', `${entitySlug}`);
-    } else if (type === 'menu_created') {
-        showMenuDetail(entityId);
-        updateURL('menu', `${entitySlug}`);
-    }
 }
 
 /**

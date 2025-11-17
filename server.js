@@ -882,8 +882,9 @@ app.put('/api/:username/recipes/:id', validateUsername, async (req, res) => {
                         type: 'recipe_created',
                         entityId: req.params.id,
                         entityTitle: title,
-                        entitySlug: `${slug}-${req.params.id.substring(0, 6).toUpperCase()}`,
-                        preview: extractPreview(content)
+                        entitySlug: `${slug}-${req.params.id}`,
+                        preview: extractPreview(content),
+                        createdAt: recipeData.createdAt || admin.firestore.FieldValue.serverTimestamp()
                     }).catch(err => {
                         console.error('❌ Failed to fan out recipe activity:', err);
                     });
@@ -1030,7 +1031,8 @@ app.post('/api/:username/collections', validateUsername, async (req, res) => {
                     description: description || '',
                     username: username,
                     userId: req.userId || null,
-                    recipeIds: []
+                    recipeIds: [],
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
                 };
                 const docRef = await db.collection('collections').add(newCollection);
                 const result = {
@@ -1055,8 +1057,9 @@ app.post('/api/:username/collections', validateUsername, async (req, res) => {
                         type: 'collection_created',
                         entityId: docRef.id,
                         entityTitle: name || 'Untitled Collection',
-                        entitySlug: `${slug}-${docRef.id.substring(0, 6).toUpperCase()}`,
-                        preview: description || ''
+                        entitySlug: `${slug}-${docRef.id}`,
+                        preview: description || '',
+                        createdAt: admin.firestore.FieldValue.serverTimestamp()
                     });
                 }
                 
@@ -1395,8 +1398,9 @@ app.post('/api/:username/menus', validateUsername, async (req, res) => {
                         type: 'menu_created',
                         entityId: docRef.id,
                         entityTitle: name || 'Untitled Menu',
-                        entitySlug: `${slug}-${docRef.id.substring(0, 6).toUpperCase()}`,
-                        preview: extractPreview(content || description)
+                        entitySlug: `${slug}-${docRef.id}`,
+                        preview: extractPreview(content || description),
+                        createdAt: admin.firestore.FieldValue.serverTimestamp()
                     });
                 }
                 

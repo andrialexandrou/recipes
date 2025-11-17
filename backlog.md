@@ -22,6 +22,7 @@ Future features and improvements for Sous.
 
 ## Medium Effort
 
+- **Collection Activity Feed** - Add new activity type `recipe_added_to_collection` to show when users add recipes to their collections. This gives more visibility to curation activity and helps followers discover recipes through collections.
 - **Open Graph Cards for Social Sharing** - Generate Open Graph meta tags for recipes, collections, and menus to create rich preview cards when sharing links. Use page content and user-provided images to auto-generate cards. Optional: As a pro feature, use AI to generate enhanced cards with title, estimated duration from recipe notes, basic instructions, etc.
 - **Rich Recipe Cards** - Generate beautiful, structured recipe cards with parsed metadata (temp, time, prep time, ingredients, steps, key points). See `public/example-recipe-card.png` for reference design. This may be separate from Open Graph images—more comprehensive than what fits in a social media preview.
 - **Recipe Scrapbooks** - Add a scrapbook/memory section to each recipe to preserve personal history: original handwritten cards from grandma, photos from each time you made it, notes about what occasion it was for, who you made it with, etc. A timeline of memories attached to each recipe.
