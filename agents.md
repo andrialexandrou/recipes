@@ -147,9 +147,8 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 4. `loadAllData()` loads content using `viewingUser` even when `currentUser` is null
 5. Shows "Sign In" button in navbar instead of menu dropdown
 6. All edit/delete/create controls hidden automatically
-7. Keyboard shortcuts disabled for creating/editing content
-8. Gravatar fetched via server API `/api/:username/user` endpoint
-9. 404 page shown for non-existent users with hidden sidebar
+7. Gravatar fetched via server API `/api/:username/user` endpoint
+8. 404 page shown for non-existent users with hidden sidebar
 
 **Staff Users:**
 
@@ -239,8 +238,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
   - Collections
   - Menus
   - New Recipe
-  - Keyboard Shortcuts
-  - Debug Info
+  - Debug Info (staff only)
 
 **Sidebar:**
 
@@ -266,18 +264,23 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 ### 8. Keyboard Shortcuts
 
-**Status: ✅ Complete**
+**Status: ❌ Removed**
+
+**Reason:** Keyboard shortcuts interfered with normal browser behavior (particularly Cmd+S for save page). All functionality remains accessible through UI buttons and menus.
+
+**Previously Supported Shortcuts:**
 
 - `N` - New recipe
 - `/` - Focus search
 - `E` - Edit current recipe
-- `Cmd/Ctrl + S` - Save recipe
+- `Cmd/Ctrl + S` - Save recipe (conflicted with browser's save)
 - `Esc` - Cancel edit / Close dialogs
 - `?` - Show shortcuts modal
 
 **Key Files:**
 
-- `public/app.js` - Keyboard event handlers
+- `public/app.js` - Keyboard event handlers (now commented out)
+- `public/index.html` - Shortcuts modal and menu item (now commented out)
 
 ### 9. Activity Feed & Follow System
 
@@ -536,13 +539,7 @@ These scenarios should be tested when making changes to ensure core functionalit
 
 #### Keyboard Shortcuts
 
-- [ ] **New Recipe** - Press `N`, verify new recipe form appears
-- [ ] **Focus Search** - Press `/`, verify search input gets focus
-- [ ] **Edit Recipe** - From recipe view, press `E`, verify edit mode activates
-- [ ] **Save Recipe** - In edit mode, press `Cmd/Ctrl+S`, verify recipe saves
-- [ ] **Cancel Edit** - In edit mode, press `Esc`, verify returns to view mode
-- [ ] **Close Dialogs** - Open shortcuts modal, press `Esc`, verify modal closes
-- [ ] **Show Shortcuts** - Press `?`, verify shortcuts modal displays
+**Removed** - Keyboard shortcuts have been disabled as they interfered with normal browser behavior. All functionality accessible through UI.
 
 #### Firebase Integration
 
@@ -652,15 +649,15 @@ The application uses a modular state management approach:
 When working on this codebase:
 
 1. **Maintain the minimalist aesthetic** - Don't add visual clutter
-2. **Preserve keyboard shortcuts** - They're core to the UX
-3. **Keep memory fallback working** - Not everyone has Firebase
-4. **Update this file** when adding new features
-5. **Test multi-user isolation** when touching data layer
-6. **Use em-dashes (—) not hyphens** in UI copy
-7. **Avoid modals** - prefer inline actions when possible
-8. **Log everything to console** - helps debugging in production
-9. **Keep URLs semantic and clean** - they're shareable
-10. **Mobile-first** - test responsive behavior
+2. **Keep memory fallback working** - Not everyone has Firebase
+3. **Update this file** when adding new features
+4. **Test multi-user isolation** when touching data layer
+5. **Use em-dashes (—) not hyphens** in UI copy
+6. **Avoid modals** - prefer inline actions when possible
+7. **Log everything to console** - helps debugging in production
+8. **Keep URLs semantic and clean** - they're shareable
+9. **Mobile-first** - test responsive behavior
+10. **No keyboard shortcuts** - they interfere with browser behavior; use UI controls instead
 
 ## Related Documentation
 

@@ -569,7 +569,7 @@ const navbarDropdown = DOM.navbarDropdown;
 const dropdownCollections = DOM.dropdownCollections;
 const dropdownMenus = DOM.dropdownMenus;
 const dropdownNewRecipe = DOM.dropdownNewRecipe;
-const dropdownShortcuts = DOM.dropdownShortcuts;
+// const dropdownShortcuts = DOM.dropdownShortcuts; // Removed - shortcuts disabled
 const dropdownDebug = DOM.dropdownDebug;
 const titleInput = DOM.titleInput;
 const titleDisplay = DOM.titleDisplay;
@@ -2908,10 +2908,13 @@ dropdownNewRecipe.addEventListener('click', () => {
     createNewRecipe();
 });
 
+// Keyboard shortcuts modal removed - shortcuts interfered with browser behavior
+/*
 dropdownShortcuts.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
     shortcutsModal.classList.remove('hidden');
 });
+*/
 
 dropdownDebug.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
@@ -2940,7 +2943,10 @@ document.addEventListener('click', (e) => {
 markdownTextarea.addEventListener('paste', (e) => handleImagePaste(e, markdownTextarea));
 menuMarkdownTextarea.addEventListener('paste', (e) => handleImagePaste(e, menuMarkdownTextarea));
 
-// Keyboard shortcuts
+// Keyboard shortcuts - DISABLED
+// Shortcuts were interfering with normal browser behavior (Cmd+S, etc.)
+// Users can access all functionality through UI buttons
+/*
 document.addEventListener('keydown', (e) => {
     // Ignore shortcuts when typing in input fields or textareas
     const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
@@ -3011,6 +3017,7 @@ document.addEventListener('keydown', (e) => {
         shortcutsModal.focus();
     }
 });
+*/
 
 // Initialize
 loadAllData();
@@ -3089,7 +3096,8 @@ debugModal?.addEventListener('keydown', (e) => {
     }
 });
 
-// Shortcuts modal functionality
+// Shortcuts modal functionality - DISABLED (keyboard shortcuts removed)
+/*
 const shortcutsModal = document.getElementById('shortcutsModal');
 const shortcutsCloseBtn = document.getElementById('shortcutsCloseBtn');
 
@@ -3123,7 +3131,7 @@ shortcutsModal?.addEventListener('keydown', (e) => {
         }
     }
 });
-
+*/
 // Logout functionality
 
 async function handleLogout() {
