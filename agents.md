@@ -235,10 +235,17 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - "Sous" brand/home button
 - Menu dropdown (☰) on right with:
   - User profile (Gravatar + @username)
+  - Activity Feed
   - Collections
   - Menus
-  - New Recipe
+  - New Recipe (always visible when logged in)
   - Debug Info (staff only)
+
+**Navigation Logic:**
+
+- "New Recipe" always visible when logged in, creates recipe in current user's account
+- Collections/Menus navigate to current user's content when accessed from dropdown
+- Sidebar shows current user's recipes unless explicitly viewing another user's profile URL
 
 **Sidebar:**
 
@@ -296,12 +303,25 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Personal feed with ultra-fast queries (no user limit)
 - Following/followers counts on user profiles
 - Activity feed navigation from navbar
+- **Smart activity publishing** - recipes only appear in feeds when they have meaningful titles (not "Untitled")
+- **Automatic cleanup** - activities removed from all followers' feeds when content is deleted or user is unfollowed
+- **Cached gravatar hashes** - computed once at login and reused throughout session to eliminate flickering
 
 **Data Model:**
 
 - `users` - Extended with `following[]`, `followers[]`, counts
 - `activities` - Master activity records
 - `feeds/{userId}/activities` - Personal feed subcollections (fanned out)
+- `recipes` - Extended with `activityPublished` flag to prevent duplicate feed entries
+
+**Activity Publishing Logic:**
+
+- **Recipe Creation (POST)**: Creates recipe but does NOT publish activity
+- **Recipe Update (PUT)**: Publishes activity on first save with meaningful title:
+  - Title is not empty
+  - Title is not "Untitled"
+  - Recipe hasn't been published yet (`activityPublished: false`)
+- **Recipe Deletion (DELETE)**: Removes activity from all followers' feeds and main activities collection
 
 **Architecture Highlights:**
 
@@ -309,13 +329,26 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - **Fast Reads**: O(1) query per feed, no joins or batching needed
 - **Scalable**: Works for unlimited followed users
 - **Trade-off**: More writes (1 post = N writes for N followers), but optimal read performance
+- **Activity Cleanup**: Queries activities by userId/type/entityId, then deletes from all followers' feeds using actual Firestore document IDs
+
+**Performance Optimizations:**
+
+- Gravatar hashes computed client-side at login using SparkMD5
+- Cached in `API.currentUser.gravatarHash` for entire session
+- No repeated network requests for avatar data
+- Eliminates avatar flickering on navigation
 
 **Key Files:**
 
-- `server.js` - Follow/unfollow endpoints, fan-out helper, feed API
-- `public/app.js` - Feed rendering, follow UI, activity navigation
+- `server.js` - Follow/unfollow endpoints, fan-out helper, feed API, activity cleanup functions
+- `public/app.js` - Feed rendering, follow UI, activity navigation, cached avatar logic
 - `public/index.html` - Feed view, feed navbar button
 - `public/styles.css` - Feed styling, activity cards
+
+**Helper Scripts:**
+
+- `scripts/clear-feed.js` - Clear specific user's feed
+- `scripts/reset-follows.js` - Reset all follow data, activities, and feeds
 
 **Documentation:**
 
@@ -327,8 +360,8 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **Firestore Collections:**
 
-- `users` - {username, email, following[], followers[], followingCount, followersCount, createdAt, isStaff (optional boolean)}
-- `recipes` - {id, title, content, username, userId, createdAt, updatedAt}
+- `users` - {username, email, following[], followers[], followingCount, followersCount, createdAt, isStaff (optional boolean), gravatarHash (computed server-side)}
+- `recipes` - {id, title, content, username, userId, createdAt, updatedAt, activityPublished (boolean)}
 - `collections` - {id, name, description, username, userId, recipeIds[]}
 - `menus` - {id, name, description, content, username, userId, recipeIds[], createdAt, updatedAt}
 - `photos` - {id, filename, url, username, uploadedAt, size, mimetype}

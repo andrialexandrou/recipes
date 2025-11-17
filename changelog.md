@@ -4,6 +4,39 @@ All notable changes to the Sous recipe manager.
 
 ## 2025-11-16
 
+### Activity Feed Navigation & URL Fixes
+
+- Fixed activity feed links to use full entity slugs with IDs (e.g., `bouillabaisse-x1ZTk7SGVo0O7RfIE3ve`)
+- Removed inline onclick handlers in favor of proper event delegation for cleaner code
+- Activities now use entity's original `createdAt` timestamp instead of activity creation time
+- Feed shows proper relative dates ("2 days ago", "3 weeks ago") instead of all "just now"
+- Added `createdAt` timestamp to collections on creation
+- Server now passes entity creation dates when creating activities for accurate feed chronology
+
+### UI Bug Fixes
+
+- Fixed navbar user menu dropdown not opening (CSS specificity issue with `#navMenuBtn`)
+- Fixed debug modal HTML structure (was malformed, missing close button and proper nesting)
+- Moved inline styles from HTML to CSS for better maintainability
+- Replaced navbar hamburger menu with user avatar button (Gravatar with initials fallback)
+
+### Activity Cleanup & Data Management
+
+- Activities automatically removed from all followers' feeds when content is deleted
+- Activities removed from feeds when user unfollows content creator
+- Server properly cleans up both master activities collection and user feed subcollections
+
+### Migration Scripts (in `/scripts` directory)
+
+- `reset-activity-published-flags.js` - Reset flags to allow activity regeneration
+- `clear-feed.js` - Clear all activities from master collection and all user feeds
+- `regenerate-all-activities.js` - Regenerate all activities with correct slugs and timestamps
+- `add-collection-created-dates.js` - Add createdAt dates to existing collections (defaults to 7 days ago)
+- `migrate-users-for-follows.js` - Migrate user data for follow system
+- `reset-follows.js` - Reset all follow relationships and feeds
+- `fix-activity-slugs.js` - Fix entitySlug format in existing activities
+- Added npm scripts for all utilities (e.g., `npm run script:clear-feed`)
+
 ### Public Content Viewing (Logged-Out Experience)
 - Enabled viewing any user's recipes, collections, and menus without requiring login
 - Added `Sign In` button to navbar for logged-out users (replaces menu dropdown)
