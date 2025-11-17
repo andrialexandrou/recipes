@@ -1896,6 +1896,48 @@ app.get('/api/feed', async (req, res) => {
     }
 });
 
+// Dynamic manifest.json endpoint for PWA
+app.get('/manifest.json', (req, res) => {
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const host = req.get('host');
+    
+    // Hardcoded known domains for PWA support
+    let scope = '/';
+    let startUrl = '/';
+    
+    // Support both production domains
+    if (host === 'my-sous.com' || host === 'www.my-sous.com') {
+        scope = '/';
+        startUrl = '/';
+    } else if (host.includes('vercel.app')) {
+        scope = '/';
+        startUrl = '/';
+    }
+    
+    const manifest = {
+        name: 'Sous',
+        short_name: 'Sous',
+        description: 'Recipes worth keeping',
+        start_url: startUrl,
+        scope: scope,
+        display: 'standalone',
+        background_color: '#faf8f5',
+        theme_color: '#6b5d52',
+        orientation: 'portrait-primary',
+        icons: [
+            {
+                src: '/favicon.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any maskable'
+            }
+        ]
+    };
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.json(manifest);
+});
+
 // Serve static files (CSS, JS, etc) with proper headers
 app.use(express.static(path.join(__dirname, 'public'), {
     setHeaders: (res, path, stat) => {
@@ -1906,6 +1948,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
             res.set('Content-Type', 'application/javascript');
         } else if (path.endsWith('.html')) {
             res.set('Content-Type', 'text/html');
+        }
+        // Don't serve the static manifest.json since we have a dynamic endpoint
+        if (path.endsWith('manifest.json')) {
+            res.status(404);
         }
     }
 }));

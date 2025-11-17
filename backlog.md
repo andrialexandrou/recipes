@@ -20,6 +20,7 @@ Future features and improvements for Sous.
 ## 🐛 Bugs
 
 - **Collection Edit Wipes Recipe List** - When editing a collection description, all recipes are removed from the collection. Appears to be data loss during the edit/save flow. Needs investigation of collection update logic.
+- **Double Click Required on Cards** - Cards (collections/menus/recipes) require a double click to navigate. This is likely caused by event propagation issues between the card's anchor tag and the action buttons (edit/delete/copy) on the card. Need to ensure action buttons stop event propagation while maintaining single-click navigation on the card itself.
 
 ## Quick Wins (Small Effort)
 
