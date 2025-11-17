@@ -17,6 +17,7 @@ Future features and improvements for Sous.
 
 ## Quick Wins (Small Effort)
 
+- **Admin Badge for Creator** - Display a small "Admin" badge next to the creator's username throughout the app (navbar, sidebar, activity feed, search results, profile page). Use existing `isStaff` field to identify admin. Purpose: Help users identify who to reach out to for problems/questions, and establish credibility. Design: Subtle badge/icon (checkmark, star, or sparkle) in brand color with "Admin" tooltip on hover.
 - **Empty Feed State with Sample Content** - When a new user's feed is empty (not following anyone yet), show sample/featured content from a designated account (e.g., site admin) with clear messaging: "Your feed is empty! Here are some recipes to explore..." Display sample recipes with a prominent "Follow @username to see more" CTA. This gives new users immediate value and demonstrates how the feed works without forcing follows.
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
