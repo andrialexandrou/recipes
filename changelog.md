@@ -4,6 +4,29 @@ All notable changes to the Sous recipe manager.
 
 ## 2025-11-16
 
+### Sidebar Always Shows Authenticated User Content
+
+**Major architectural change to improve UX and eliminate confusion:**
+
+- **Sidebar recipe list now always displays YOUR recipes**, regardless of whose profile you're viewing in the main content area
+- Added separate data contexts:
+  - `State.authenticatedUserRecipes` - Always contains logged-in user's recipes (for sidebar)
+  - `State.viewingUserRecipes` - Contains profile owner's recipes (for main content)
+- Created new API method `getAuthenticatedUserRecipes()` to fetch logged-in user's recipes separately
+- Modified `loadAllData()` to fetch both contexts in parallel for optimal performance
+- Updated `renderRecipeList()` to always render from authenticated user's recipes
+- Clicking a recipe in the sidebar now switches context back to your profile if viewing someone else's
+- Updated sidebar header to show authenticated user (your avatar, username, and follow stats)
+- Removed follow/unfollow button from sidebar (not needed since it's always your profile)
+- Updated search placeholder: "Search your recipes..." (instead of "Search recipes...")
+- Recipe CRUD operations properly update both recipe arrays when appropriate
+- Sidebar user info is now a clickable link that navigates to your home page
+
+**Files Modified:**
+- `public/app.js` - State management, API methods, data loading, sidebar rendering
+- `public/index.html` - Sidebar structure and element IDs
+- `agents.md` - Updated architecture documentation
+
 ### Activity Feed Navigation & URL Fixes
 
 - Fixed activity feed links to use full entity slugs with IDs (e.g., `bouillabaisse-x1ZTk7SGVo0O7RfIE3ve`)

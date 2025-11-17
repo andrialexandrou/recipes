@@ -44,23 +44,22 @@
 <body>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <a href="#" id="viewingUser" class="viewing-user" title="View home page">
-                <div id="viewingUserAvatar" class="user-avatar skeleton-avatar"></div>
-                <span id="viewingUsername" class="skeleton-text"></span>
+            <a href="#" id="authenticatedUser" class="viewing-user" title="Your recipes">
+                <div id="authenticatedUserAvatar" class="user-avatar skeleton-avatar"></div>
+                <span id="authenticatedUsername" class="skeleton-text"></span>
             </a>
-            <div id="followSection" class="follow-section hidden">
-                <button id="followBtn" class="follow-btn">Follow</button>
+            <div id="sidebarFollowSection" class="follow-section hidden">
                 <div class="follow-stats">
-                    <span><strong id="followingCount">0</strong> following</span>
-                    <span><strong id="followersCount">0</strong> followers</span>
+                    <span><strong id="sidebarFollowingCount">0</strong> following</span>
+                    <span><strong id="sidebarFollowersCount">0</strong> followers</span>
                 </div>
             </div>
             <input 
                 type="text" 
                 class="filter-input" 
                 id="filterInput" 
-                placeholder="Search recipes..."
-                aria-label="Search recipes">
+                placeholder="Search your recipes..."
+                aria-label="Search your recipes">
         </div>
         <div class="sidebar-content" id="sidebarContent">
             <div class="recipe-list" id="recipeList" role="list">

@@ -263,6 +263,15 @@ const API = {
         return data;
     },
     
+    async getAuthenticatedUserRecipes() {
+        if (!this.currentUser) return [];
+        console.log('🔄 Fetching authenticated user recipes for sidebar...');
+        const res = await fetch(`/api/${this.currentUser.username}/recipes`);
+        const data = await this.handleResponse(res);
+        console.log('✅ Received authenticated user recipes:', data.length, 'items');
+        return data;
+    },
+    
     async getRecipe(id) {
         console.log('🔄 Fetching recipe:', id);
         const res = await fetch(`/api/${this.viewingUser}/recipes/${id}`);
@@ -453,6 +462,8 @@ const API = {
 
 const State = {
     recipes: [],
+    authenticatedUserRecipes: [],  // Always the logged-in user's recipes (for sidebar)
+    viewingUserRecipes: [],         // The profile owner's recipes (for main content)
     collections: [],
     menus: [],
     currentRecipeId: null,
@@ -801,41 +812,6 @@ async function handleImagePaste(e, textarea) {
     return false;
 }
 
-// Follow button handler
-const followBtn = document.getElementById('followBtn');
-if (followBtn) {
-    followBtn.addEventListener('click', async () => {
-        const userId = followBtn.dataset.userId;
-        const isFollowing = followBtn.dataset.isFollowing === 'true';
-        
-        if (!userId) return;
-        
-        try {
-            followBtn.disabled = true;
-            
-            if (isFollowing) {
-                await API.unfollowUser(userId);
-                followBtn.textContent = 'Follow';
-                followBtn.classList.remove('following');
-                followBtn.dataset.isFollowing = 'false';
-            } else {
-                await API.followUser(userId);
-                followBtn.textContent = 'Following';
-                followBtn.classList.add('following');
-                followBtn.dataset.isFollowing = 'true';
-            }
-            
-            // Refresh counts
-            await updateFollowUI();
-        } catch (error) {
-            console.error('Error toggling follow:', error);
-            alert('Failed to update follow status');
-        } finally {
-            followBtn.disabled = false;
-        }
-    });
-}
-
 // Sidebar toggle
 sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
@@ -880,7 +856,8 @@ document.addEventListener('click', (e) => {
 homeBtn.addEventListener('click', () => {
     // For logged-in users, home button goes to feed
     if (API.currentUser) {
-        history.pushState({ type: 'feed' }, '', '/');
+        document.title = 'Activity Feed - Sous';
+        history.pushState({ type: 'feed' }, 'Activity Feed - Sous', '/');
         showFeedView();
     } else {
         showHomeView();
@@ -888,13 +865,17 @@ homeBtn.addEventListener('click', () => {
 });
 
 // Viewing user link (sidebar) - navigate to their home page
-const viewingUserLink = document.getElementById('viewingUser');
-if (viewingUserLink) {
-    viewingUserLink.addEventListener('click', (e) => {
+const authenticatedUserLink = document.getElementById('authenticatedUser');
+if (authenticatedUserLink) {
+    authenticatedUserLink.addEventListener('click', (e) => {
         e.preventDefault();
-        // Navigate to viewing user's home page (not feed)
-        history.pushState(null, '', `/${API.viewingUser}`);
-        showHomeView();
+        // Navigate to authenticated user's home page
+        if (API.currentUser) {
+            API.viewingUser = API.currentUser.username;
+            history.pushState(null, '', `/${API.currentUser.username}`);
+            // Reload data to switch context back to own profile
+            loadAllData().then(() => showHomeView());
+        }
     });
 }
 
@@ -1028,151 +1009,70 @@ async function updateUserDisplay() {
         currentUserAvatar.onload = () => { currentUserAvatar.style.background = 'transparent'; };
     }
     
-    // Update viewing user in sidebar (shows whose catalog we're browsing)
-    const viewingUserAvatar = document.getElementById('viewingUserAvatar');
-    const viewingUsername = document.getElementById('viewingUsername');
+    // Update authenticated user in sidebar (shows your recipes)
+    const authenticatedUserAvatar = document.getElementById('authenticatedUserAvatar');
+    const authenticatedUsername = document.getElementById('authenticatedUsername');
     
     // Remove skeleton classes and convert div to img when updating
-    if (viewingUserAvatar) {
-        viewingUserAvatar.classList.remove('skeleton-avatar');
+    if (authenticatedUserAvatar) {
+        authenticatedUserAvatar.classList.remove('skeleton-avatar');
         
         // If it's a div, convert it to an img element
-        if (viewingUserAvatar.tagName === 'DIV') {
+        if (authenticatedUserAvatar.tagName === 'DIV') {
             const img = document.createElement('img');
-            img.id = 'viewingUserAvatar';
+            img.id = 'authenticatedUserAvatar';
             img.className = 'user-avatar';
-            img.alt = 'Viewing user';
+            img.alt = 'Your recipes';
             // Start with skeleton color to match ghost loading state
             img.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; background: #f5f5f5;';
             // Set a 1x1 transparent placeholder to prevent broken image icon
             img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            viewingUserAvatar.parentNode.replaceChild(img, viewingUserAvatar);
+            authenticatedUserAvatar.parentNode.replaceChild(img, authenticatedUserAvatar);
             // Update reference
-            const newViewingUserAvatar = document.getElementById('viewingUserAvatar');
+            const newAuthenticatedUserAvatar = document.getElementById('authenticatedUserAvatar');
             
-            if (newViewingUserAvatar && viewingUsername && API.viewingUser) {
-                loadViewingUserAvatar(newViewingUserAvatar, viewingUsername);
+            if (newAuthenticatedUserAvatar && authenticatedUsername && API.currentUser) {
+                loadAuthenticatedUserAvatar(newAuthenticatedUserAvatar, authenticatedUsername);
             }
         } else {
-            if (viewingUserAvatar && viewingUsername && API.viewingUser) {
-                loadViewingUserAvatar(viewingUserAvatar, viewingUsername);
+            if (authenticatedUserAvatar && authenticatedUsername && API.currentUser) {
+                loadAuthenticatedUserAvatar(authenticatedUserAvatar, authenticatedUsername);
             }
         }
     }
     
     // Remove skeleton class from username using helper
-    SkeletonUI.removeClasses(viewingUsername, 'skeleton-text');
+    SkeletonUI.removeClasses(authenticatedUsername, 'skeleton-text');
     
-    // Update follow UI
-    await updateFollowUI();
+    // Update sidebar follower stats
+    await updateSidebarFollowStats();
     
     // Update edit controls visibility based on ownership
     updateEditControls();
 }
 
-async function updateFollowUI() {
-    const followSection = document.getElementById('followSection');
-    const followBtn = document.getElementById('followBtn');
-    const followingCount = document.getElementById('followingCount');
-    const followersCount = document.getElementById('followersCount');
+async function updateSidebarFollowStats() {
+    const sidebarFollowSection = document.getElementById('sidebarFollowSection');
+    const sidebarFollowingCount = document.getElementById('sidebarFollowingCount');
+    const sidebarFollowersCount = document.getElementById('sidebarFollowersCount');
     
-    if (!followSection || !API.viewingUser) return;
+    if (!sidebarFollowSection || !API.currentUser) return;
     
     try {
-        // Fetch viewing user's data to get counts
-        const res = await fetch(`/api/${API.viewingUser}/user`);
-        if (!res.ok) {
-            followSection.classList.add('hidden');
-            return;
-        }
-        
-        const viewingUserData = await res.json();
-        
-        // Update counts
-        if (followingCount) followingCount.textContent = viewingUserData.followingCount || 0;
-        if (followersCount) followersCount.textContent = viewingUserData.followersCount || 0;
-        
-        // Show/hide follow button based on whether viewing own profile
-        const isOwnProfile = API.viewingUser === API.currentUser?.username;
-        const isLoggedIn = !!API.currentUser;
-        
-        if (isOwnProfile || !isLoggedIn) {
-            // Hide follow button, just show counts
-            if (followBtn) followBtn.style.display = 'none';
-            followSection.classList.remove('hidden');
-        } else {
-            // Show follow button for other users' profiles
-            if (followBtn) followBtn.style.display = 'block';
-            followSection.classList.remove('hidden');
-            
-            // Check if we're already following this user
-            const currentUserRes = await fetch(`/api/${API.currentUser.username}/user`);
-            if (currentUserRes.ok) {
-                const currentUserData = await currentUserRes.json();
-                const following = currentUserData.following || [];
-                
-                // Get viewingUser's userId
-                const viewingUserDoc = await window.db.collection('users')
-                    .where('username', '==', API.viewingUser)
-                    .limit(1)
-                    .get();
-                
-                if (!viewingUserDoc.empty) {
-                    const viewingUserId = viewingUserDoc.docs[0].id;
-                    const isFollowing = following.includes(viewingUserId);
-                    
-                    followBtn.textContent = isFollowing ? 'Following' : 'Follow';
-                    followBtn.classList.toggle('following', isFollowing);
-                    followBtn.dataset.userId = viewingUserId;
-                    followBtn.dataset.isFollowing = isFollowing;
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error updating follow UI:', error);
-        followSection.classList.add('hidden');
-    }
-}
-
-async function loadViewingUserAvatar(avatarElement, usernameElement) {
-    // Always fetch from server for consistency (works for both logged in and logged out)
-    try {
-        const res = await fetch(`/api/${API.viewingUser}/user`);
+        const res = await fetch(`/api/${API.currentUser.username}/user`);
         if (res.ok) {
             const userData = await res.json();
-            avatarElement.style.background = '#f5f5f5';
             
-            if (userData.gravatarHash) {
-                const gravatarUrl = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=56&d=404`;
-                avatarElement.src = gravatarUrl;
-                avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
-                avatarElement.onerror = () => {
-                    // Fallback to initials
-                    avatarElement.style.display = 'none';
-                    const initial = API.viewingUser.charAt(0).toUpperCase();
-                    avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-                };
-            } else {
-                // No Gravatar, show initials
-                avatarElement.style.display = 'none';
-                const initial = API.viewingUser.charAt(0).toUpperCase();
-                avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-            }
+            if (sidebarFollowingCount) sidebarFollowingCount.textContent = userData.followingCount || 0;
+            if (sidebarFollowersCount) sidebarFollowersCount.textContent = userData.followersCount || 0;
             
-            usernameElement.textContent = `@${API.viewingUser}`;
+            sidebarFollowSection.classList.remove('hidden');
         } else {
-            // Fallback if user not found
-            avatarElement.style.display = 'none';
-            const initial = API.viewingUser.charAt(0).toUpperCase();
-            avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-            usernameElement.textContent = `@${API.viewingUser}`;
+            sidebarFollowSection.classList.add('hidden');
         }
     } catch (error) {
-        console.error('Failed to fetch viewing user info:', error);
-        avatarElement.style.display = 'none';
-        const initial = API.viewingUser ? API.viewingUser.charAt(0).toUpperCase() : '?';
-        avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-        usernameElement.textContent = `@${API.viewingUser}`;
+        console.error('Error loading sidebar follow stats:', error);
+        sidebarFollowSection.classList.add('hidden');
     }
 }
 
@@ -1212,7 +1112,8 @@ function switchToView(viewName) {
             homeBtn.classList.add('active');
             renderCollectionsGrid();
             updateEditControls(); // Show/hide create button
-            history.pushState({ type: 'collections' }, '', `/${username}/collections`);
+            document.title = `Collections - @${username} - Sous`;
+            history.pushState({ type: 'collections' }, `Collections - @${username} - Sous`, `/${username}/collections`);
             break;
         case 'collection-detail':
             collectionDetailView.classList.remove('hidden');
@@ -1224,7 +1125,8 @@ function switchToView(viewName) {
             menusView.classList.add('active');
             renderMenusGrid();
             updateEditControls(); // Show/hide create button
-            history.pushState({ type: 'menus' }, '', `/${username}/menus`);
+            document.title = `Menus - @${username} - Sous`;
+            history.pushState({ type: 'menus' }, `Menus - @${username} - Sous`, `/${username}/menus`);
             break;
         case 'menu-detail':
             menuDetailView.classList.remove('hidden');
@@ -1251,7 +1153,8 @@ function updateURL(type, id) {
     const username = API.viewingUser || API.currentUser?.username;
     
     if (!id) {
-        history.pushState(null, '', `/${username}`);
+        document.title = `@${username} - Sous`;
+        history.pushState(null, `@${username} - Sous`, `/${username}`);
         return;
     }
     
@@ -1259,17 +1162,161 @@ function updateURL(type, id) {
         const recipe = recipes.find(r => r.id === id);
         if (!recipe) return;
         const slug = recipe.title ? slugify(recipe.title) : 'untitled';
-        history.pushState({ type: 'recipe', id }, '', `/${username}/recipe/${slug}-${id}`);
+        const title = `${recipe.title || 'Untitled'} - @${username} - Sous`;
+        document.title = title;
+        history.pushState({ type: 'recipe', id }, title, `/${username}/recipe/${slug}-${id}`);
     } else if (type === 'collection') {
         const collection = collections.find(c => c.id === id);
         if (!collection) return;
         const slug = slugify(collection.name);
-        history.pushState({ type: 'collection', id }, '', `/${username}/collection/${slug}-${id}`);
+        document.title = `${collection.name} - @${username} - Sous`;
+        history.pushState({ type: 'collection', id }, `${collection.name} - @${username} - Sous`, `/${username}/collection/${slug}-${id}`);
     } else if (type === 'menu') {
         const menu = menus.find(m => m.id === id);
         if (!menu) return;
         const slug = slugify(menu.name);
-        history.pushState({ type: 'menu', id }, '', `/${username}/menu/${slug}-${id}`);
+        document.title = `${menu.name} - @${username} - Sous`;
+        history.pushState({ type: 'menu', id }, `${menu.name} - @${username} - Sous`, `/${username}/menu/${slug}-${id}`);
+    }
+}
+
+function loadFromURL() {
+    const path = window.location.pathname;
+    console.log('🔗 Loading from URL:', path);
+    console.log('🔐 Current user:', API.currentUser?.username);
+    console.log('👀 Viewing user:', API.viewingUser);
+    
+    // Handle reserved paths
+    if (path === '/login' || path === '/signup' || path === '/logout') {
+        console.log('🚫 Reserved path, not loading app');
+        return;
+    }
+    
+    // Handle search page
+    if (path === '/search') {
+        console.log('🔍 Search page detected');
+        if (API.currentUser) {
+            showSearchView();
+        } else {
+            console.log('⚠️ User not logged in, redirecting to login');
+            window.location.href = '/login';
+        }
+        return;
+    }
+    
+    // Handle root path first
+    if (path === '/') {
+        console.log('📍 Root path detected');
+        if (API.currentUser) {
+            // Logged-in users see feed at root
+            console.log('✅ User is logged in, showing feed');
+            showFeedView();
+        } else {
+            // Logged-out users redirected to login
+            console.log('⚠️ User not logged in, redirecting to login');
+            window.location.href = '/login';
+        }
+        return;
+    }
+    
+    console.log('📍 Non-root path, checking patterns...');
+    
+    // Match username-prefixed URLs (username can contain lowercase letters, numbers, hyphens, underscores)
+    const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
+    if (usernameMatch) {
+        const username = usernameMatch[1];
+        console.log('👤 Username matched from URL:', username);
+        // Set viewing user from URL (validation happens in loadAllData)
+        API.viewingUser = username;
+    }
+    
+    const recipeMatch = path.match(/^\/[a-z0-9_-]+\/recipe\/.+-([a-zA-Z0-9]+)$/);
+    const collectionMatch = path.match(/^\/[a-z0-9_-]+\/collection\/.+-([a-zA-Z0-9]+)$/);
+    const menuMatch = path.match(/^\/[a-z0-9_-]+\/menu\/.+-([a-zA-Z0-9]+)$/);
+    const collectionsPageMatch = path.match(/^\/[a-z0-9_-]+\/collections$/);
+    const menusPageMatch = path.match(/^\/[a-z0-9_-]+\/menus$/);
+    
+    if (recipeMatch) {
+        const id = recipeMatch[1];
+        console.log('📖 Recipe match:', id);
+        const recipe = recipes.find(r => r.id === id);
+        if (recipe) {
+            loadRecipe(id, false);
+        } else {
+            console.warn('⚠️ Recipe not found:', id);
+        }
+    } else if (collectionMatch) {
+        const id = collectionMatch[1];
+        console.log('📚 Collection match:', id);
+        const collection = collections.find(c => c.id === id);
+        if (collection) {
+            loadCollectionDetail(id, false);
+        } else {
+            console.warn('⚠️ Collection not found:', id);
+        }
+    } else if (menuMatch) {
+        const id = menuMatch[1];
+        console.log('🍽️ Menu match found, ID:', id, 'Available menus:', menus.length);
+        const menu = menus.find(m => m.id === id);
+        if (menu) {
+            console.log('✅ Menu found, loading:', menu.name);
+            loadMenuDetail(id, false);
+        } else {
+            console.warn('⚠️ Menu not found:', id, 'Available menu IDs:', menus.map(m => m.id));
+        }
+    } else if (collectionsPageMatch) {
+        console.log('📚 Collections page match');
+        switchToView('collections');
+    } else if (menusPageMatch) {
+        console.log('🍽️ Menus page match');
+        switchToView('menus');
+    } else {
+        // Default to home view for username-only URLs
+        console.log('🏠 Defaulting to home view');
+        showHomeView();
+    }
+}
+
+async function loadAuthenticatedUserAvatar(avatarElement, usernameElement) {
+    if (!API.currentUser) return;
+    
+    try {
+        const res = await fetch(`/api/${API.currentUser.username}/user`);
+        if (res.ok) {
+            const userData = await res.json();
+            avatarElement.style.background = '#f5f5f5';
+            
+            if (userData.gravatarHash) {
+                const gravatarUrl = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=56&d=404`;
+                avatarElement.src = gravatarUrl;
+                avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
+                avatarElement.onerror = () => {
+                    // Fallback to initials
+                    avatarElement.style.display = 'none';
+                    const initial = API.currentUser.username.charAt(0).toUpperCase();
+                    avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
+                };
+            } else {
+                // No Gravatar, show initials
+                avatarElement.style.display = 'none';
+                const initial = API.currentUser.username.charAt(0).toUpperCase();
+                avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
+            }
+            
+            usernameElement.textContent = `@${API.currentUser.username}`;
+        } else {
+            // Fallback if user not found
+            avatarElement.style.display = 'none';
+            const initial = API.currentUser.username.charAt(0).toUpperCase();
+            avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
+            usernameElement.textContent = `@${API.currentUser.username}`;
+        }
+    } catch (error) {
+        console.error('Failed to fetch authenticated user info:', error);
+        avatarElement.style.display = 'none';
+        const initial = API.currentUser ? API.currentUser.username.charAt(0).toUpperCase() : '?';
+        avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
+        usernameElement.textContent = `@${API.currentUser.username}`;
     }
 }
 
@@ -1598,8 +1645,11 @@ function renderRecipeList(filter = '') {
     // Remove skeleton on first render using helper
     SkeletonUI.hide(recipeList);
     
+    // ALWAYS use authenticated user's recipes for sidebar
+    const recipesToDisplay = API.currentUser ? State.authenticatedUserRecipes : [];
+    
     const lowerFilter = filter.toLowerCase();
-    const filtered = recipes.filter(recipe => 
+    const filtered = recipesToDisplay.filter(recipe => 
         recipe.title.toLowerCase().includes(lowerFilter) ||
         recipe.content.toLowerCase().includes(lowerFilter)
     );
@@ -1607,7 +1657,7 @@ function renderRecipeList(filter = '') {
     filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
     // Show welcome message for new users with no recipes
-    if (recipes.length === 0 && API.viewingUser === API.currentUser?.username) {
+    if (recipesToDisplay.length === 0 && API.currentUser) {
         recipeList.innerHTML = `
             <div style="padding: 2rem 1rem; text-align: center; color: #999;">
                 <p style="margin: 0 0 0.5rem 0; font-size: 0.95rem; font-weight: 500;">Welcome to Sous! 🎉</p>
@@ -1638,13 +1688,33 @@ function renderRecipeList(filter = '') {
         item.addEventListener('click', () => {
             // Reset collection context when loading from sidebar
             currentCollectionId = null;
-            loadRecipe(item.dataset.id);
+            
+            // Sidebar always shows authenticated user's recipes
+            // So when clicking, navigate to authenticated user's profile if not already there
+            if (API.currentUser && API.viewingUser !== API.currentUser.username) {
+                API.viewingUser = API.currentUser.username;
+                // Reload viewing user's data to switch context
+                loadAllData().then(() => {
+                    loadRecipe(item.dataset.id);
+                });
+            } else {
+                loadRecipe(item.dataset.id);
+            }
         });
         item.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 currentCollectionId = null;
-                loadRecipe(item.dataset.id);
+                
+                // Sidebar always shows authenticated user's recipes
+                if (API.currentUser && API.viewingUser !== API.currentUser.username) {
+                    API.viewingUser = API.currentUser.username;
+                    loadAllData().then(() => {
+                        loadRecipe(item.dataset.id);
+                    });
+                } else {
+                    loadRecipe(item.dataset.id);
+                }
             }
         });
     });
@@ -2142,7 +2212,8 @@ async function renderSearchResults(users) {
             const username = item.dataset.username;
             // Navigate to user's profile
             API.viewingUser = username;
-            history.pushState({ type: 'home' }, '', `/${username}`);
+            document.title = `@${username} - Sous`;
+            history.pushState({ type: 'home' }, `@${username} - Sous`, `/${username}`);
             loadAllData().then(() => {
                 showHomeView();
             });
@@ -2389,15 +2460,35 @@ async function loadAllData() {
         // Fetch users list for gravatar lookups
         await fetchUsers();
         
-        const [recipesData, collectionsData, menusData] = await Promise.all([
+        // Fetch authenticated user's recipes (for sidebar) and viewing user's data (for main content)
+        const fetchPromises = [];
+        
+        // Always fetch authenticated user's recipes if logged in (for sidebar)
+        if (API.currentUser) {
+            fetchPromises.push(
+                API.getAuthenticatedUserRecipes().catch(err => {
+                    console.error('❌ Failed to load authenticated user recipes:', err.message);
+                    return [];
+                })
+            );
+        } else {
+            fetchPromises.push(Promise.resolve([]));
+        }
+        
+        // Fetch viewing user's recipes (for main content)
+        fetchPromises.push(
             API.getRecipes().catch(err => {
-                console.error('❌ Failed to load recipes:', err.message);
+                console.error('❌ Failed to load viewing user recipes:', err.message);
                 if (err.userNotFound) {
                     throw err; // Re-throw to handle at top level
                 }
                 showFirebaseErrorBanner();
                 return [];
-            }),
+            })
+        );
+        
+        // Fetch collections and menus
+        fetchPromises.push(
             API.getCollections().catch(err => {
                 console.error('❌ Failed to load collections:', err.message);
                 if (err.userNotFound) {
@@ -2405,7 +2496,10 @@ async function loadAllData() {
                 }
                 showFirebaseErrorBanner();
                 return [];
-            }),
+            })
+        );
+        
+        fetchPromises.push(
             API.getMenus().catch(err => {
                 console.error('❌ Failed to load menus:', err.message);
                 if (err.userNotFound) {
@@ -2414,9 +2508,13 @@ async function loadAllData() {
                 showFirebaseErrorBanner();
                 return [];
             })
-        ]);
+        );
         
-        recipes = recipesData;
+        const [authRecipesData, viewRecipesData, collectionsData, menusData] = await Promise.all(fetchPromises);
+        
+        State.authenticatedUserRecipes = authRecipesData;
+        State.viewingUserRecipes = viewRecipesData;
+        recipes = viewRecipesData;  // Maintain backward compatibility for main content
         collections = collectionsData;
         menus = menusData;
         
@@ -2461,6 +2559,11 @@ async function createNewRecipe() {
     try {
         const newRecipe = await API.createRecipe({ title: '', content: '' });
         recipes.unshift(newRecipe);
+        
+        // Also add to authenticated user's recipes (for sidebar)
+        if (API.currentUser) {
+            State.authenticatedUserRecipes.unshift(newRecipe);
+        }
         
         currentRecipeId = newRecipe.id;
         titleInput.value = '';
@@ -2520,6 +2623,16 @@ async function saveCurrentRecipe() {
         recipe.content = content;
         recipe.updatedAt = new Date().toISOString();
         
+        // Also update in authenticated user's recipes if it exists there
+        if (API.currentUser) {
+            const authRecipe = State.authenticatedUserRecipes.find(r => r.id === currentRecipeId);
+            if (authRecipe) {
+                authRecipe.title = title;
+                authRecipe.content = content;
+                authRecipe.updatedAt = recipe.updatedAt;
+            }
+        }
+        
         enterViewMode();
         updateRecipeMetadata(recipe);
         renderRecipeList(filterInput.value);
@@ -2545,6 +2658,11 @@ async function deleteCurrentRecipe() {
         });
         
         recipes = recipes.filter(r => r.id !== currentRecipeId);
+        
+        // Also remove from authenticated user's recipes
+        if (API.currentUser) {
+            State.authenticatedUserRecipes = State.authenticatedUserRecipes.filter(r => r.id !== currentRecipeId);
+        }
         
         // Navigate to home view after deletion
         showHomeView();
@@ -3076,11 +3194,13 @@ dropdownCollections.addEventListener('click', () => {
         // If URL doesn't have a username or it's not the current user, navigate to current user
         if (!urlUsername || urlUsername === API.currentUser.username) {
             // Stay with current viewing context
-            history.pushState({ type: 'collections' }, '', `/${API.currentUser.username}/collections`);
+            document.title = `Collections - @${API.currentUser.username} - Sous`;
+            history.pushState({ type: 'collections' }, `Collections - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/collections`);
         } else {
             // Viewing someone else - switch back to own collections
             API.viewingUser = API.currentUser.username;
-            history.pushState({ type: 'collections' }, '', `/${API.currentUser.username}/collections`);
+            document.title = `Collections - @${API.currentUser.username} - Sous`;
+            history.pushState({ type: 'collections' }, `Collections - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/collections`);
             // Reload data for current user
             loadAllData();
         }
@@ -3092,7 +3212,8 @@ const dropdownFeed = document.getElementById('dropdownFeed');
 dropdownFeed.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
     // Navigate to root path
-    window.history.pushState({ type: 'feed' }, '', '/');
+    document.title = 'Activity Feed - Sous';
+    window.history.pushState({ type: 'feed' }, 'Activity Feed - Sous', '/');
     // Also update viewing user to current user when going to feed
     if (API.currentUser) {
         API.viewingUser = API.currentUser.username;
@@ -3112,11 +3233,13 @@ dropdownMenus.addEventListener('click', () => {
         // If URL doesn't have a username or it's not the current user, navigate to current user
         if (!urlUsername || urlUsername === API.currentUser.username) {
             // Stay with current viewing context
-            history.pushState({ type: 'menus' }, '', `/${API.currentUser.username}/menus`);
+            document.title = `Menus - @${API.currentUser.username} - Sous`;
+            history.pushState({ type: 'menus' }, `Menus - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/menus`);
         } else {
             // Viewing someone else - switch back to own menus
             API.viewingUser = API.currentUser.username;
-            history.pushState({ type: 'menus' }, '', `/${API.currentUser.username}/menus`);
+            document.title = `Menus - @${API.currentUser.username} - Sous`;
+            history.pushState({ type: 'menus' }, `Menus - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/menus`);
             // Reload data for current user
             loadAllData();
         }
@@ -3331,7 +3454,8 @@ const navSearchBtn = document.getElementById('navSearchBtn');
 
 // Navigate to search page
 navSearchBtn?.addEventListener('click', () => {
-    history.pushState({ type: 'search' }, '', '/search');
+    document.title = 'Search Users - Sous';
+    history.pushState({ type: 'search' }, 'Search Users - Sous', '/search');
     showSearchView();
 });
 

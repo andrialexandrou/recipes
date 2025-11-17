@@ -175,6 +175,15 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **Philosophy:** Each user has their own isolated data namespace. All data is owned by Firebase Auth UID (userId), not username. URLs use human-readable usernames, but queries use immutable userIds.
 
+**Sidebar Architecture:**
+
+- **Sidebar Always Shows Authenticated User's Content** - The sidebar recipe list always displays YOUR recipes, regardless of whose profile you're viewing in the main content area
+- **Separate Data Contexts**:
+  - `State.authenticatedUserRecipes` - Always contains logged-in user's recipes (for sidebar)
+  - `State.viewingUserRecipes` - Contains profile owner's recipes (for main content)
+- **Navigation Behavior** - Clicking a recipe in the sidebar switches context back to your profile if you're viewing someone else's
+- **Sidebar Header** - Shows authenticated user's avatar, username, and follow stats (following/followers count)
+
 **Data Isolation:**
 
 - All Firestore documents include both `username` (display) and `userId` (ownership)
@@ -191,7 +200,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **UI Indicators:**
 
-- Sidebar shows viewing user (Gravatar + @username)
+- Sidebar shows authenticated user (Gravatar + @username + follow stats)
 - Navbar dropdown shows current logged-in user
 - URLs clearly show whose catalog is being viewed
 
@@ -209,7 +218,8 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 **Key Files:**
 
 - `server.js` - `validateUsername` middleware, `buildUserQuery` helper, user-scoped queries
-- `public/app.js` - `API.currentUser`, `API.viewingUser`, `updateEditControls()`, dynamic username validation
+- `public/app.js` - `API.currentUser`, `API.viewingUser`, `updateEditControls()`, dual recipe contexts
+- `public/index.html` - Sidebar structure with authenticated user display
 
 ### 7. Gravatar Integration
 
@@ -459,6 +469,43 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 
 - `server.js` - Catch-all route for SPA
 - `public/app.js` - `loadFromURL()`, `updateURL()`
+
+### 13. Browser History & Page Titles
+
+**Status: ✅ Complete**
+
+**Philosophy:** Browser history should be meaningful and show actual page titles, not just the site name. This improves the back button experience and makes history navigation intuitive.
+
+**Implementation:**
+
+- Every navigation point sets `document.title` with a descriptive title
+- All `history.pushState()` calls include the title as the second parameter
+- Title format: `{Page Name} - @{username} - Sous`
+
+**Title Patterns:**
+
+- **Home view**: `@username - Sous`
+- **Recipe view**: `Recipe Title - @username - Sous`
+- **Collection view**: `Collection Name - @username - Sous`
+- **Collection list**: `Collections - @username - Sous`
+- **Menu view**: `Menu Name - @username - Sous`
+- **Menu list**: `Menus - @username - Sous`
+- **Activity feed**: `Activity Feed - Sous`
+- **Search page**: `Search Users - Sous`
+
+**Coverage:**
+
+All navigation points include meaningful titles:
+- Home button and viewing user link
+- Recipe, collection, and menu detail views
+- Collections and menus list views (from both showView and dropdown menus)
+- Activity feed (from home button and dropdown menu)
+- Search page navigation
+- Profile navigation from search results
+
+**Key Files:**
+
+- `public/app.js` - `updateURL()` function, all navigation event handlers
 
 ## Technical Stack
 
@@ -720,6 +767,7 @@ The application uses a modular state management approach:
 - `history.pushState()` updates URL without reload
 - `popstate` listener handles back/forward
 - `loadFromURL()` on page load reads current URL
+- Every navigation sets `document.title` for meaningful browser history
 
 ## Notes for AI Agents
 
@@ -735,6 +783,7 @@ When working on this codebase:
 8. **Keep URLs semantic and clean** - they're shareable
 9. **Mobile-first** - test responsive behavior
 10. **No keyboard shortcuts** - they interfere with browser behavior; use UI controls instead
+11. **Set document.title on navigation** - browser history should show page names, not just "Sous"
 
 ## Related Documentation
 
