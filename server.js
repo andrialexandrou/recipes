@@ -1901,25 +1901,12 @@ app.get('/manifest.json', (req, res) => {
     const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
     const host = req.get('host');
     
-    // Hardcoded known domains for PWA support
-    let scope = '/';
-    let startUrl = '/';
-    
-    // Support both production domains
-    if (host === 'my-sous.com' || host === 'www.my-sous.com') {
-        scope = '/';
-        startUrl = '/';
-    } else if (host.includes('vercel.app')) {
-        scope = '/';
-        startUrl = '/';
-    }
-    
     const manifest = {
         name: 'Sous',
         short_name: 'Sous',
         description: 'Recipes worth keeping',
-        start_url: startUrl,
-        scope: scope,
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
         background_color: '#faf8f5',
         theme_color: '#6b5d52',
@@ -1934,7 +1921,9 @@ app.get('/manifest.json', (req, res) => {
         ]
     };
     
-    res.setHeader('Content-Type', 'application/json');
+    // Set proper headers for PWA manifest
+    res.setHeader('Content-Type', 'application/manifest+json');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(manifest);
 });
 
