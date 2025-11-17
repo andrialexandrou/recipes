@@ -371,6 +371,22 @@ async function removeActivityFromFollowers(authorUserId, activityType, entityId)
     try {
         console.log(`🗑️ Removing ${activityType} activity for entity ${entityId} from followers' feeds`);
         
+        // First, find the activity document in the main activities collection
+        const activitiesQuery = await db.collection('activities')
+            .where('userId', '==', authorUserId)
+            .where('type', '==', activityType)
+            .where('entityId', '==', entityId)
+            .limit(1)
+            .get();
+        
+        if (activitiesQuery.empty) {
+            console.log('⚠️ No matching activity found in activities collection');
+            return;
+        }
+        
+        const activityId = activitiesQuery.docs[0].id;
+        console.log(`📋 Found activity ID: ${activityId}`);
+        
         // Get author's followers
         const authorDoc = await db.collection('users').doc(authorUserId).get();
         if (!authorDoc.exists) {
@@ -381,13 +397,13 @@ async function removeActivityFromFollowers(authorUserId, activityType, entityId)
         const followers = authorDoc.data().followers || [];
         if (followers.length === 0) {
             console.log('📭 No followers to remove activity from');
+            // Still delete from main activities collection
+            await activitiesQuery.docs[0].ref.delete();
+            console.log('✅ Deleted activity from main activities collection');
             return;
         }
         
         console.log(`🗑️ Removing activity from ${followers.length} followers' feeds`);
-        
-        // Activity ID matches the format used in fan-out
-        const activityId = `${activityType}_${entityId}`;
         
         // Delete from each follower's feed using batched writes
         const batchSize = 500;
@@ -399,7 +415,7 @@ async function removeActivityFromFollowers(authorUserId, activityType, entityId)
                 const feedRef = db.collection('feeds')
                     .doc(followerId)
                     .collection('activities')
-                    .doc(activityId);
+                    .doc(activityId); // Use the actual activity ID from main collection
                 
                 batch.delete(feedRef);
             });
@@ -407,7 +423,10 @@ async function removeActivityFromFollowers(authorUserId, activityType, entityId)
             await batch.commit();
         }
         
-        console.log(`✅ Activity removed from ${followers.length} followers' feeds`);
+        // Delete from main activities collection
+        await activitiesQuery.docs[0].ref.delete();
+        
+        console.log(`✅ Activity removed from ${followers.length} followers' feeds + main collection`);
     } catch (error) {
         console.error('❌ Activity removal failed:', error);
         // Don't throw - removal failure shouldn't break the delete operation
@@ -775,22 +794,8 @@ app.post('/api/:username/recipes', validateUsername, async (req, res) => {
                 };
                 console.log('🔥 Recipe created in Firebase:', docRef.id);
                 
-                // Fan-out activity to followers' feeds
-                if (req.userId) {
-                    const slug = (title || 'untitled').toLowerCase()
-                        .replace(/[^a-z0-9]+/g, '-')
-                        .replace(/^-|-$/g, '');
-                    
-                    await fanOutActivity(req.userId, {
-                        userId: req.userId,
-                        username: username,
-                        type: 'recipe_created',
-                        entityId: docRef.id,
-                        entityTitle: title || 'Untitled Recipe',
-                        entitySlug: `${slug}-${docRef.id.substring(0, 6).toUpperCase()}`,
-                        preview: extractPreview(content)
-                    });
-                }
+                // Note: Activity fan-out happens on first meaningful save (in PUT endpoint)
+                // to avoid "Untitled" recipes appearing in followers' feeds
                 
                 res.json(result);
             } catch (firebaseError) {
@@ -852,6 +857,38 @@ app.put('/api/:username/recipes/:id', validateUsername, async (req, res) => {
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 };
                 await docRef.update(updates);
+                
+                // Fan-out activity to followers' feeds on first meaningful save
+                // Only if: has userId, has a real title (not empty/Untitled), and hasn't been published yet
+                const hasRealTitle = title && title.trim() && 
+                    !title.toLowerCase().includes('untitled') && 
+                    title.trim().length > 0;
+                const notYetPublished = !recipeData.activityPublished;
+                
+                if (req.userId && hasRealTitle && notYetPublished) {
+                    console.log('📢 Publishing recipe activity to followers:', title);
+                    
+                    const slug = title.toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '');
+                    
+                    // Mark as published to prevent duplicate activities
+                    await docRef.update({ activityPublished: true });
+                    
+                    // Fan out to followers (non-blocking)
+                    fanOutActivity(req.userId, {
+                        userId: req.userId,
+                        username: username,
+                        type: 'recipe_created',
+                        entityId: req.params.id,
+                        entityTitle: title,
+                        entitySlug: `${slug}-${req.params.id.substring(0, 6).toUpperCase()}`,
+                        preview: extractPreview(content)
+                    }).catch(err => {
+                        console.error('❌ Failed to fan out recipe activity:', err);
+                    });
+                }
+                
                 const result = {
                     id: req.params.id,
                     title: title || '',
