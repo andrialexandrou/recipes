@@ -74,6 +74,9 @@ body {
     border-radius: 0;
     cursor: pointer;
     transition: all 0.2s;
+    display: block;
+    text-decoration: none;
+    color: inherit;
 }
 
 .recipe-item:hover {
@@ -1321,6 +1324,9 @@ body {
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    display: block;
+    text-decoration: none;
+    color: inherit;
 }
 
 .collection-card:hover {
@@ -2523,6 +2529,8 @@ body:has(.auth-container) {
     cursor: pointer;
     transition: background-color 0.15s ease;
     gap: 12px;
+    text-decoration: none;
+    color: inherit;
 }
 
 .search-result-item:hover {

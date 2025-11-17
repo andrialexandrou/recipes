@@ -23,6 +23,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - **Smart Defaults** - Infer intent rather than asking
 - **Progressive Enhancement** - Features appear when needed
 - **Graceful Degradation** - Work without Firebase if needed
+- **All URLs Must Be Links** - Every URL in the app must be a proper `<a>` tag for copy/paste functionality and accessibility
 
 ### Code Style
 
@@ -60,7 +61,8 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Add/remove recipes from collections
 - Pre-populated collections (Freezer Friendly, Healthy Treats, etc.)
 - Collection detail view with recipe cards
-- Metadata shows which collections contain each recipe
+- Copy link functionality for collections (list view and detail view)
+- Metadata shows which collections contain each recipe (as clickable anchor tags)
 
 **Key Files:**
 
@@ -76,6 +78,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Optional description field
 - Reference recipes within menus
 - Edit/view mode toggle
+- Copy link functionality for menus (list view)
 - Metadata tracking
 
 **Key Files:**
@@ -259,6 +262,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **Sidebar:**
 
+- **Hidden when not logged in** - Sidebar only visible for authenticated users
 - Viewing user indicator (Gravatar + @username) - clickable link to user's home page
 - Search/filter recipes
 - Recipe list with live filtering
@@ -784,6 +788,7 @@ When working on this codebase:
 9. **Mobile-first** - test responsive behavior
 10. **No keyboard shortcuts** - they interfere with browser behavior; use UI controls instead
 11. **Set document.title on navigation** - browser history should show page names, not just "Sous"
+12. **All URLs must be `<a>` tags** - every URL in the app must be a proper anchor tag for copy/paste and accessibility
 
 ## Related Documentation
 

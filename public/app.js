@@ -213,6 +213,13 @@ const API = {
                         this.currentUser = null;
                         this.authInitialized = true;
                         
+                        // Hide sidebar when not logged in
+                        const sidebar = document.getElementById('sidebar');
+                        if (sidebar) {
+                            sidebar.classList.add('hidden');
+                            console.log('🚫 Sidebar hidden (no authenticated user)');
+                        }
+                        
                         // Check if we're on a username-prefixed URL (e.g. /andri/recipe/...)
                         const path = window.location.pathname;
                         const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
@@ -1449,8 +1456,16 @@ function renderCollectionsGrid() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     collectionsGrid.innerHTML = collections.map(col => {
         const recipeCount = col.recipeIds ? col.recipeIds.length : 0;
+        const slug = slugify(col.name);
+        const url = `/${API.viewingUser}/collection/${slug}-${col.id}`;
         const actionsHtml = isOwner ? `
                     <div class="collection-card-actions">
+                        <button onclick="copyCollectionLink(event, '${col.id}')" class="collection-action-btn" title="Copy link">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                        </button>
                         <button onclick="event.stopPropagation(); editCollection('${col.id}')" class="collection-action-btn" title="Edit collection">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1467,7 +1482,7 @@ function renderCollectionsGrid() {
                         </button>
                     </div>` : '';
         return `
-            <div class="collection-card" data-id="${col.id}" tabindex="0">
+            <a href="${url}" class="collection-card" data-id="${col.id}" tabindex="0">
                 <div class="collection-card-header">
                     <div class="collection-card-info">
                         <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
@@ -1476,13 +1491,14 @@ function renderCollectionsGrid() {
                     ${actionsHtml}
                 </div>
                 <p class="collection-card-description">${escapeHtml(col.description || '')}</p>
-            </div>
+            </a>
         `;
     }).join('');
 
     // Add click listeners
     collectionsGrid.querySelectorAll('.collection-card').forEach(card => {
         card.addEventListener('click', (e) => {
+            e.preventDefault();
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 loadCollectionDetail(card.dataset.id);
             }
@@ -1500,8 +1516,16 @@ function renderCollectionsGrid() {
 function renderMenusGrid() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     menusGrid.innerHTML = menus.map(menu => {
+        const slug = slugify(menu.name);
+        const url = `/${API.viewingUser}/menu/${slug}-${menu.id}`;
         const actionsHtml = isOwner ? `
                     <div class="collection-card-actions">
+                        <button onclick="copyMenuLink(event, '${menu.id}')" class="collection-action-btn" title="Copy link">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                        </button>
                         <button onclick="event.stopPropagation(); loadMenuDetail('${menu.id}'); enterMenuEditMode();" class="collection-action-btn" title="Edit menu">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1518,7 +1542,7 @@ function renderMenusGrid() {
                         </button>
                     </div>` : '';
         return `
-            <div class="collection-card" data-id="${menu.id}" tabindex="0">
+            <a href="${url}" class="collection-card" data-id="${menu.id}" tabindex="0">
                 <div class="collection-card-header">
                     <div class="collection-card-info">
                         <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
@@ -1526,13 +1550,14 @@ function renderMenusGrid() {
                     ${actionsHtml}
                 </div>
                 <p class="collection-card-description">${escapeHtml(menu.description || '')}</p>
-            </div>
+            </a>
         `;
     }).join('');
 
     // Add click listeners
     menusGrid.querySelectorAll('.collection-card').forEach(card => {
         card.addEventListener('click', (e) => {
+            e.preventDefault();
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 loadMenuDetail(card.dataset.id);
             }
@@ -1561,14 +1586,16 @@ function renderCollectionsGridHome() {
     
     collectionsGridHome.innerHTML = limitedCollections.map(col => {
         const recipeCount = col.recipeIds ? col.recipeIds.length : 0;
+        const slug = slugify(col.name);
+        const url = `/${API.viewingUser}/collection/${slug}-${col.id}`;
         return `
-            <div class="collection-card collection-card-compact" data-id="${col.id}" tabindex="0">
+            <a href="${url}" class="collection-card collection-card-compact" data-id="${col.id}" tabindex="0">
                 <div class="collection-card-info">
                     <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
                     <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
                 </div>
                 <p class="collection-card-description">${escapeHtml(col.description || '')}</p>
-            </div>
+            </a>
         `;
     }).join('');
     
@@ -1584,7 +1611,10 @@ function renderCollectionsGridHome() {
     }
     
     collectionsGridHome.querySelectorAll('.collection-card:not(.collection-card-view-all)').forEach(card => {
-        card.addEventListener('click', () => loadCollectionDetail(card.dataset.id));
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadCollectionDetail(card.dataset.id);
+        });
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1608,13 +1638,15 @@ function renderMenusGridHome() {
     }
     
     menusGridHome.innerHTML = limitedMenus.map(menu => {
+        const slug = slugify(menu.name);
+        const url = `/${API.viewingUser}/menu/${slug}-${menu.id}`;
         return `
-            <div class="collection-card collection-card-compact" data-id="${menu.id}" tabindex="0">
+            <a href="${url}" class="collection-card collection-card-compact" data-id="${menu.id}" tabindex="0">
                 <div class="collection-card-info">
                     <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
                 </div>
                 <p class="collection-card-description">${escapeHtml(menu.description || '')}</p>
-            </div>
+            </a>
         `;
     }).join('');
     
@@ -1630,7 +1662,10 @@ function renderMenusGridHome() {
     }
     
     menusGridHome.querySelectorAll('.collection-card:not(.collection-card-view-all)').forEach(card => {
-        card.addEventListener('click', () => loadMenuDetail(card.dataset.id));
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadMenuDetail(card.dataset.id);
+        });
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1672,20 +1707,25 @@ function renderRecipeList(filter = '') {
         const isActive = currentView === 'recipe-detail' && 
                         recipe.id === currentRecipeId && 
                         !currentCollectionId;
+        const slug = recipe.title ? slugify(recipe.title) : 'untitled';
+        const username = API.currentUser?.username || API.viewingUser;
+        const url = `/${username}/recipe/${slug}-${recipe.id}`;
         return `
-            <div 
+            <a 
+                href="${url}"
                 class="recipe-item ${isActive ? 'active' : ''}" 
                 data-id="${recipe.id}"
                 role="listitem"
                 tabindex="0">
                 <div class="recipe-item-title">${escapeHtml(recipe.title || 'Untitled')}</div>
                 <div class="recipe-item-date">${formatDate(recipe.updatedAt)}</div>
-            </div>
+            </a>
         `;
     }).join('');
 
     recipeList.querySelectorAll('.recipe-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
             // Reset collection context when loading from sidebar
             currentCollectionId = null;
             
@@ -1741,6 +1781,12 @@ function loadCollectionDetail(id, updateUrl = true) {
     if (collectionHeader) {
         const actionsHtml = isOwner ? `
                 <div class="collection-header-actions">
+                    <button onclick="copyCollectionLink(event, '${collection.id}')" class="collection-action-btn" title="Copy link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                    </button>
                     <button onclick="editCollection('${collection.id}')" class="collection-action-btn" title="Edit collection">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1758,7 +1804,7 @@ function loadCollectionDetail(id, updateUrl = true) {
                 </div>` : '';
         collectionHeader.innerHTML = `
             <div class="breadcrumb">
-                <span class="breadcrumb-link" onclick="switchToView('collections')">Collections</span>
+                <a href="/${API.viewingUser}/collections" class="breadcrumb-link">Collections</a>
                 <span class="breadcrumb-separator">></span>
                 <span class="breadcrumb-current">${escapeHtml(collection.name)}</span>
             </div>
@@ -1768,6 +1814,15 @@ function loadCollectionDetail(id, updateUrl = true) {
             </div>
             <p class="collection-description">${escapeHtml(collection.description || '')}</p>
         `;
+        
+        // Add click handler to breadcrumb link
+        const breadcrumbLink = collectionHeader.querySelector('.breadcrumb-link');
+        if (breadcrumbLink) {
+            breadcrumbLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchToView('collections');
+            });
+        }
     }
     
     const collectionRecipeIds = collection.recipeIds || [];
@@ -1832,16 +1887,28 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
     // Handle breadcrumbs and back navigation based on source
     if (source === 'collection' && currentCollectionId) {
         const collection = collections.find(c => c.id === currentCollectionId);
+        const collectionSlug = slugify(collection.name);
         
         // Show full breadcrumb path
         breadcrumb.innerHTML = `
-            <span class="breadcrumb-link" onclick="switchToView('collections')">Collections</span>
+            <a href="/${API.viewingUser}/collections" class="breadcrumb-link">Collections</a>
             <span class="breadcrumb-separator">></span>
-            <span class="breadcrumb-link" onclick="loadCollectionDetail('${currentCollectionId}')">${escapeHtml(collection.name)}</span>
+            <a href="/${API.viewingUser}/collection/${collectionSlug}-${currentCollectionId}" class="breadcrumb-link">${escapeHtml(collection.name)}</a>
             <span class="breadcrumb-separator">></span>
             <span class="breadcrumb-current">${escapeHtml(recipe.title)}</span>
         `;
         breadcrumb.classList.remove('hidden');
+        
+        // Add click handlers to breadcrumb links
+        const breadcrumbLinks = breadcrumb.querySelectorAll('.breadcrumb-link');
+        breadcrumbLinks[0]?.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchToView('collections');
+        });
+        breadcrumbLinks[1]?.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadCollectionDetail(currentCollectionId);
+        });
     } else {
         // Hide breadcrumb for sidebar navigation
         breadcrumb.classList.add('hidden');
@@ -1891,8 +1958,21 @@ function updateRecipeMetadata(recipe) {
         metadataCollections.innerHTML = '<span class="metadata-empty">None</span>';
     } else {
         metadataCollections.innerHTML = recipeCollections
-            .map(c => `<div class="metadata-collection-tag" onclick="loadCollectionDetail('${c.id}')">${escapeHtml(c.name)}</div>`)
+            .map(c => {
+                const slug = slugify(c.name);
+                const url = `/${API.viewingUser}/collection/${slug}-${c.id}`;
+                return `<a href="${url}" class="metadata-collection-tag">${escapeHtml(c.name)}</a>`;
+            })
             .join('');
+        
+        // Add click handlers
+        metadataCollections.querySelectorAll('.metadata-collection-tag').forEach(tag => {
+            tag.addEventListener('click', (e) => {
+                e.preventDefault();
+                const collectionId = tag.getAttribute('href').split('-').pop();
+                loadCollectionDetail(collectionId);
+            });
+        });
     }
     
     // Update action buttons
@@ -2002,9 +2082,11 @@ function showHomeView() {
     console.log('👀 Current viewing user:', API.viewingUser);
     console.log('🔐 Current logged-in user:', API.currentUser?.username);
     
-    // Show sidebar (in case it was hidden by 404 view)
+    // Show sidebar only if user is authenticated (in case it was hidden by 404 view)
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.remove('hidden');
+    if (sidebar && API.currentUser) {
+        sidebar.classList.remove('hidden');
+    }
     
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
@@ -2070,9 +2152,11 @@ function showNotFoundView() {
 function showFeedView() {
     console.log('📰 showFeedView called');
     
-    // Show sidebar (in case it was hidden by 404 view)
+    // Show sidebar only if user is authenticated (in case it was hidden by 404 view)
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.remove('hidden');
+    if (sidebar && API.currentUser) {
+        sidebar.classList.remove('hidden');
+    }
     
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
@@ -2188,9 +2272,10 @@ async function renderSearchResults(users) {
     searchResults.innerHTML = users.map(user => {
         const isFollowing = following.includes(user.uid); // Compare UIDs, not usernames
         const isSelf = user.username === API.currentUser?.username;
+        const profileUrl = `/${user.username}`;
         
         return `
-            <div class="search-result-item" data-username="${user.username}">
+            <a href="${profileUrl}" class="search-result-item" data-username="${user.username}">
                 ${getAvatarHtml(user.username, user.gravatarHash, 40)}
                 <div class="search-result-info">
                     <div class="search-result-username">@${user.username}</div>
@@ -2199,7 +2284,7 @@ async function renderSearchResults(users) {
                 ${!isSelf ? `<button class="search-result-follow-btn ${isFollowing ? 'following' : ''}" data-username="${user.username}" data-uid="${user.uid}">
                     ${isFollowing ? 'Following' : 'Follow'}
                 </button>` : ''}
-            </div>
+            </a>
         `;
     }).join('');
     
@@ -2209,6 +2294,7 @@ async function renderSearchResults(users) {
             // Don't navigate if clicking the follow button
             if (e.target.classList.contains('search-result-follow-btn')) return;
             
+            e.preventDefault();
             const username = item.dataset.username;
             // Navigate to user's profile
             API.viewingUser = username;
@@ -2681,6 +2767,48 @@ function copyRecipeLink(event) {
     const url = `${window.location.origin}/${API.viewingUser}/recipe/${slug}-${currentRecipeId}`;
     
     const button = event?.target?.closest('button') || document.getElementById('metadataCopyLinkBtn');
+    
+    navigator.clipboard.writeText(url).then(() => {
+        if (button) {
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fa-solid fa-check"></i>';
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+            }, 2000);
+        }
+    });
+}
+
+function copyCollectionLink(event, collectionId) {
+    event.stopPropagation();
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) return;
+    
+    const slug = slugify(collection.name);
+    const url = `${window.location.origin}/${API.viewingUser}/collection/${slug}-${collectionId}`;
+    
+    const button = event.target.closest('button');
+    
+    navigator.clipboard.writeText(url).then(() => {
+        if (button) {
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fa-solid fa-check"></i>';
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+            }, 2000);
+        }
+    });
+}
+
+function copyMenuLink(event, menuId) {
+    event.stopPropagation();
+    const menu = menus.find(m => m.id === menuId);
+    if (!menu) return;
+    
+    const slug = slugify(menu.name);
+    const url = `${window.location.origin}/${API.viewingUser}/menu/${slug}-${menuId}`;
+    
+    const button = event.target.closest('button');
     
     navigator.clipboard.writeText(url).then(() => {
         if (button) {

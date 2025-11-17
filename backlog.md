@@ -6,7 +6,6 @@ Future features and improvements for Sous.
 
 - **User Profile Page (LTK-inspired)** - Create dedicated profile page at `/{username}` with hero section (avatar, bio, stats), follow button, tabbed content navigation (Recipes/Collections/Menus), and visual grid layout. Separate from home view to showcase user's public presence.
 - **User Account Settings Page** - Create `/settings` page where users can adjust account settings (including search visibility toggle), manage API keys for various services (AI parsing, etc.), update email/password, view usage stats
-- **User Search** - ✅ Search for users in the system by username or name to discover and follow them. Requires login. Users can opt-out via settings.
 - **Following/Followers List View** - Display lists of users you're following and users who follow you. Needs a reasonable placement (perhaps in user profile/settings, or as a dedicated view accessible from profile). Should show avatars, usernames, and allow quick follow/unfollow actions.
 - **Public Changelog & Blog** - Set up public-facing changelog URL (maybe `/changelog` or separate site) that updates as features ship. Also support blog posts from site runners. Consider: Same site vs. separate marketing site, CMS vs. markdown files, update workflow
 
@@ -14,9 +13,19 @@ Future features and improvements for Sous.
 
 - **Follow Users** - ✅ Implemented fan-out architecture for follows
 - **Activity Feed/Wall** - ✅ Personal feed showing followed users' content
+- **Copy Link for Collections** - ✅ Added copy link button to collections list view and detail view
+- **Convert All URLs to Anchor Tags** - ✅ Every URL in the app is now a proper `<a>` tag for accessibility and expected browser behavior
+- **User Search** - ✅ Search for users in the system by username or name to discover and follow them. Requires login. Users can opt-out via settings.
+
+## 🐛 Bugs
+
+- **Collection Edit Wipes Recipe List** - When editing a collection description, all recipes are removed from the collection. Appears to be data loss during the edit/save flow. Needs investigation of collection update logic.
 
 ## Quick Wins (Small Effort)
 
+- **Copy Recipe Content** - Add "Copy Content" action in the recipe metadata actions section (next to copy link) with dropdown/options for format: Markdown (source), Plain Text (rendered without formatting), or HTML (rendered with formatting). This enables easy pasting into other apps, sharing via chat/email, or archiving. Also add this feature to menus.
+
+- **Breadcrumbs with Username Navigation** - Add username at the front of breadcrumbs (e.g., `@username > Collections > Italian Favorites`) so users can navigate back to the user's profile from anywhere in their content. This improves wayfinding especially when viewing other users' content.
 - **Admin Badge for Creator** - Display a small "Admin" badge next to the creator's username throughout the app (navbar, sidebar, activity feed, search results, profile page). Use existing `isStaff` field to identify admin. Purpose: Help users identify who to reach out to for problems/questions, and establish credibility. Design: Subtle badge/icon (checkmark, star, or sparkle) in brand color with "Admin" tooltip on hover.
 - **Empty Feed State with Sample Content** - When a new user's feed is empty (not following anyone yet), show sample/featured content from a designated account (e.g., site admin) with clear messaging: "Your feed is empty! Here are some recipes to explore..." Display sample recipes with a prominent "Follow @username to see more" CTA. This gives new users immediate value and demonstrates how the feed works without forcing follows.
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
