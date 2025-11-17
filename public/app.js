@@ -176,16 +176,28 @@ const API = {
                             reject(error);
                         }
                     } else {
-                        console.log('❌ No user authenticated - redirecting to login');
+                        console.log('❌ No user authenticated');
                         this.currentUser = null;
-                        this.viewingUser = null;
                         this.authInitialized = true;
                         
-                        // Redirect to login page if not already there
-                        if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
-                            window.location.href = '/login';
+                        // Check if we're on a username-prefixed URL (e.g. /andri/recipe/...)
+                        const path = window.location.pathname;
+                        const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
+                        
+                        if (usernameMatch) {
+                            // Allow viewing someone's content while logged out
+                            const username = usernameMatch[1];
+                            this.viewingUser = username;
+                            console.log('👁️  Viewing user while logged out:', username);
+                            resolve();
+                        } else {
+                            // Only redirect to login if on root path or protected routes
+                            if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+                                console.log('↩️  Redirecting to login (no user context)');
+                                window.location.href = '/login';
+                            }
+                            resolve();
                         }
-                        resolve();
                     }
                 });
             } catch (error) {
@@ -202,7 +214,10 @@ const API = {
                 showFirebaseErrorBanner();
             }
             const error = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-            throw new Error(error.error || `Request failed with status ${res.status}`);
+            const errorObj = new Error(error.error || `Request failed with status ${res.status}`);
+            errorObj.status = res.status;
+            errorObj.userNotFound = res.status === 404 && error.error === 'User not found';
+            throw errorObj;
         }
         return res.json();
     },
@@ -767,6 +782,13 @@ if (viewingUserLink) {
 // Update edit controls visibility based on ownership
 function updateEditControls() {
     const isOwner = API.viewingUser === API.currentUser?.username;
+    const isLoggedIn = !!API.currentUser;
+    
+    // Navbar: show menu button if logged in, sign in button if logged out
+    const navMenuBtn = document.getElementById('navMenuBtn');
+    const navSignInBtn = document.getElementById('navSignInBtn');
+    if (navMenuBtn) navMenuBtn.style.display = isLoggedIn ? 'block' : 'none';
+    if (navSignInBtn) navSignInBtn.style.display = isLoggedIn ? 'none' : 'block';
     
     // Recipe edit/delete controls
     const editBtn = document.getElementById('editBtn');
@@ -812,7 +834,7 @@ function updateEditControls() {
     if (newCollectionBtn) newCollectionBtn.style.display = isOwner ? 'inline-flex' : 'none';
     if (newMenuBtn) newMenuBtn.style.display = isOwner ? 'inline-flex' : 'none';
     
-    console.log(`🔒 Edit controls ${isOwner ? 'shown' : 'hidden'} (viewing: ${API.viewingUser}, owner: ${API.currentUser?.username})`);
+    console.log(`🔒 Edit controls ${isOwner ? 'shown' : 'hidden'} (viewing: ${API.viewingUser}, owner: ${API.currentUser?.username}, logged in: ${isLoggedIn})`);
 }
 
 // Update user display in navbar
@@ -843,7 +865,10 @@ async function updateUserDisplay() {
             img.id = 'viewingUserAvatar';
             img.className = 'user-avatar';
             img.alt = 'Viewing user';
-            img.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; background: #e0e0e0;';
+            // Start with skeleton color to match ghost loading state
+            img.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; background: #f5f5f5;';
+            // Set a 1x1 transparent placeholder to prevent broken image icon
+            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             viewingUserAvatar.parentNode.replaceChild(img, viewingUserAvatar);
             // Update reference
             const newViewingUserAvatar = document.getElementById('viewingUserAvatar');
@@ -866,41 +891,31 @@ async function updateUserDisplay() {
 }
 
 async function loadViewingUserAvatar(avatarElement, usernameElement) {
-    // If viewing ourselves, use current user data
+    // If viewing ourselves and logged in, use current user data
     if (API.viewingUser === API.currentUser?.username) {
-        avatarElement.style.background = '#e0e0e0';
+        avatarElement.style.background = '#f5f5f5';
         const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
         avatarElement.src = gravatarUrl;
         usernameElement.textContent = `@${API.viewingUser}`;
         avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
     } else {
-        // Fetch the viewing user's email from Firestore
+        // Fetch the viewing user's info from server (works even when logged out)
         try {
-            if (window.db) {
-                const usersSnapshot = await window.db.collection('users')
-                    .where('username', '==', API.viewingUser)
-                    .limit(1)
-                    .get();
-                
-                if (!usersSnapshot.empty) {
-                    const userData = usersSnapshot.docs[0].data();
-                    avatarElement.style.background = '#e0e0e0';
-                    const gravatarUrl = getGravatarUrl(userData.email, 128);
-                    avatarElement.src = gravatarUrl;
-                    usernameElement.textContent = `@${API.viewingUser}`;
-                    avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
-                } else {
-                    // Fallback to default avatar if user not found
-                    avatarElement.src = getGravatarUrl('unknown@example.com', 128);
-                    usernameElement.textContent = `@${API.viewingUser}`;
-                }
+            const res = await fetch(`/api/${API.viewingUser}/user`);
+            if (res.ok) {
+                const userData = await res.json();
+                avatarElement.style.background = '#f5f5f5';
+                const gravatarUrl = getGravatarUrl(userData.email, 128);
+                avatarElement.src = gravatarUrl;
+                usernameElement.textContent = `@${API.viewingUser}`;
+                avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
             } else {
-                // No Firestore, use fallback
+                // Fallback to default avatar if user not found
                 avatarElement.src = getGravatarUrl('unknown@example.com', 128);
                 usernameElement.textContent = `@${API.viewingUser}`;
             }
         } catch (error) {
-            console.error('Failed to fetch viewing user email:', error);
+            console.error('Failed to fetch viewing user info:', error);
             avatarElement.src = getGravatarUrl('unknown@example.com', 128);
             usernameElement.textContent = `@${API.viewingUser}`;
         }
@@ -1643,6 +1658,36 @@ function showHomeView() {
     updateURL(null, null);
 }
 
+function showNotFoundView() {
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    const notFoundView = document.getElementById('notFoundView');
+    if (notFoundView) {
+        notFoundView.classList.remove('hidden');
+        notFoundView.classList.add('active');
+    }
+    
+    // Hide sidebar for 404 page
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.add('hidden');
+    }
+    
+    // Expand main content to full width
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) {
+        mainContent.style.marginLeft = '0';
+    }
+    
+    currentRecipeId = null;
+    currentCollectionId = null;
+    currentMenuId = null;
+}
+
 /**
  * Shows the onboarding banner for first-time users
  */
@@ -1695,12 +1740,6 @@ async function loadAllData() {
         // Initialize users first
         await API.initializeUsers();
         
-        // Don't load data if not authenticated
-        if (!API.currentUser) {
-            console.log('⚠️ No authenticated user, skipping data load');
-            return;
-        }
-        
         // IMPORTANT: Set viewing user from URL BEFORE loading data
         const path = window.location.pathname;
         const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
@@ -1709,9 +1748,13 @@ async function loadAllData() {
             // Set viewing user from URL - trust the URL
             API.viewingUser = username;
             console.log('👁️  Setting viewing user from URL:', username);
-        } else {
-            // No username in URL, use current user
+        } else if (API.currentUser) {
+            // No username in URL, use current user if logged in
             API.viewingUser = API.currentUser.username;
+        } else {
+            // Not logged in and no username in URL - bail out
+            console.log('⚠️ No viewing context (not logged in, no username in URL)');
+            return;
         }
         
         // Fetch users list for gravatar lookups
@@ -1720,16 +1763,25 @@ async function loadAllData() {
         const [recipesData, collectionsData, menusData] = await Promise.all([
             API.getRecipes().catch(err => {
                 console.error('❌ Failed to load recipes:', err.message);
+                if (err.userNotFound) {
+                    throw err; // Re-throw to handle at top level
+                }
                 showFirebaseErrorBanner();
                 return [];
             }),
             API.getCollections().catch(err => {
                 console.error('❌ Failed to load collections:', err.message);
+                if (err.userNotFound) {
+                    throw err; // Re-throw to handle at top level
+                }
                 showFirebaseErrorBanner();
                 return [];
             }),
             API.getMenus().catch(err => {
                 console.error('❌ Failed to load menus:', err.message);
+                if (err.userNotFound) {
+                    throw err; // Re-throw to handle at top level
+                }
                 showFirebaseErrorBanner();
                 return [];
             })
@@ -1750,6 +1802,13 @@ async function loadAllData() {
         }
     } catch (error) {
         console.error('💥 Critical error loading data:', error);
+        
+        // Check if it's a user not found error
+        if (error.userNotFound) {
+            console.log('🚫 User not found - showing 404 page');
+            showNotFoundView();
+            return;
+        }
         
         // Show Firebase error banner
         const errorBanner = document.getElementById('firebaseErrorBanner');
@@ -2418,15 +2477,21 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    // N - New recipe (when not typing)
+    // N - New recipe (when not typing, and only if owner)
     if ((e.key === 'n' || e.key === 'N') && !isTyping && !isEditMode && !isMenuEditMode) {
         e.preventDefault();
-        createNewRecipe();
+        const isOwner = API.viewingUser === API.currentUser?.username;
+        if (isOwner) {
+            createNewRecipe();
+        }
     }
     
-    // E - Edit recipe or menu (when not typing)
+    // E - Edit recipe or menu (when not typing, and only if owner)
     if ((e.key === 'e' || e.key === 'E') && !isTyping) {
         e.preventDefault();
+        const isOwner = API.viewingUser === API.currentUser?.username;
+        if (!isOwner) return; // Prevent editing if not owner
+        
         if (currentRecipeId) {
             if (isEditMode) {
                 saveCurrentRecipe();

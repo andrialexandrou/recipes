@@ -79,10 +79,13 @@
                     <h1>Sous</h1>
                 </button>
             </div>
-            <div class="navbar-nav">
-                <button class="nav-btn" id="navMenuBtn" aria-label="Menu">
-                    <i class="fa-solid fa-bars"></i>
+                        <div class="navbar-nav">
+                <button id="navMenuBtn" class="icon-btn" aria-label="Menu" aria-expanded="false" style="display: none;">
+                    <i class="fas fa-bars"></i>
                 </button>
+                <a href="/login" class="nav-btn" id="navSignInBtn" aria-label="Sign In" style="text-decoration: none; display: none;">
+                    Sign In
+                </a>
             </div>
         </nav>
         
@@ -176,6 +179,15 @@
                         </div>
                         <div class="collections-grid" id="collectionsGridHome"></div>
                     </div>
+                </div>
+            </div>
+            
+            <div id="notFoundView" class="view-section hidden">
+                <div style="text-align: center; padding: 80px 20px; color: #999;">
+                    <div style="font-size: 72px; margin-bottom: 20px;">404</div>
+                    <h2 style="font-size: 24px; margin-bottom: 10px; color: #666;">User Not Found</h2>
+                    <p style="font-size: 16px; margin-bottom: 30px;">This user doesn't exist or may have been removed.</p>
+                    <a href="/" style="color: #6b5d52; text-decoration: underline;">Go to Home</a>
                 </div>
             </div>
             

@@ -307,6 +307,43 @@ app.get('/api/me', (req, res) => {
     res.status(410).json({ error: 'Endpoint deprecated. Use Firebase Auth instead.' });
 });
 
+// Get user info by username (for displaying avatars when logged out)
+app.get('/api/:username/user', validateUsername, async (req, res) => {
+    const username = req.params.username;
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                const usersSnapshot = await db.collection('users').where('username', '==', username).limit(1).get();
+                if (!usersSnapshot.empty) {
+                    const userData = usersSnapshot.docs[0].data();
+                    // Only return public information
+                    res.json({
+                        username: userData.username,
+                        email: userData.email,
+                        createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt
+                    });
+                } else {
+                    res.status(404).json({ error: 'User not found' });
+                }
+            } catch (firebaseError) {
+                console.error('❌ Firebase user fetch failed:', firebaseError.message);
+                res.status(500).json({ error: 'Failed to fetch user' });
+            }
+        } else {
+            // Fallback to hardcoded users
+            const user = users.find(u => u.username === username);
+            if (user) {
+                res.json({ username: user.username, email: user.email });
+            } else {
+                res.status(404).json({ error: 'User not found' });
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Failed to fetch user' });
+    }
+});
+
 // Get all recipes for a user
 app.get('/api/:username/recipes', validateUsername, async (req, res) => {
     const username = req.params.username;
