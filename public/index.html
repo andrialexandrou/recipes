@@ -87,6 +87,9 @@
                 </button>
             </div>
                         <div class="navbar-nav">
+                <button class="nav-btn" id="navSearchBtn" aria-label="Search users" style="display: none;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
                                 <div id="navMenuBtnWrapper">
                                     <img id="navMenuBtn" class="nav-avatar-btn" aria-label="Menu" aria-expanded="false" alt="Menu" />
                                 </div>
@@ -334,6 +337,16 @@
                         placeholder="Write your menu in markdown..."
                         aria-label="Menu content in markdown"></textarea>
                     <div class="preview-content" id="menuPreviewContent"></div>
+                </div>
+            </div>
+
+            <div id="searchView" class="view-section hidden">
+                <div class="search-page-container">
+                    <h1 class="page-title">Search Users</h1>
+                    <div class="search-input-wrapper">
+                        <input type="text" id="searchUsersInput" placeholder="Search by username..." autocomplete="off">
+                    </div>
+                    <div id="searchResults" class="search-results"></div>
                 </div>
             </div>
         </div>

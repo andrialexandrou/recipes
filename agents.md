@@ -309,7 +309,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 **Data Model:**
 
-- `users` - Extended with `following[]`, `followers[]`, counts
+- `users` - Extended with `following[]` (UIDs), `followers[]` (UIDs), counts, `isSearchable` (boolean, default true)
 - `activities` - Master activity records
 - `feeds/{userId}/activities` - Personal feed subcollections (fanned out)
 - `recipes` - Extended with `activityPublished` flag to prevent duplicate feed entries
@@ -354,13 +354,56 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 - 📚 [Activity Feed & Follow System Architecture](docs/architecture/activity-feed-and-follows.md) - Detailed architecture, data flow, and scaling considerations
 
-### 10. Firebase Integration
+### 10. User Search & Discovery
+
+**Status: ✅ Complete**
+
+**Philosophy:** Enable users to discover and follow other users through a clean, searchable directory.
+
+**Features:**
+
+- Dedicated search page at `/search` route
+- Shows all searchable users by default (sorted by follower count)
+- Real-time search filtering as you type (300ms debounce)
+- Privacy control via `isSearchable` flag (default true)
+- Follow/unfollow directly from search results
+- Current user excluded from results
+- Mobile-responsive design with compact layouts
+
+**UI Details:**
+
+- Clean list view with avatars, usernames, and stats
+- Follow buttons: Dark CTA for unfolowed users, subtle outline for followed users
+- Fixed-width buttons (90px desktop, 80px tablet, 72px mobile) for consistency
+- Compact padding on mobile (minimal chrome)
+- Smart navigation - clicking user goes to their profile, button triggers follow
+
+**Technical Implementation:**
+
+- Server endpoint: `GET /api/users/search?q={query}`
+- Returns top 50 users matching query (or all if no query)
+- Includes UID, username, gravatarHash, follower/following counts
+- Client checks `API.currentUser.following` array (stores UIDs) for button state
+- Local state updates immediately on follow/unfollow for responsive UI
+
+**Key Files:**
+
+- `public/app.js` - `showSearchView()`, `loadAllSearchableUsers()`, `renderSearchResults()`
+- `public/index.html` - Search page view at `#searchView`
+- `public/styles.css` - Search page styling with mobile responsiveness
+- `server.js` - `/api/users/search` endpoint with filtering and sorting
+
+**Migration Script:**
+
+- `scripts/enable-search-for-all-users.js` - Sets `isSearchable: true` for all existing users
+
+### 11. Firebase Integration
 
 **Status: ✅ Complete**
 
 **Firestore Collections:**
 
-- `users` - {username, email, following[], followers[], followingCount, followersCount, createdAt, isStaff (optional boolean), gravatarHash (computed server-side)}
+- `users` - {username, email, following[] (UIDs), followers[] (UIDs), followingCount, followersCount, isSearchable (boolean), createdAt, isStaff (optional boolean), gravatarHash (computed server-side)}
 - `recipes` - {id, title, content, username, userId, createdAt, updatedAt, activityPublished (boolean)}
 - `collections` - {id, name, description, username, userId, recipeIds[]}
 - `menus` - {id, name, description, content, username, userId, recipeIds[], createdAt, updatedAt}
@@ -392,7 +435,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 - `server.js` - Firebase Admin initialization
 - `.env` - Environment configuration
 
-### 11. URL Routing
+### 12. URL Routing
 
 **Status: ✅ Complete**
 
@@ -404,6 +447,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 - `/{username}/menus` - Menus list
 - `/{username}/menu/{slug}-{id}` - Menu detail  
 - `/{username}/recipe/{slug}-{id}` - Recipe detail
+- `/search` - User search and discovery (requires login)
 
 **Server-Side:**
 

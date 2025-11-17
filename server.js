@@ -629,6 +629,62 @@ app.get('/api/users', (req, res) => {
     res.json(users);
 });
 
+// Search users (only returns searchable users)
+app.get('/api/users/search', async (req, res) => {
+    const query = req.query.q ? req.query.q.toLowerCase().trim() : '';
+    
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            try {
+                // Query users collection
+                const usersSnapshot = await db.collection('users')
+                    .where('isSearchable', '!=', false) // Only searchable users (default true)
+                    .limit(100) // Limit for performance
+                    .get();
+                
+                const matchedUsers = [];
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const username = userData.username.toLowerCase();
+                    
+                    // If no query, include all users; otherwise filter by substring match
+                    if (!query || username.includes(query)) {
+                        // Compute Gravatar hash server-side
+                        const gravatarHash = userData.email 
+                            ? crypto.createHash('md5').update(userData.email.toLowerCase().trim()).digest('hex')
+                            : null;
+                        
+                        matchedUsers.push({
+                            uid: doc.id, // Add UID for follow functionality
+                            username: userData.username,
+                            gravatarHash: gravatarHash,
+                            followersCount: userData.followersCount || 0,
+                            followingCount: userData.followingCount || 0
+                        });
+                    }
+                });
+                
+                // Sort by follower count descending
+                matchedUsers.sort((a, b) => b.followersCount - a.followersCount);
+                
+                res.json(matchedUsers.slice(0, 50)); // Return top 50
+            } catch (firebaseError) {
+                console.error('❌ Firebase user search failed:', firebaseError.message);
+                res.status(500).json({ error: 'Search failed' });
+            }
+        } else {
+            // Memory storage fallback
+            const matchedUsers = users
+                .filter(u => !query || u.username.toLowerCase().includes(query))
+                .slice(0, 50);
+            res.json(matchedUsers);
+        }
+    } catch (error) {
+        console.error('Error searching users:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get current user (deprecated - auth handled by Firebase)
 app.get('/api/me', (req, res) => {
     res.status(410).json({ error: 'Endpoint deprecated. Use Firebase Auth instead.' });

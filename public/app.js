@@ -135,7 +135,9 @@ const API = {
                                             email: firebaseUser.email,
                                             uid: firebaseUser.uid,
                                             isStaff: userData.isStaff || false,
-                                            gravatarHash: gravatarHash // Computed gravatarHash
+                                            gravatarHash: gravatarHash, // Computed gravatarHash
+                                            following: userData.following || [],
+                                            followers: userData.followers || []
                                         };
                                         console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`, this.currentUser.isStaff ? '🛠️ Staff' : '', 'gravatarHash:', gravatarHash ? 'computed' : 'none');
                                         
@@ -402,26 +404,34 @@ const API = {
     },
     
     // Follow/Unfollow API methods
-    async followUser(targetUserId) {
-        console.log('🔄 Following user:', targetUserId);
+    async followUser(targetUserId, targetUsername) {
+        console.log('🔄 Following user:', targetUserId, targetUsername);
         const res = await fetch(`/api/users/${targetUserId}/follow`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ currentUserId: this.currentUser.uid })
         });
         const data = await this.handleResponse(res);
+        // Update local following array (using UID, not username)
+        if (this.currentUser && !this.currentUser.following.includes(targetUserId)) {
+            this.currentUser.following.push(targetUserId);
+        }
         console.log('✅ Followed user');
         return data;
     },
     
-    async unfollowUser(targetUserId) {
-        console.log('🔄 Unfollowing user:', targetUserId);
+    async unfollowUser(targetUserId, targetUsername) {
+        console.log('🔄 Unfollowing user:', targetUserId, targetUsername);
         const res = await fetch(`/api/users/${targetUserId}/follow`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ currentUserId: this.currentUser.uid })
         });
         const data = await this.handleResponse(res);
+        // Update local following array (using UID, not username)
+        if (this.currentUser) {
+            this.currentUser.following = this.currentUser.following.filter(u => u !== targetUserId);
+        }
         console.log('✅ Unfollowed user');
         return data;
     },
@@ -469,6 +479,7 @@ const DOM = {
     navbar: document.getElementById('navbar'),
     homeBtn: document.getElementById('homeBtn'),
     navMenuBtn: document.getElementById('navMenuBtn'),
+    navSearchBtn: document.getElementById('navSearchBtn'),
     navbarDropdown: document.getElementById('navbarDropdown'),
     navCollectionsBtn: document.getElementById('navCollectionsBtn'),
     
@@ -892,12 +903,15 @@ function updateEditControls() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     const isLoggedIn = !!API.currentUser;
     
-    // Navbar: show menu button if logged in, sign in button if logged out
+    // Navbar: show menu button and search if logged in, sign in button if logged out
     const navMenuBtn = document.getElementById('navMenuBtn');
     const navMenuBtnWrapper = document.getElementById('navMenuBtnWrapper');
+    const navSearchBtn = document.getElementById('navSearchBtn');
     const navSignInBtn = document.getElementById('navSignInBtn');
     
     console.log('🔧 updateEditControls: isLoggedIn=', isLoggedIn, 'currentUser=', API.currentUser?.username);
+    
+    if (navSearchBtn) navSearchBtn.style.display = isLoggedIn ? 'block' : 'none';
     
     if (navMenuBtn && navMenuBtnWrapper) {
         navMenuBtnWrapper.style.display = isLoggedIn ? 'block' : 'none';
@@ -1268,6 +1282,18 @@ function loadFromURL() {
     // Handle reserved paths
     if (path === '/login' || path === '/signup' || path === '/logout') {
         console.log('🚫 Reserved path, not loading app');
+        return;
+    }
+    
+    // Handle search page
+    if (path === '/search') {
+        console.log('🔍 Search page detected');
+        if (API.currentUser) {
+            showSearchView();
+        } else {
+            console.log('⚠️ User not logged in, redirecting to login');
+            window.location.href = '/login';
+        }
         return;
     }
     
@@ -2003,6 +2029,152 @@ function showFeedView() {
     // Don't call updateURL - feed always stays at /
 }
 
+async function showSearchView() {
+    console.log('🔍 showSearchView called');
+    
+    // Hide sidebar for search page
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.add('hidden');
+    
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    const searchView = document.getElementById('searchView');
+    if (searchView) {
+        searchView.classList.remove('hidden');
+        searchView.classList.add('active');
+        console.log('✅ Search view made visible');
+    } else {
+        console.error('❌ Search view element not found!');
+    }
+    
+    currentRecipeId = null;
+    currentCollectionId = null;
+    currentMenuId = null;
+    currentView = 'search';
+    
+    // Clear search input and focus
+    const searchUsersInput = document.getElementById('searchUsersInput');
+    const searchResults = document.getElementById('searchResults');
+    if (searchUsersInput) {
+        searchUsersInput.value = '';
+        searchUsersInput.focus();
+    }
+    
+    // Load all searchable users by default
+    if (searchResults) {
+        await loadAllSearchableUsers();
+    }
+}
+
+async function loadAllSearchableUsers() {
+    const searchResults = document.getElementById('searchResults');
+    if (!searchResults) return;
+    
+    try {
+        searchResults.innerHTML = '<div style="padding: 40px; text-align: center; color: #999;">Loading users...</div>';
+        
+        const response = await fetch('/api/users/search');
+        if (!response.ok) throw new Error('Failed to load users');
+        
+        let users = await response.json();
+        
+        // Filter out current user
+        if (API.currentUser) {
+            users = users.filter(u => u.username !== API.currentUser.username);
+        }
+        
+        if (users.length === 0) {
+            searchResults.innerHTML = `
+                <div class="search-results-empty">
+                    <div>👥</div>
+                    <h3>No users yet</h3>
+                </div>
+            `;
+            return;
+        }
+        
+        await renderSearchResults(users);
+    } catch (error) {
+        console.error('❌ Error loading users:', error);
+        searchResults.innerHTML = `
+            <div class="search-results-empty">
+                <p>Failed to load users. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+async function renderSearchResults(users) {
+    const searchResults = document.getElementById('searchResults');
+    if (!searchResults) return;
+    
+    // Get current user's following list (contains UIDs)
+    const following = API.currentUser?.following || [];
+    
+    searchResults.innerHTML = users.map(user => {
+        const isFollowing = following.includes(user.uid); // Compare UIDs, not usernames
+        const isSelf = user.username === API.currentUser?.username;
+        
+        return `
+            <div class="search-result-item" data-username="${user.username}">
+                ${getAvatarHtml(user.username, user.gravatarHash, 40)}
+                <div class="search-result-info">
+                    <div class="search-result-username">@${user.username}</div>
+                    <div class="search-result-stats">${user.followersCount || 0} followers · ${user.followingCount || 0} following</div>
+                </div>
+                ${!isSelf ? `<button class="search-result-follow-btn ${isFollowing ? 'following' : ''}" data-username="${user.username}" data-uid="${user.uid}">
+                    ${isFollowing ? 'Following' : 'Follow'}
+                </button>` : ''}
+            </div>
+        `;
+    }).join('');
+    
+    // Add click handlers to results (navigate to profile)
+    searchResults.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Don't navigate if clicking the follow button
+            if (e.target.classList.contains('search-result-follow-btn')) return;
+            
+            const username = item.dataset.username;
+            // Navigate to user's profile
+            API.viewingUser = username;
+            history.pushState({ type: 'home' }, '', `/${username}`);
+            loadAllData().then(() => {
+                showHomeView();
+            });
+        });
+    });
+    
+    // Add click handlers to follow buttons
+    searchResults.querySelectorAll('.search-result-follow-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const username = btn.dataset.username;
+            const uid = btn.dataset.uid;
+            const isFollowing = btn.classList.contains('following');
+            
+            try {
+                if (isFollowing) {
+                    await API.unfollowUser(uid, username);
+                    btn.classList.remove('following');
+                    btn.textContent = 'Follow';
+                } else {
+                    await API.followUser(uid, username);
+                    btn.classList.add('following');
+                    btn.textContent = 'Following';
+                }
+            } catch (error) {
+                console.error('❌ Follow/unfollow error:', error);
+                alert('Failed to update follow status');
+            }
+        });
+    });
+}
+
 async function loadFeed() {
     try {
         const activities = await API.getFeed();
@@ -2186,6 +2358,19 @@ async function loadAllData() {
         
         // IMPORTANT: Set viewing user from URL BEFORE loading data
         const path = window.location.pathname;
+        
+        // Skip loading data for special routes but still handle routing
+        if (path === '/search' || path === '/login' || path === '/signup' || path === '/logout') {
+            console.log('🚫 Special route detected, skipping data load but handling routing:', path);
+            // For search, set viewing user to current user if logged in
+            if (path === '/search' && API.currentUser) {
+                API.viewingUser = API.currentUser.username;
+            }
+            updateEditControls(); // Update navbar controls
+            loadFromURL();
+            return;
+        }
+        
         const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
         if (usernameMatch) {
             const username = usernameMatch[1];
@@ -3136,6 +3321,66 @@ debugModal?.addEventListener('keydown', (e) => {
             firstElement.focus();
         }
     }
+});
+
+// Search Page functionality
+const searchView = document.getElementById('searchView');
+const searchUsersInput = document.getElementById('searchUsersInput');
+const searchResults = document.getElementById('searchResults');
+const navSearchBtn = document.getElementById('navSearchBtn');
+
+// Navigate to search page
+navSearchBtn?.addEventListener('click', () => {
+    history.pushState({ type: 'search' }, '', '/search');
+    showSearchView();
+});
+
+// Search users as user types
+let searchTimeout;
+searchUsersInput?.addEventListener('input', (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    
+    clearTimeout(searchTimeout);
+    
+    // If query is empty, reload all users
+    if (!query) {
+        loadAllSearchableUsers();
+        return;
+    }
+    
+    // Debounce search
+    searchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error('Search failed');
+            
+            let users = await response.json();
+            
+            // Filter out current user
+            if (API.currentUser) {
+                users = users.filter(u => u.username !== API.currentUser.username);
+            }
+            
+            if (users.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="search-results-empty">
+                        <div>🔍</div>
+                        <h3>No users found</h3>
+                    </div>
+                `;
+                return;
+            }
+            
+            await renderSearchResults(users);
+        } catch (error) {
+            console.error('❌ Search error:', error);
+            searchResults.innerHTML = `
+                <div class="search-results-empty">
+                    <p>Search failed. Please try again.</p>
+                </div>
+            `;
+        }
+    }, 300); // 300ms debounce
 });
 
 // Shortcuts modal functionality - DISABLED (keyboard shortcuts removed)

@@ -4,8 +4,9 @@ Future features and improvements for Sous.
 
 ## 🚀 GA Blockers (Must-Have Before Launch)
 
-- **User Account Settings Page** - Create `/settings` page where users can adjust account settings, manage API keys for various services (AI parsing, etc.), update email/password, view usage stats
-- **User Search** - Search for users in the system by username or name to discover and follow them
+- **User Profile Page (LTK-inspired)** - Create dedicated profile page at `/{username}` with hero section (avatar, bio, stats), follow button, tabbed content navigation (Recipes/Collections/Menus), and visual grid layout. Separate from home view to showcase user's public presence.
+- **User Account Settings Page** - Create `/settings` page where users can adjust account settings (including search visibility toggle), manage API keys for various services (AI parsing, etc.), update email/password, view usage stats
+- **User Search** - ✅ Search for users in the system by username or name to discover and follow them. Requires login. Users can opt-out via settings.
 - **Following/Followers List View** - Display lists of users you're following and users who follow you. Needs a reasonable placement (perhaps in user profile/settings, or as a dedicated view accessible from profile). Should show avatars, usernames, and allow quick follow/unfollow actions.
 - **Public Changelog & Blog** - Set up public-facing changelog URL (maybe `/changelog` or separate site) that updates as features ship. Also support blog posts from site runners. Consider: Same site vs. separate marketing site, CMS vs. markdown files, update workflow
 
