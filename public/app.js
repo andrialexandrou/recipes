@@ -124,14 +124,20 @@ const API = {
                                     
                                     if (userDoc.exists) {
                                         const userData = userDoc.data();
+                                        // Compute gravatarHash client-side
+                                        const gravatarHash = firebaseUser.email 
+                                            ? SparkMD5.hash(firebaseUser.email.toLowerCase().trim())
+                                            : null;
+                                        
                                         this.currentUser = {
                                             username: userData.username,
                                             displayName: userData.username,
                                             email: firebaseUser.email,
                                             uid: firebaseUser.uid,
-                                            isStaff: userData.isStaff || false
+                                            isStaff: userData.isStaff || false,
+                                            gravatarHash: gravatarHash // Computed gravatarHash
                                         };
-                                        console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`, this.currentUser.isStaff ? '🛠️ Staff' : '');
+                                        console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`, this.currentUser.isStaff ? '🛠️ Staff' : '', 'gravatarHash:', gravatarHash ? 'computed' : 'none');
                                         
                                         // Set viewing user
                                         if (!this.viewingUser) {
@@ -162,12 +168,18 @@ const API = {
                             const users = await fetch('/api/users').then(r => r.json());
                             const matchedUser = users.find(u => u.email === firebaseUser.email);
                             
+                            // Compute gravatarHash client-side
+                            const gravatarHash = firebaseUser.email 
+                                ? SparkMD5.hash(firebaseUser.email.toLowerCase().trim())
+                                : null;
+                            
                             if (matchedUser) {
                                 this.currentUser = {
                                     username: matchedUser.username,
                                     displayName: matchedUser.username,
                                     email: firebaseUser.email,
-                                    uid: firebaseUser.uid
+                                    uid: firebaseUser.uid,
+                                    gravatarHash: gravatarHash
                                 };
                                 console.log('👤 Logged in as (server match):', this.currentUser.username, `(${this.currentUser.email})`);
                             } else {
@@ -177,7 +189,8 @@ const API = {
                                     username: username,
                                     displayName: username,
                                     email: firebaseUser.email,
-                                    uid: firebaseUser.uid
+                                    uid: firebaseUser.uid,
+                                    gravatarHash: gravatarHash
                                 };
                                 console.log('👤 Logged in as (email fallback):', this.currentUser.username, `(${this.currentUser.email})`);
                             }
@@ -875,7 +888,7 @@ if (viewingUserLink) {
 }
 
 // Update edit controls visibility based on ownership
-async function updateEditControls() {
+function updateEditControls() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     const isLoggedIn = !!API.currentUser;
     
@@ -888,63 +901,53 @@ async function updateEditControls() {
     
     if (navMenuBtn && navMenuBtnWrapper) {
         navMenuBtnWrapper.style.display = isLoggedIn ? 'block' : 'none';
-        // Set Gravatar on navbar avatar button - fetch from server for consistency
+        // Set Gravatar on navbar avatar button using cached gravatarHash
         if (isLoggedIn && API.currentUser) {
             // Clear any existing fallback
             const existingFallback = navMenuBtnWrapper.querySelector('.nav-avatar-fallback');
             if (existingFallback) existingFallback.remove();
             
-            const userRes = await fetch(`/api/${API.currentUser.username}/user`);
-            if (userRes.ok) {
-                const userData = await userRes.json();
-                console.log('👤 Nav avatar userData:', userData.gravatarHash ? 'has hash' : 'no hash');
-                if (userData.gravatarHash) {
-                    const gravatarUrl = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=56&d=404`;
-                    navMenuBtn.src = gravatarUrl;
-                    navMenuBtn.style.display = 'block';
-                    // Handle 404 - show initials fallback
-                    navMenuBtn.onerror = () => {
-                        console.log('⚠️ Gravatar 404, showing fallback');
-                        navMenuBtn.style.display = 'none';
-                        // Check if fallback already exists
-                        if (!navMenuBtnWrapper.querySelector('.nav-avatar-fallback')) {
-                            const initial = API.currentUser.username.charAt(0).toUpperCase();
-                            const fallback = document.createElement('div');
-                            fallback.className = 'nav-avatar-fallback';
-                            fallback.textContent = initial;
-                            fallback.setAttribute('aria-label', 'Menu');
-                            fallback.setAttribute('aria-expanded', 'false');
-                            // Copy click handler
-                            fallback.addEventListener('click', (e) => {
-                                console.log('🖱️ Fallback avatar clicked');
-                                e.stopPropagation();
-                                navbarDropdown.classList.toggle('hidden');
-                                fallback.setAttribute('aria-expanded', !navbarDropdown.classList.contains('hidden'));
-                            });
-                            navMenuBtnWrapper.appendChild(fallback);
-                        }
-                    };
-                } else {
-                    // No Gravatar hash, show initials directly
-                    console.log('📝 No hash, creating fallback');
-                    navMenuBtn.style.display = 'none';
-                    // Check if fallback already exists
-                    if (!navMenuBtnWrapper.querySelector('.nav-avatar-fallback')) {
-                        const initial = API.currentUser.username.charAt(0).toUpperCase();
-                        const fallback = document.createElement('div');
-                        fallback.className = 'nav-avatar-fallback';
-                        fallback.textContent = initial;
-                        fallback.setAttribute('aria-label', 'Menu');
-                        fallback.setAttribute('aria-expanded', 'false');
-                        fallback.addEventListener('click', (e) => {
-                            console.log('🖱️ Fallback avatar clicked');
-                            e.stopPropagation();
-                            navbarDropdown.classList.toggle('hidden');
-                            fallback.setAttribute('aria-expanded', !navbarDropdown.classList.contains('hidden'));
-                        });
-                        navMenuBtnWrapper.appendChild(fallback);
+            const gravatarHash = API.currentUser.gravatarHash;
+            console.log('👤 Nav avatar gravatarHash:', gravatarHash ? 'has hash' : 'no hash');
+            
+            // Helper function to create and attach fallback
+            const createFallback = () => {
+                const existingFallback = navMenuBtnWrapper.querySelector('.nav-avatar-fallback');
+                if (existingFallback) return; // Already exists
+                
+                const initial = API.currentUser.username.charAt(0).toUpperCase();
+                const fallback = document.createElement('div');
+                fallback.className = 'nav-avatar-fallback';
+                fallback.textContent = initial;
+                fallback.setAttribute('aria-label', 'Menu');
+                fallback.setAttribute('aria-expanded', 'false');
+                fallback.addEventListener('click', (e) => {
+                    console.log('🖱️ Fallback avatar clicked');
+                    e.stopPropagation();
+                    const dropdown = document.getElementById('navbarDropdown');
+                    if (dropdown) {
+                        dropdown.classList.toggle('hidden');
+                        fallback.setAttribute('aria-expanded', !dropdown.classList.contains('hidden'));
                     }
-                }
+                });
+                navMenuBtnWrapper.appendChild(fallback);
+            };
+            
+            if (gravatarHash) {
+                const gravatarUrl = `https://www.gravatar.com/avatar/${gravatarHash}?s=56&d=404`;
+                navMenuBtn.src = gravatarUrl;
+                navMenuBtn.style.display = 'block';
+                // Handle 404 - show initials fallback
+                navMenuBtn.onerror = () => {
+                    console.log('⚠️ Gravatar 404, showing fallback');
+                    navMenuBtn.style.display = 'none';
+                    createFallback();
+                };
+            } else {
+                // No Gravatar hash, show initials directly
+                console.log('📝 No hash, creating fallback');
+                navMenuBtn.style.display = 'none';
+                createFallback();
             }
         }
     }
@@ -2857,17 +2860,30 @@ newMenuBtn.addEventListener('click', createNewMenu);
 newMenuBtnHome.addEventListener('click', createNewMenu);
 
 // Navbar dropdown handlers
-navMenuBtn.addEventListener('click', (e) => {
+navMenuBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     navbarDropdown.classList.toggle('hidden');
     
     // Update user info in dropdown
     if (!navbarDropdown.classList.contains('hidden') && API.currentUser) {
-        const dropdownUserAvatar = document.getElementById('dropdownUserAvatar');
+        const dropdownProfile = document.getElementById('dropdownProfile');
         const dropdownUsername = document.getElementById('dropdownUsername');
-        const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
-        dropdownUserAvatar.src = gravatarUrl;
-        dropdownUsername.textContent = `@${API.currentUser.username}`;
+        
+        // Fetch user data to get gravatarHash
+        const userRes = await fetch(`/api/${API.currentUser.username}/user`);
+        if (userRes.ok) {
+            const userData = await userRes.json();
+            // Use getAvatarHtml to create avatar with fallback
+            const avatarHtml = getAvatarHtml(API.currentUser.username, userData.gravatarHash, 40);
+            // Replace the img element with the avatar HTML
+            const existingAvatar = dropdownProfile.querySelector('img, .feed-avatar-fallback');
+            if (existingAvatar) {
+                existingAvatar.remove();
+            }
+            // Insert avatar HTML before username
+            dropdownProfile.insertAdjacentHTML('afterbegin', avatarHtml);
+            dropdownUsername.textContent = `@${API.currentUser.username}`;
+        }
     }
 });
 
