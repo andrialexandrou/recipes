@@ -2,6 +2,20 @@
 
 All notable changes to the Sous recipe manager.
 
+## 2025-11-16
+
+### Public Content Viewing (Logged-Out Experience)
+- Enabled viewing any user's recipes, collections, and menus without requiring login
+- Added `Sign In` button to navbar for logged-out users (replaces menu dropdown)
+- Modified authentication flow to allow username-prefixed URLs (`/{username}/...`) without redirect
+- Added server endpoint `/api/:username/user` to fetch user info for Gravatar rendering
+- Fixed Gravatar rendering for logged-out users (uses server API instead of Firestore client SDK)
+- Added 404 page for non-existent users with clean error messaging
+- Hidden sidebar on 404 page for cleaner presentation
+- Keyboard shortcuts (N for new recipe, E for edit) disabled when logged out or viewing other users' content
+- Edit/delete/create buttons automatically hidden when viewing other users' content
+- Improved avatar loading with skeleton color matching to prevent visual flash
+
 ## 2025-11-12
 
 ### WYSIWYG Markdown Editor

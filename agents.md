@@ -122,6 +122,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Username collection during signup
 - Automatic Firestore user document creation
 - Firebase Auth UID-based data ownership
+- **Public content viewing** - Logged-out users can view any user's content via username URLs
 
 **Signup Flow:**
 
@@ -137,6 +138,18 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 2. App fetches user document from Firestore by UID
 3. Sets `API.currentUser` with username, email, uid
 4. Loads user's data via userId-based queries
+
+**Public Viewing (Logged-Out):**
+
+1. User visits `/{username}/recipe/...` or similar while logged out
+2. Auth system checks for username-prefixed URL before redirecting
+3. Sets `API.viewingUser` from URL, allows content viewing
+4. `loadAllData()` loads content using `viewingUser` even when `currentUser` is null
+5. Shows "Sign In" button in navbar instead of menu dropdown
+6. All edit/delete/create controls hidden automatically
+7. Keyboard shortcuts disabled for creating/editing content
+8. Gravatar fetched via server API `/api/:username/user` endpoint
+9. 404 page shown for non-existent users with hidden sidebar
 
 **Staff Users:**
 

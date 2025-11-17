@@ -2,33 +2,45 @@
 
 Future features and improvements for Sous.
 
+## 🚀 GA Blockers (Must-Have Before Launch)
+
+- **User Account Settings Page** - Create `/settings` page where users can adjust account settings, manage API keys for various services (AI parsing, etc.), update email/password, view usage stats
+- **Follow Users** - Allow users to follow other users to see their content in activity feed
+- **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users. Display on login/home page
+- **User Search** - Search for users in the system by username or name to discover and follow them
+- **Public Changelog & Blog** - Set up public-facing changelog URL (maybe `/changelog` or separate site) that updates as features ship. Also support blog posts from site runners. Consider: Same site vs. separate marketing site, CMS vs. markdown files, update workflow
+
 ## Quick Wins (Small Effort)
 
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
+- **Share Button with Options** - Convert the copy link icon button to a share button with a dropdown/menu of sharing options. For now, include "Copy Link" as the primary action. Open to low-lift suggestions on modern sharing patterns (Web Share API for mobile, social media quick-shares, etc.) and OS integration possibilities
 
 ## Medium Effort
 
 - **Open Graph Cards for Social Sharing** - Generate Open Graph meta tags for recipes, collections, and menus to create rich preview cards when sharing links. Use page content and user-provided images to auto-generate cards. Optional: As a pro feature, use AI to generate enhanced cards with title, estimated duration from recipe notes, basic instructions, etc.
+- **Rich Recipe Cards** - Generate beautiful, structured recipe cards with parsed metadata (temp, time, prep time, ingredients, steps, key points). See `public/example-recipe-card.png` for reference design. This may be separate from Open Graph images—more comprehensive than what fits in a social media preview.
+- **Recipe Scrapbooks** - Add a scrapbook/memory section to each recipe to preserve personal history: original handwritten cards from grandma, photos from each time you made it, notes about what occasion it was for, who you made it with, etc. A timeline of memories attached to each recipe.
 - **Vertical Menu Cards with Header Images** - Make menu cards vertical (Pinterest-style) with optional header images for better visual appeal and social sharing
-- **Public Content Viewing (Logged Out)** - Allow viewing user content via direct links when logged out, only redirect to login for app navigation
 - **Export User Content** - Export all recipes, collections, and menus as JSON or Markdown
 - **Turn a Collection into a PDF Cookbook** - Generate a formatted PDF from a collection's recipes
 - **Import/Migration Tool** - Allow users to bulk import recipes from various file formats (PDF, Markdown, HTML, text files) to populate their catalog after account creation. Implementation: Use Vercel AI SDK with user-provided API keys stored securely in their Firestore user document. Let users attach their own OpenAI/Anthropic key for AI-powered parsing, or start with simple markdown/text imports without AI. Trade-off: User provides key (no cost to app) vs. built-in credits (simpler UX but ongoing costs).
 
 ## Large Features
 
-- **Follow Users** - Allow users to follow other users to see their content
-- **Activity Feed/Wall** - Show a feed of recent recipes, collections, and menus created by followed users
+- **Redesign Mobile Experience** - The current responsive web experience feels odd on mobile. Need to fully redesign the mobile experience to be truly mobile-first with native-feeling interactions, gestures, and navigation patterns. May require building a separate mobile-optimized app/view rather than just responsive CSS adjustments. Consider: touch-first interactions, bottom navigation, card-based UI, swipe gestures, mobile-specific editing UX.
 
 ## Potential Features (Brainstorming)
 
+- **Export Recipes as PDF Book** - Generate a formatted PDF book from selected recipes or entire catalog with professional layout, table of contents, and typography
+- **Recipe Notes/Modifications** - Add a notes field to track what you changed or tweaked in a recipe (e.g., "Used less salt", "Doubled the garlic", "Baked at 375° instead")
+- **Potluck Planning Templates** - Templates or blank forms for potluck planning (who's bringing what, dietary restrictions, serving sizes, etc.)
+- **Recipe Import from URLs** - Use AI to intelligently extract and parse recipe data from various website formats. Implementation: Use Vercel AI SDK with user-provided API keys (same model as Import/Migration Tool)
+- **Shopping List Generation** - Use AI to extract ingredients from recipe markdown and intelligently consolidate across multiple recipes. Note: Uncertain how much shopping list functionality to offer—keep scope minimal for now
 - Recipe sharing/permissions (public/private recipes)
 - Recipe tags/categories beyond collections
 - Search across all fields (not just title)
-- Recipe import from URLs
 - Meal planning calendar
-- Shopping list generation
 - Recipe ratings/favorites
 - Comments on recipes
 
