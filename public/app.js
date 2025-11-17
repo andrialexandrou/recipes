@@ -973,10 +973,10 @@ function updateEditControls() {
     if (menuDeleteBtn) menuDeleteBtn.style.display = isOwner ? 'inline-flex' : 'none';
     if (menuDeleteBtn2) menuDeleteBtn2.style.display = isOwner ? 'inline-flex' : 'none';
     
-    // "New Recipe" menu item
+    // "New Recipe" menu item - always visible when logged in
     const dropdownNewRecipe = document.getElementById('dropdownNewRecipe');
     if (dropdownNewRecipe) {
-        dropdownNewRecipe.style.display = isOwner ? 'block' : 'none';
+        dropdownNewRecipe.style.display = isLoggedIn ? 'block' : 'none';
     }
     
     // Debug menu item (staff only)
@@ -2881,10 +2881,24 @@ navMenuBtn.addEventListener('click', async (e) => {
 
 dropdownCollections.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
-    // Navigate to current user's collections, not viewing user
+    // Navigate to current user's collections
     if (API.currentUser) {
-        API.viewingUser = API.currentUser.username;
-        history.pushState({ type: 'collections' }, '', `/${API.currentUser.username}/collections`);
+        // Only change viewing user if we're currently viewing someone else
+        const path = window.location.pathname;
+        const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
+        const urlUsername = usernameMatch ? usernameMatch[1] : null;
+        
+        // If URL doesn't have a username or it's not the current user, navigate to current user
+        if (!urlUsername || urlUsername === API.currentUser.username) {
+            // Stay with current viewing context
+            history.pushState({ type: 'collections' }, '', `/${API.currentUser.username}/collections`);
+        } else {
+            // Viewing someone else - switch back to own collections
+            API.viewingUser = API.currentUser.username;
+            history.pushState({ type: 'collections' }, '', `/${API.currentUser.username}/collections`);
+            // Reload data for current user
+            loadAllData();
+        }
         switchToView('collections');
     }
 });
@@ -2903,17 +2917,37 @@ dropdownFeed.addEventListener('click', () => {
 
 dropdownMenus.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
-    // Navigate to current user's menus, not viewing user
+    // Navigate to current user's menus
     if (API.currentUser) {
-        API.viewingUser = API.currentUser.username;
-        history.pushState({ type: 'menus' }, '', `/${API.currentUser.username}/menus`);
+        // Only change viewing user if we're currently viewing someone else
+        const path = window.location.pathname;
+        const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
+        const urlUsername = usernameMatch ? usernameMatch[1] : null;
+        
+        // If URL doesn't have a username or it's not the current user, navigate to current user
+        if (!urlUsername || urlUsername === API.currentUser.username) {
+            // Stay with current viewing context
+            history.pushState({ type: 'menus' }, '', `/${API.currentUser.username}/menus`);
+        } else {
+            // Viewing someone else - switch back to own menus
+            API.viewingUser = API.currentUser.username;
+            history.pushState({ type: 'menus' }, '', `/${API.currentUser.username}/menus`);
+            // Reload data for current user
+            loadAllData();
+        }
         switchToView('menus');
     }
 });
 
 dropdownNewRecipe.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
-    createNewRecipe();
+    // If viewing someone else's profile, switch to own profile before creating
+    if (API.currentUser && API.viewingUser !== API.currentUser.username) {
+        API.viewingUser = API.currentUser.username;
+        loadAllData().then(() => createNewRecipe());
+    } else {
+        createNewRecipe();
+    }
 });
 
 // Keyboard shortcuts modal removed - shortcuts interfered with browser behavior
