@@ -17,12 +17,14 @@ Future features and improvements for Sous.
 
 ## Quick Wins (Small Effort)
 
+- **Empty Feed State with Sample Content** - When a new user's feed is empty (not following anyone yet), show sample/featured content from a designated account (e.g., site admin) with clear messaging: "Your feed is empty! Here are some recipes to explore..." Display sample recipes with a prominent "Follow @username to see more" CTA. This gives new users immediate value and demonstrates how the feed works without forcing follows.
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
 - **Share Button with Options** - Convert the copy link icon button to a share button with a dropdown/menu of sharing options. For now, include "Copy Link" as the primary action. Open to low-lift suggestions on modern sharing patterns (Web Share API for mobile, social media quick-shares, etc.) and OS integration possibilities
 
 ## Medium Effort
 
+- **Pull-to-Refresh for iOS Home Screen App** - Enable native iOS pull-to-refresh gesture when app is installed on iPhone home screen. Current fixed layout with `overflow: hidden` on body prevents native gesture. Options: (1) Restructure layout to make body scrollable instead of internal containers, or (2) Implement custom pull-to-refresh that works with current scrollable containers. Trade-off: Layout restructure (enables native iOS feature) vs. custom implementation (keeps current design intact).
 - **Collection Activity Feed** - Add new activity type `recipe_added_to_collection` to show when users add recipes to their collections. This gives more visibility to curation activity and helps followers discover recipes through collections.
 - **Open Graph Cards for Social Sharing** - Generate Open Graph meta tags for recipes, collections, and menus to create rich preview cards when sharing links. Use page content and user-provided images to auto-generate cards. Optional: As a pro feature, use AI to generate enhanced cards with title, estimated duration from recipe notes, basic instructions, etc.
 - **Rich Recipe Cards** - Generate beautiful, structured recipe cards with parsed metadata (temp, time, prep time, ingredients, steps, key points). See `public/example-recipe-card.png` for reference design. This may be separate from Open Graph images—more comprehensive than what fits in a social media preview.
