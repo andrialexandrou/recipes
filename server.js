@@ -1248,8 +1248,21 @@ app.get('*', (req, res) => {
         return res.sendFile(path.join(__dirname, 'public', 'signup.html'));
     }
     
-    // Default to main SPA
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Default to main SPA - inject dynamic OG tags
+    const indexPath = path.join(__dirname, 'public', 'index.html');
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    
+    fs.readFile(indexPath, 'utf8', (err, html) => {
+        if (err) {
+            return res.sendFile(indexPath);
+        }
+        // Replace placeholder URLs with actual domain
+        const modifiedHtml = html
+            .replace(/\{\{BASE_URL\}\}/g, baseUrl);
+        res.send(modifiedHtml);
+    });
 });
 
 app.listen(PORT, async () => {
