@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 
@@ -277,6 +278,313 @@ function buildUserQuery(collection, req) {
     return collection.where('username', '==', req.username);
 }
 
+// Helper function to extract preview text from markdown content
+function extractPreview(content, maxLength = 150) {
+    if (!content) return '';
+    
+    // Remove markdown formatting
+    let text = content
+        .replace(/^#+\s+/gm, '')           // Remove headers
+        .replace(/\*\*(.+?)\*\*/g, '$1')   // Remove bold
+        .replace(/\*(.+?)\*/g, '$1')       // Remove italic
+        .replace(/!\[.*?\]\(.*?\)/g, '')   // Remove images
+        .replace(/\[(.+?)\]\(.*?\)/g, '$1') // Remove links, keep text
+        .replace(/`(.+?)`/g, '$1')         // Remove inline code
+        .replace(/^[-*+]\s+/gm, '')        // Remove list markers
+        .replace(/^\d+\.\s+/gm, '')        // Remove numbered lists
+        .replace(/\n+/g, ' ')              // Replace newlines with spaces
+        .trim();
+    
+    // Truncate to maxLength
+    if (text.length > maxLength) {
+        text = text.substring(0, maxLength).trim() + '...';
+    }
+    
+    return text;
+}
+
+// Helper function to fan-out activity to all followers' feeds
+async function fanOutActivity(authorUserId, activityData) {
+    if (!useFirebase || !db || firebaseFailureDetected) {
+        console.log('⚠️ Skipping fan-out: Firebase not available');
+        return;
+    }
+    
+    try {
+        // Get author's user document to access followers array
+        const authorDoc = await db.collection('users').doc(authorUserId).get();
+        if (!authorDoc.exists) {
+            console.log('⚠️ Author user not found for fan-out');
+            return;
+        }
+        
+        const followers = authorDoc.data().followers || [];
+        if (followers.length === 0) {
+            console.log('📭 No followers to fan-out to');
+            return;
+        }
+        
+        console.log(`📤 Fanning out activity to ${followers.length} followers`);
+        
+        // Create activity in main activities collection
+        const activityRef = await db.collection('activities').add({
+            ...activityData,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Fan-out to each follower's feed using batched writes
+        // Firestore batches support max 500 operations
+        const batchSize = 500;
+        for (let i = 0; i < followers.length; i += batchSize) {
+            const batch = db.batch();
+            const followerChunk = followers.slice(i, i + batchSize);
+            
+            followerChunk.forEach(followerId => {
+                const feedRef = db.collection('feeds')
+                    .doc(followerId)
+                    .collection('activities')
+                    .doc(activityRef.id); // Use same ID as main activity
+                
+                batch.set(feedRef, {
+                    ...activityData,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            
+            await batch.commit();
+        }
+        
+        console.log(`✅ Activity fanned out to ${followers.length} followers`);
+    } catch (error) {
+        console.error('❌ Error fanning out activity:', error);
+        // Don't throw - fan-out failure shouldn't break the main operation
+    }
+}
+
+// Helper function to remove an activity from all followers' feeds when content is deleted
+async function removeActivityFromFollowers(authorUserId, activityType, entityId) {
+    if (!useFirebase || !db || firebaseFailureDetected) {
+        console.log('⚠️ Skipping activity removal: Firebase not available');
+        return;
+    }
+    
+    try {
+        console.log(`🗑️ Removing ${activityType} activity for entity ${entityId} from followers' feeds`);
+        
+        // Get author's followers
+        const authorDoc = await db.collection('users').doc(authorUserId).get();
+        if (!authorDoc.exists) {
+            console.log('⚠️ Author user not found for activity removal');
+            return;
+        }
+        
+        const followers = authorDoc.data().followers || [];
+        if (followers.length === 0) {
+            console.log('📭 No followers to remove activity from');
+            return;
+        }
+        
+        console.log(`🗑️ Removing activity from ${followers.length} followers' feeds`);
+        
+        // Activity ID matches the format used in fan-out
+        const activityId = `${activityType}_${entityId}`;
+        
+        // Delete from each follower's feed using batched writes
+        const batchSize = 500;
+        for (let i = 0; i < followers.length; i += batchSize) {
+            const batch = db.batch();
+            const followerChunk = followers.slice(i, i + batchSize);
+            
+            followerChunk.forEach(followerId => {
+                const feedRef = db.collection('feeds')
+                    .doc(followerId)
+                    .collection('activities')
+                    .doc(activityId);
+                
+                batch.delete(feedRef);
+            });
+            
+            await batch.commit();
+        }
+        
+        console.log(`✅ Activity removed from ${followers.length} followers' feeds`);
+    } catch (error) {
+        console.error('❌ Activity removal failed:', error);
+        // Don't throw - removal failure shouldn't break the delete operation
+    }
+}
+
+// Helper function to remove all activities from a specific user when unfollowing
+async function removeUserActivitiesFromFeed(followerId, unfollowedUserId) {
+    if (!useFirebase || !db || firebaseFailureDetected) {
+        console.log('⚠️ Skipping feed cleanup: Firebase not available');
+        return;
+    }
+    
+    try {
+        console.log(`🧹 Cleaning up activities from user ${unfollowedUserId} in follower ${followerId}'s feed`);
+        
+        // Query all activities from the unfollowed user
+        const activitiesSnapshot = await db.collection('feeds')
+            .doc(followerId)
+            .collection('activities')
+            .where('userId', '==', unfollowedUserId)
+            .get();
+        
+        if (activitiesSnapshot.empty) {
+            console.log('📭 No activities to remove');
+            return;
+        }
+        
+        console.log(`🗑️ Removing ${activitiesSnapshot.size} activities`);
+        
+        // Delete activities using batched writes
+        const batchSize = 500;
+        const docs = activitiesSnapshot.docs;
+        for (let i = 0; i < docs.length; i += batchSize) {
+            const batch = db.batch();
+            const docChunk = docs.slice(i, i + batchSize);
+            
+            docChunk.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            
+            await batch.commit();
+        }
+        
+        console.log(`✅ Removed ${activitiesSnapshot.size} activities from feed`);
+    } catch (error) {
+        console.error('❌ Feed cleanup failed:', error);
+        // Don't throw - cleanup failure shouldn't break the unfollow operation
+    }
+}
+
+// Helper function to backfill a user's feed with existing content from a followed user
+async function backfillFeedForNewFollow(followerId, followedUserId) {
+    if (!useFirebase || !db || firebaseFailureDetected) {
+        console.log('⚠️ Skipping backfill: Firebase not available');
+        return;
+    }
+    
+    try {
+        console.log(`📥 Backfilling feed for follower ${followerId} with content from ${followedUserId}`);
+        
+        // Get followed user's username for the activities
+        const followedUserDoc = await db.collection('users').doc(followedUserId).get();
+        if (!followedUserDoc.exists) {
+            console.log('⚠️ Followed user not found for backfill');
+            return;
+        }
+        const followedUsername = followedUserDoc.data().username;
+        
+        // Fetch all existing content from followed user
+        const [recipesSnap, collectionsSnap, menusSnap] = await Promise.all([
+            db.collection('recipes').where('userId', '==', followedUserId).get(),
+            db.collection('collections').where('userId', '==', followedUserId).get(),
+            db.collection('menus').where('userId', '==', followedUserId).get()
+        ]);
+        
+        const activities = [];
+        
+        // Create activities for recipes
+        recipesSnap.forEach(doc => {
+            const recipe = doc.data();
+            if (!recipe.createdAt) {
+                console.log(`⚠️ Skipping recipe "${recipe.title}" (${doc.id}) - no createdAt timestamp`);
+                return;
+            }
+            activities.push({
+                userId: followedUserId,
+                username: followedUsername,
+                type: 'recipe_created',
+                entityId: doc.id,
+                entityTitle: recipe.title,
+                entitySlug: recipe.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+                preview: extractPreview(recipe.content),
+                createdAt: recipe.createdAt
+            });
+        });
+        
+        // Create activities for collections
+        collectionsSnap.forEach(doc => {
+            const collection = doc.data();
+            if (!collection.createdAt) {
+                console.log(`⚠️ Skipping collection "${collection.name}" (${doc.id}) - no createdAt timestamp`);
+                return;
+            }
+            activities.push({
+                userId: followedUserId,
+                username: followedUsername,
+                type: 'collection_created',
+                entityId: doc.id,
+                entityTitle: collection.name,
+                entitySlug: collection.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+                preview: collection.description || '',
+                createdAt: collection.createdAt
+            });
+        });
+        
+        // Create activities for menus
+        menusSnap.forEach(doc => {
+            const menu = doc.data();
+            if (!menu.createdAt) {
+                console.log(`⚠️ Skipping menu "${menu.name}" (${doc.id}) - no createdAt timestamp`);
+                return;
+            }
+            activities.push({
+                userId: followedUserId,
+                username: followedUsername,
+                type: 'menu_created',
+                entityId: doc.id,
+                entityTitle: menu.name,
+                entitySlug: menu.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+                preview: extractPreview(menu.content || menu.description),
+                createdAt: menu.createdAt
+            });
+        });
+        
+        if (activities.length === 0) {
+            console.log('📭 No existing content to backfill');
+            return;
+        }
+        
+        console.log(`📝 Backfilling ${activities.length} activities`);
+        
+        // Write activities to follower's feed using batched writes
+        const batchSize = 500;
+        for (let i = 0; i < activities.length; i += batchSize) {
+            const batch = db.batch();
+            const activityChunk = activities.slice(i, i + batchSize);
+            
+            activityChunk.forEach(activity => {
+                // Create unique ID for each activity (combo of type and entity)
+                const activityId = `${activity.type}_${activity.entityId}`;
+                const feedRef = db.collection('feeds')
+                    .doc(followerId)
+                    .collection('activities')
+                    .doc(activityId);
+                
+                // Ensure createdAt is a Firestore Timestamp for proper sorting
+                const activityData = {
+                    ...activity,
+                    createdAt: activity.createdAt instanceof admin.firestore.Timestamp 
+                        ? activity.createdAt 
+                        : admin.firestore.Timestamp.fromDate(new Date(activity.createdAt))
+                };
+                
+                batch.set(feedRef, activityData);
+            });
+            
+            await batch.commit();
+        }
+        
+        console.log(`📥 Backfill complete: ${activities.length} activities added to feed`);
+    } catch (error) {
+        console.error('❌ Backfill failed:', error);
+        // Don't throw - follow should succeed even if backfill fails
+    }
+}
+
 // API Routes
 
 // Health check endpoint
@@ -316,11 +624,21 @@ app.get('/api/:username/user', validateUsername, async (req, res) => {
                 const usersSnapshot = await db.collection('users').where('username', '==', username).limit(1).get();
                 if (!usersSnapshot.empty) {
                     const userData = usersSnapshot.docs[0].data();
+                    
+                    // Compute Gravatar hash server-side (don't expose email)
+                    const gravatarHash = userData.email 
+                        ? crypto.createHash('md5').update(userData.email.toLowerCase().trim()).digest('hex')
+                        : null;
+                    
                     // Only return public information
                     res.json({
                         username: userData.username,
-                        email: userData.email,
-                        createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt
+                        gravatarHash: gravatarHash,
+                        createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt,
+                        following: userData.following || [],
+                        followers: userData.followers || [],
+                        followingCount: userData.followingCount || 0,
+                        followersCount: userData.followersCount || 0
                     });
                 } else {
                     res.status(404).json({ error: 'User not found' });
@@ -456,6 +774,24 @@ app.post('/api/:username/recipes', validateUsername, async (req, res) => {
                     updatedAt: new Date().toISOString()
                 };
                 console.log('🔥 Recipe created in Firebase:', docRef.id);
+                
+                // Fan-out activity to followers' feeds
+                if (req.userId) {
+                    const slug = (title || 'untitled').toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '');
+                    
+                    await fanOutActivity(req.userId, {
+                        userId: req.userId,
+                        username: username,
+                        type: 'recipe_created',
+                        entityId: docRef.id,
+                        entityTitle: title || 'Untitled Recipe',
+                        entitySlug: `${slug}-${docRef.id.substring(0, 6).toUpperCase()}`,
+                        preview: extractPreview(content)
+                    });
+                }
+                
                 res.json(result);
             } catch (firebaseError) {
                 console.error('❌ Firebase recipe creation failed:', firebaseError.message);
@@ -571,6 +907,12 @@ app.delete('/api/:username/recipes/:id', validateUsername, async (req, res) => {
                 }
                 await docRef.delete();
                 console.log('🔥 Recipe deleted from Firebase:', req.params.id);
+                
+                // Remove activity from all followers' feeds (non-blocking)
+                removeActivityFromFollowers(req.userId, 'recipe_created', req.params.id).catch(err => {
+                    console.error('⚠️ Failed to remove recipe activity from followers:', err);
+                });
+                
                 res.json({ success: true });
             } catch (firebaseError) {
                 console.error('❌ Firebase recipe deletion failed:', firebaseError.message);
@@ -663,6 +1005,24 @@ app.post('/api/:username/collections', validateUsername, async (req, res) => {
                     recipeIds: []
                 };
                 console.log('🔥 Collection created in Firebase:', docRef.id);
+                
+                // Fan-out activity to followers' feeds
+                if (req.userId) {
+                    const slug = (name || 'untitled').toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '');
+                    
+                    await fanOutActivity(req.userId, {
+                        userId: req.userId,
+                        username: username,
+                        type: 'collection_created',
+                        entityId: docRef.id,
+                        entityTitle: name || 'Untitled Collection',
+                        entitySlug: `${slug}-${docRef.id.substring(0, 6).toUpperCase()}`,
+                        preview: description || ''
+                    });
+                }
+                
                 res.json(result);
             } catch (firebaseError) {
                 console.error('❌ Firebase collection creation failed:', firebaseError.message);
@@ -835,6 +1195,12 @@ app.delete('/api/:username/collections/:id', validateUsername, async (req, res) 
                 }
                 await docRef.delete();
                 console.log('🔥 Collection deleted from Firebase:', req.params.id);
+                
+                // Remove activity from all followers' feeds (non-blocking)
+                removeActivityFromFollowers(req.userId, 'collection_created', req.params.id).catch(err => {
+                    console.error('⚠️ Failed to remove collection activity from followers:', err);
+                });
+                
                 res.json({ success: true });
             } catch (firebaseError) {
                 console.error('❌ Firebase collection deletion failed:', firebaseError.message);
@@ -979,6 +1345,24 @@ app.post('/api/:username/menus', validateUsername, async (req, res) => {
                 const docRef = await db.collection('menus').add(newMenu);
                 const result = { id: docRef.id, ...newMenu };
                 console.log('🔥 Menu created in Firebase:', docRef.id);
+                
+                // Fan-out activity to followers' feeds
+                if (req.userId) {
+                    const slug = (name || 'untitled').toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '');
+                    
+                    await fanOutActivity(req.userId, {
+                        userId: req.userId,
+                        username: username,
+                        type: 'menu_created',
+                        entityId: docRef.id,
+                        entityTitle: name || 'Untitled Menu',
+                        entitySlug: `${slug}-${docRef.id.substring(0, 6).toUpperCase()}`,
+                        preview: extractPreview(content || description)
+                    });
+                }
+                
                 res.json(result);
             } catch (firebaseError) {
                 console.error('❌ Firebase menu creation failed:', firebaseError.message);
@@ -1090,6 +1474,12 @@ app.delete('/api/:username/menus/:id', validateUsername, async (req, res) => {
                 }
                 await docRef.delete();
                 console.log('🔥 Menu deleted from Firebase:', req.params.id);
+                
+                // Remove activity from all followers' feeds (non-blocking)
+                removeActivityFromFollowers(req.userId, 'menu_created', req.params.id).catch(err => {
+                    console.error('⚠️ Failed to remove menu activity from followers:', err);
+                });
+                
                 res.json({ success: true });
             } catch (firebaseError) {
                 console.error('❌ Firebase menu deletion failed:', firebaseError.message);
@@ -1251,6 +1641,160 @@ app.delete('/api/:username/photos/:id', validateUsername, async (req, res) => {
         }
     } catch (error) {
         console.error('Error deleting photo:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ==================== FOLLOW/UNFOLLOW ENDPOINTS ====================
+
+// Follow a user
+app.post('/api/users/:targetUserId/follow', async (req, res) => {
+    const { currentUserId } = req.body;
+    const targetUserId = req.params.targetUserId;
+    
+    if (!currentUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    if (currentUserId === targetUserId) {
+        return res.status(400).json({ error: 'Cannot follow yourself' });
+    }
+    
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            // Check if already following (prevent duplicate clicks)
+            const currentUserDoc = await db.collection('users').doc(currentUserId).get();
+            const following = currentUserDoc.data()?.following || [];
+            
+            if (following.includes(targetUserId)) {
+                console.log(`⚠️ User ${currentUserId} already follows ${targetUserId}`);
+                return res.json({ success: true, alreadyFollowing: true });
+            }
+            
+            const batch = db.batch();
+            
+            // Add to current user's following array
+            const currentUserRef = db.collection('users').doc(currentUserId);
+            batch.update(currentUserRef, {
+                following: admin.firestore.FieldValue.arrayUnion(targetUserId),
+                followingCount: admin.firestore.FieldValue.increment(1)
+            });
+            
+            // Add to target user's followers array
+            const targetUserRef = db.collection('users').doc(targetUserId);
+            batch.update(targetUserRef, {
+                followers: admin.firestore.FieldValue.arrayUnion(currentUserId),
+                followersCount: admin.firestore.FieldValue.increment(1)
+            });
+            
+            await batch.commit();
+            console.log(`✅ User ${currentUserId} followed ${targetUserId}`);
+            
+            // Backfill the follower's feed with existing content from followed user
+            // Don't await - let it happen in background so follow completes quickly
+            backfillFeedForNewFollow(currentUserId, targetUserId).catch(err => {
+                console.error('⚠️ Backfill failed (non-fatal):', err.message);
+            });
+            
+            res.json({ success: true });
+        } else {
+            res.status(503).json({ error: 'Firebase not available' });
+        }
+    } catch (error) {
+        console.error('Error following user:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Unfollow a user
+app.delete('/api/users/:targetUserId/follow', async (req, res) => {
+    const { currentUserId } = req.body;
+    const targetUserId = req.params.targetUserId;
+    
+    if (!currentUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            // Check if actually following (prevent duplicate clicks)
+            const currentUserDoc = await db.collection('users').doc(currentUserId).get();
+            const following = currentUserDoc.data()?.following || [];
+            
+            if (!following.includes(targetUserId)) {
+                console.log(`⚠️ User ${currentUserId} doesn't follow ${targetUserId}`);
+                return res.json({ success: true, notFollowing: true });
+            }
+            
+            const batch = db.batch();
+            
+            // Remove from current user's following array
+            const currentUserRef = db.collection('users').doc(currentUserId);
+            batch.update(currentUserRef, {
+                following: admin.firestore.FieldValue.arrayRemove(targetUserId),
+                followingCount: admin.firestore.FieldValue.increment(-1)
+            });
+            
+            // Remove from target user's followers array
+            const targetUserRef = db.collection('users').doc(targetUserId);
+            batch.update(targetUserRef, {
+                followers: admin.firestore.FieldValue.arrayRemove(currentUserId),
+                followersCount: admin.firestore.FieldValue.increment(-1)
+            });
+            
+            await batch.commit();
+            console.log(`✅ User ${currentUserId} unfollowed ${targetUserId}`);
+            
+            // Remove all activities from unfollowed user's feed
+            removeUserActivitiesFromFeed(currentUserId, targetUserId).catch(err => {
+                console.error('⚠️ Feed cleanup failed (non-fatal):', err.message);
+            });
+            
+            res.json({ success: true });
+        } else {
+            res.status(503).json({ error: 'Firebase not available' });
+        }
+    } catch (error) {
+        console.error('Error unfollowing user:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get activity feed for current user
+app.get('/api/feed', async (req, res) => {
+    const { userId } = req.query;
+    
+    if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            // Query user's personal feed subcollection
+            const feedSnapshot = await db.collection('feeds')
+                .doc(userId)
+                .collection('activities')
+                .orderBy('createdAt', 'desc')
+                .limit(50)
+                .get();
+            
+            const activities = feedSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
+            }));
+            
+            console.log(`📰 Retrieved ${activities.length} feed items for user ${userId}`);
+            console.log('📅 First 5 timestamps:', activities.slice(0, 5).map(a => ({ 
+                title: a.entityTitle, 
+                created: a.createdAt 
+            })));
+            res.json(activities);
+        } else {
+            res.status(503).json({ error: 'Firebase not available' });
+        }
+    } catch (error) {
+        console.error('Error fetching feed:', error);
         res.status(500).json({ error: error.message });
     }
 });

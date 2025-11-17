@@ -44,10 +44,17 @@
 <body>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <a href="#" id="viewingUser" class="viewing-user" style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #eee; text-decoration: none; color: inherit; cursor: pointer;" title="View home page">
-                <div id="viewingUserAvatar" class="user-avatar skeleton-avatar" style="width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;"></div>
-                <span id="viewingUsername" class="skeleton-text" style="font-size: 14px; font-weight: 500; color: #333; height: 16px; width: 80px; display: inline-block;"></span>
+            <a href="#" id="viewingUser" class="viewing-user" title="View home page">
+                <div id="viewingUserAvatar" class="user-avatar skeleton-avatar"></div>
+                <span id="viewingUsername" class="skeleton-text"></span>
             </a>
+            <div id="followSection" class="follow-section hidden">
+                <button id="followBtn" class="follow-btn">Follow</button>
+                <div class="follow-stats">
+                    <span><strong id="followingCount">0</strong> following</span>
+                    <span><strong id="followersCount">0</strong> followers</span>
+                </div>
+            </div>
             <input 
                 type="text" 
                 class="filter-input" 
@@ -80,12 +87,10 @@
                 </button>
             </div>
                         <div class="navbar-nav">
-                <button id="navMenuBtn" class="icon-btn" aria-label="Menu" aria-expanded="false" style="display: none;">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a href="/login" class="nav-btn" id="navSignInBtn" aria-label="Sign In" style="text-decoration: none; display: none;">
-                    Sign In
-                </a>
+                                <div id="navMenuBtnWrapper">
+                                    <img id="navMenuBtn" class="nav-avatar-btn" aria-label="Menu" aria-expanded="false" alt="Menu" />
+                                </div>
+                <a href="/login" class="nav-btn" id="navSignInBtn" aria-label="Sign In">Sign In</a>
             </div>
         </nav>
         
@@ -106,10 +111,14 @@
         <!-- Navbar Menu Dropdown -->
         <div class="navbar-dropdown hidden" id="navbarDropdown">
             <div class="navbar-dropdown-item" id="dropdownProfile">
-                <img id="dropdownUserAvatar" class="user-avatar" alt="User" style="width: 32px; height: 32px; border-radius: 50%; margin-right: 8px;">
+                <img id="dropdownUserAvatar" class="user-avatar" alt="User">
                 <span id="dropdownUsername"></span>
             </div>
             <div class="navbar-dropdown-divider"></div>
+            <button class="navbar-dropdown-item" id="dropdownFeed">
+                <i class="fa-solid fa-newspaper"></i>
+                <span>Activity Feed</span>
+            </button>
             <button class="navbar-dropdown-item" id="dropdownCollections">
                 <i class="fa-solid fa-folder"></i>
                 <span>Collections</span>
@@ -182,12 +191,26 @@
                 </div>
             </div>
             
+            <div id="feedView" class="view-section hidden">
+                <div class="feed-header">
+                    <h2>Activity Feed</h2>
+                </div>
+                <div id="feedContainer" class="feed-container">
+                    <!-- Feed items will be rendered here -->
+                </div>
+                <div id="feedEmpty" class="feed-empty hidden">
+                    <div>📰</div>
+                    <h3>No Activity Yet</h3>
+                    <p>Follow users to see their recipes, collections, and menus here.</p>
+                </div>
+            </div>
+            
             <div id="notFoundView" class="view-section hidden">
-                <div style="text-align: center; padding: 80px 20px; color: #999;">
-                    <div style="font-size: 72px; margin-bottom: 20px;">404</div>
-                    <h2 style="font-size: 24px; margin-bottom: 10px; color: #666;">User Not Found</h2>
-                    <p style="font-size: 16px; margin-bottom: 30px;">This user doesn't exist or may have been removed.</p>
-                    <a href="/" style="color: #6b5d52; text-decoration: underline;">Go to Home</a>
+                <div class="user-not-found">
+                    <div>404</div>
+                    <h2>User Not Found</h2>
+                    <p>This user doesn't exist or may have been removed.</p>
+                    <a href="/">Go to Home</a>
                 </div>
             </div>
             
@@ -269,7 +292,7 @@
                         </div>
                         
                         <!-- Collections Dropdown Menu -->
-                        <div class="collections-menu" id="collectionsMenu" style="display: none;">
+                        <div class="collections-menu" id="collectionsMenu">
                             <div class="collections-menu-search">
                                 <input type="text" id="collectionsSearch" placeholder="Find a collection" autocomplete="off">
                             </div>
@@ -302,8 +325,8 @@
                         id="menuDescriptionInput" 
                         placeholder="Brief description..."
                         aria-label="Menu description"
-                        style="margin-bottom: 12px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                    <div class="description-display" id="menuDescriptionDisplay" style="margin-bottom: 12px; font-size: 13px; color: #666;"></div>
+                        id="menuDescriptionInput">
+                    <div class="description-display" id="menuDescriptionDisplay"></div>
                     <textarea 
                         class="markdown-textarea hidden" 
                         id="menuMarkdownTextarea"
@@ -316,12 +339,10 @@
     </div>
 
     <!-- Debug Modal -->
-    <div class="modal" id="debugModal" style="display: none;" tabindex="-1">
-        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow: auto;">
-            <h2>🔍 Firebase Debug Info</h2>
-            <div id="debugContent" style="font-family: monospace; font-size: 12px; white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 4px; max-height: 60vh; overflow-y: auto;">
-                Loading...
-            </div>
+    <div class="modal hidden" id="debugModal" tabindex="-1">
+        <div class="modal-content">
+            <h2>Debug Info</h2>
+            <div id="debugContent">Loading...</div>
             <div class="modal-actions">
                 <button id="debugCloseBtn">Close</button>
             </div>
@@ -329,8 +350,8 @@
     </div>
 
     <!-- Shortcuts Modal -->
-    <div class="modal" id="shortcutsModal" style="display: none;" tabindex="-1">
-        <div class="modal-content" style="max-width: 600px;">
+    <div class="modal hidden" id="shortcutsModal" tabindex="-1">
+        <div class="modal-content">
             <h2>⌨️ Keyboard Shortcuts</h2>
             <div class="shortcuts-list">
                 <div class="shortcut-section">

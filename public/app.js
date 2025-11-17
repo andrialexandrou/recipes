@@ -59,6 +59,24 @@ function getGravatarUrl(email, size = CONSTANTS.GRAVATAR_DEFAULT_SIZE) {
     return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
 }
 
+function getAvatarHtml(username, gravatarHash, size = 40) {
+    const initial = username ? username.charAt(0).toUpperCase() : '?';
+    
+    // Use sidebar-specific class for larger avatars
+    const fallbackClass = size > 40 ? 'sidebar-avatar-fallback' : 'feed-avatar-fallback';
+    const imgClass = size > 40 ? 'sidebar-avatar' : 'feed-avatar';
+    
+    if (gravatarHash) {
+        // Try Gravatar first, fall back to initials if image fails
+        const gravatarUrl = `https://www.gravatar.com/avatar/${gravatarHash}?s=${size}&d=404`;
+        return `<img src="${gravatarUrl}" class="${imgClass}" alt="${username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="${fallbackClass}" style="display:none;">${initial}</div>`;
+    } else {
+        // No Gravatar hash, use initials
+        return `<div class="${fallbackClass}">${initial}</div>`;
+    }
+}
+
 // =============================================================================
 // API MODULE
 // =============================================================================
@@ -368,6 +386,40 @@ const API = {
             method: 'DELETE'
         });
         return this.handleResponse(res);
+    },
+    
+    // Follow/Unfollow API methods
+    async followUser(targetUserId) {
+        console.log('🔄 Following user:', targetUserId);
+        const res = await fetch(`/api/users/${targetUserId}/follow`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentUserId: this.currentUser.uid })
+        });
+        const data = await this.handleResponse(res);
+        console.log('✅ Followed user');
+        return data;
+    },
+    
+    async unfollowUser(targetUserId) {
+        console.log('🔄 Unfollowing user:', targetUserId);
+        const res = await fetch(`/api/users/${targetUserId}/follow`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentUserId: this.currentUser.uid })
+        });
+        const data = await this.handleResponse(res);
+        console.log('✅ Unfollowed user');
+        return data;
+    },
+    
+    // Feed API method
+    async getFeed() {
+        console.log('🔄 Fetching activity feed...');
+        const res = await fetch(`/api/feed?userId=${this.currentUser.uid}`);
+        const data = await this.handleResponse(res);
+        console.log('✅ Received feed:', data.length, 'activities');
+        return data;
     }
 };
 
@@ -725,6 +777,41 @@ async function handleImagePaste(e, textarea) {
     return false;
 }
 
+// Follow button handler
+const followBtn = document.getElementById('followBtn');
+if (followBtn) {
+    followBtn.addEventListener('click', async () => {
+        const userId = followBtn.dataset.userId;
+        const isFollowing = followBtn.dataset.isFollowing === 'true';
+        
+        if (!userId) return;
+        
+        try {
+            followBtn.disabled = true;
+            
+            if (isFollowing) {
+                await API.unfollowUser(userId);
+                followBtn.textContent = 'Follow';
+                followBtn.classList.remove('following');
+                followBtn.dataset.isFollowing = 'false';
+            } else {
+                await API.followUser(userId);
+                followBtn.textContent = 'Following';
+                followBtn.classList.add('following');
+                followBtn.dataset.isFollowing = 'true';
+            }
+            
+            // Refresh counts
+            await updateFollowUI();
+        } catch (error) {
+            console.error('Error toggling follow:', error);
+            alert('Failed to update follow status');
+        } finally {
+            followBtn.disabled = false;
+        }
+    });
+}
+
 // Sidebar toggle
 sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
@@ -767,7 +854,13 @@ document.addEventListener('click', (e) => {
 
 // Navigation
 homeBtn.addEventListener('click', () => {
-    showHomeView();
+    // For logged-in users, home button goes to feed
+    if (API.currentUser) {
+        history.pushState({ type: 'feed' }, '', '/');
+        showFeedView();
+    } else {
+        showHomeView();
+    }
 });
 
 // Viewing user link (sidebar) - navigate to their home page
@@ -775,19 +868,86 @@ const viewingUserLink = document.getElementById('viewingUser');
 if (viewingUserLink) {
     viewingUserLink.addEventListener('click', (e) => {
         e.preventDefault();
+        // Navigate to viewing user's home page (not feed)
+        history.pushState(null, '', `/${API.viewingUser}`);
         showHomeView();
     });
 }
 
 // Update edit controls visibility based on ownership
-function updateEditControls() {
+async function updateEditControls() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     const isLoggedIn = !!API.currentUser;
     
     // Navbar: show menu button if logged in, sign in button if logged out
     const navMenuBtn = document.getElementById('navMenuBtn');
+    const navMenuBtnWrapper = document.getElementById('navMenuBtnWrapper');
     const navSignInBtn = document.getElementById('navSignInBtn');
-    if (navMenuBtn) navMenuBtn.style.display = isLoggedIn ? 'block' : 'none';
+    
+    console.log('🔧 updateEditControls: isLoggedIn=', isLoggedIn, 'currentUser=', API.currentUser?.username);
+    
+    if (navMenuBtn && navMenuBtnWrapper) {
+        navMenuBtnWrapper.style.display = isLoggedIn ? 'block' : 'none';
+        // Set Gravatar on navbar avatar button - fetch from server for consistency
+        if (isLoggedIn && API.currentUser) {
+            // Clear any existing fallback
+            const existingFallback = navMenuBtnWrapper.querySelector('.nav-avatar-fallback');
+            if (existingFallback) existingFallback.remove();
+            
+            const userRes = await fetch(`/api/${API.currentUser.username}/user`);
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                console.log('👤 Nav avatar userData:', userData.gravatarHash ? 'has hash' : 'no hash');
+                if (userData.gravatarHash) {
+                    const gravatarUrl = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=56&d=404`;
+                    navMenuBtn.src = gravatarUrl;
+                    navMenuBtn.style.display = 'block';
+                    // Handle 404 - show initials fallback
+                    navMenuBtn.onerror = () => {
+                        console.log('⚠️ Gravatar 404, showing fallback');
+                        navMenuBtn.style.display = 'none';
+                        // Check if fallback already exists
+                        if (!navMenuBtnWrapper.querySelector('.nav-avatar-fallback')) {
+                            const initial = API.currentUser.username.charAt(0).toUpperCase();
+                            const fallback = document.createElement('div');
+                            fallback.className = 'nav-avatar-fallback';
+                            fallback.textContent = initial;
+                            fallback.setAttribute('aria-label', 'Menu');
+                            fallback.setAttribute('aria-expanded', 'false');
+                            // Copy click handler
+                            fallback.addEventListener('click', (e) => {
+                                console.log('🖱️ Fallback avatar clicked');
+                                e.stopPropagation();
+                                navbarDropdown.classList.toggle('hidden');
+                                fallback.setAttribute('aria-expanded', !navbarDropdown.classList.contains('hidden'));
+                            });
+                            navMenuBtnWrapper.appendChild(fallback);
+                        }
+                    };
+                } else {
+                    // No Gravatar hash, show initials directly
+                    console.log('📝 No hash, creating fallback');
+                    navMenuBtn.style.display = 'none';
+                    // Check if fallback already exists
+                    if (!navMenuBtnWrapper.querySelector('.nav-avatar-fallback')) {
+                        const initial = API.currentUser.username.charAt(0).toUpperCase();
+                        const fallback = document.createElement('div');
+                        fallback.className = 'nav-avatar-fallback';
+                        fallback.textContent = initial;
+                        fallback.setAttribute('aria-label', 'Menu');
+                        fallback.setAttribute('aria-expanded', 'false');
+                        fallback.addEventListener('click', (e) => {
+                            console.log('🖱️ Fallback avatar clicked');
+                            e.stopPropagation();
+                            navbarDropdown.classList.toggle('hidden');
+                            fallback.setAttribute('aria-expanded', !navbarDropdown.classList.contains('hidden'));
+                        });
+                        navMenuBtnWrapper.appendChild(fallback);
+                    }
+                }
+            }
+        }
+    }
     if (navSignInBtn) navSignInBtn.style.display = isLoggedIn ? 'none' : 'block';
     
     // Recipe edit/delete controls
@@ -886,39 +1046,116 @@ async function updateUserDisplay() {
     // Remove skeleton class from username using helper
     SkeletonUI.removeClasses(viewingUsername, 'skeleton-text');
     
+    // Update follow UI
+    await updateFollowUI();
+    
     // Update edit controls visibility based on ownership
     updateEditControls();
 }
 
-async function loadViewingUserAvatar(avatarElement, usernameElement) {
-    // If viewing ourselves and logged in, use current user data
-    if (API.viewingUser === API.currentUser?.username) {
-        avatarElement.style.background = '#f5f5f5';
-        const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
-        avatarElement.src = gravatarUrl;
-        usernameElement.textContent = `@${API.viewingUser}`;
-        avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
-    } else {
-        // Fetch the viewing user's info from server (works even when logged out)
-        try {
-            const res = await fetch(`/api/${API.viewingUser}/user`);
-            if (res.ok) {
-                const userData = await res.json();
-                avatarElement.style.background = '#f5f5f5';
-                const gravatarUrl = getGravatarUrl(userData.email, 128);
-                avatarElement.src = gravatarUrl;
-                usernameElement.textContent = `@${API.viewingUser}`;
-                avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
-            } else {
-                // Fallback to default avatar if user not found
-                avatarElement.src = getGravatarUrl('unknown@example.com', 128);
-                usernameElement.textContent = `@${API.viewingUser}`;
+async function updateFollowUI() {
+    const followSection = document.getElementById('followSection');
+    const followBtn = document.getElementById('followBtn');
+    const followingCount = document.getElementById('followingCount');
+    const followersCount = document.getElementById('followersCount');
+    
+    if (!followSection || !API.viewingUser) return;
+    
+    try {
+        // Fetch viewing user's data to get counts
+        const res = await fetch(`/api/${API.viewingUser}/user`);
+        if (!res.ok) {
+            followSection.classList.add('hidden');
+            return;
+        }
+        
+        const viewingUserData = await res.json();
+        
+        // Update counts
+        if (followingCount) followingCount.textContent = viewingUserData.followingCount || 0;
+        if (followersCount) followersCount.textContent = viewingUserData.followersCount || 0;
+        
+        // Show/hide follow button based on whether viewing own profile
+        const isOwnProfile = API.viewingUser === API.currentUser?.username;
+        const isLoggedIn = !!API.currentUser;
+        
+        if (isOwnProfile || !isLoggedIn) {
+            // Hide follow button, just show counts
+            if (followBtn) followBtn.style.display = 'none';
+            followSection.classList.remove('hidden');
+        } else {
+            // Show follow button for other users' profiles
+            if (followBtn) followBtn.style.display = 'block';
+            followSection.classList.remove('hidden');
+            
+            // Check if we're already following this user
+            const currentUserRes = await fetch(`/api/${API.currentUser.username}/user`);
+            if (currentUserRes.ok) {
+                const currentUserData = await currentUserRes.json();
+                const following = currentUserData.following || [];
+                
+                // Get viewingUser's userId
+                const viewingUserDoc = await window.db.collection('users')
+                    .where('username', '==', API.viewingUser)
+                    .limit(1)
+                    .get();
+                
+                if (!viewingUserDoc.empty) {
+                    const viewingUserId = viewingUserDoc.docs[0].id;
+                    const isFollowing = following.includes(viewingUserId);
+                    
+                    followBtn.textContent = isFollowing ? 'Following' : 'Follow';
+                    followBtn.classList.toggle('following', isFollowing);
+                    followBtn.dataset.userId = viewingUserId;
+                    followBtn.dataset.isFollowing = isFollowing;
+                }
             }
-        } catch (error) {
-            console.error('Failed to fetch viewing user info:', error);
-            avatarElement.src = getGravatarUrl('unknown@example.com', 128);
+        }
+    } catch (error) {
+        console.error('Error updating follow UI:', error);
+        followSection.classList.add('hidden');
+    }
+}
+
+async function loadViewingUserAvatar(avatarElement, usernameElement) {
+    // Always fetch from server for consistency (works for both logged in and logged out)
+    try {
+        const res = await fetch(`/api/${API.viewingUser}/user`);
+        if (res.ok) {
+            const userData = await res.json();
+            avatarElement.style.background = '#f5f5f5';
+            
+            if (userData.gravatarHash) {
+                const gravatarUrl = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=56&d=404`;
+                avatarElement.src = gravatarUrl;
+                avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
+                avatarElement.onerror = () => {
+                    // Fallback to initials
+                    avatarElement.style.display = 'none';
+                    const initial = API.viewingUser.charAt(0).toUpperCase();
+                    avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
+                };
+            } else {
+                // No Gravatar, show initials
+                avatarElement.style.display = 'none';
+                const initial = API.viewingUser.charAt(0).toUpperCase();
+                avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
+            }
+            
+            usernameElement.textContent = `@${API.viewingUser}`;
+        } else {
+            // Fallback if user not found
+            avatarElement.style.display = 'none';
+            const initial = API.viewingUser.charAt(0).toUpperCase();
+            avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
             usernameElement.textContent = `@${API.viewingUser}`;
         }
+    } catch (error) {
+        console.error('Failed to fetch viewing user info:', error);
+        avatarElement.style.display = 'none';
+        const initial = API.viewingUser ? API.viewingUser.charAt(0).toUpperCase() : '?';
+        avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
+        usernameElement.textContent = `@${API.viewingUser}`;
     }
 }
 
@@ -1022,23 +1259,50 @@ function updateURL(type, id) {
 function loadFromURL() {
     const path = window.location.pathname;
     console.log('🔗 Loading from URL:', path);
+    console.log('🔐 Current user:', API.currentUser?.username);
+    console.log('👀 Viewing user:', API.viewingUser);
     
-    // Match username-prefixed URLs
-    const usernameMatch = path.match(/^\/([a-z]+)/);
+    // Handle reserved paths
+    if (path === '/login' || path === '/signup' || path === '/logout') {
+        console.log('🚫 Reserved path, not loading app');
+        return;
+    }
+    
+    // Handle root path first
+    if (path === '/') {
+        console.log('📍 Root path detected');
+        if (API.currentUser) {
+            // Logged-in users see feed at root
+            console.log('✅ User is logged in, showing feed');
+            showFeedView();
+        } else {
+            // Logged-out users redirected to login
+            console.log('⚠️ User not logged in, redirecting to login');
+            window.location.href = '/login';
+        }
+        return;
+    }
+    
+    console.log('📍 Non-root path, checking patterns...');
+    
+    // Match username-prefixed URLs (username can contain lowercase letters, numbers, hyphens, underscores)
+    const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
     if (usernameMatch) {
         const username = usernameMatch[1];
+        console.log('👤 Username matched from URL:', username);
         // Set viewing user from URL (validation happens in loadAllData)
         API.viewingUser = username;
     }
     
-    const recipeMatch = path.match(/^\/[a-z]+\/recipe\/.+-([a-zA-Z0-9]+)$/);
-    const collectionMatch = path.match(/^\/[a-z]+\/collection\/.+-([a-zA-Z0-9]+)$/);
-    const menuMatch = path.match(/^\/[a-z]+\/menu\/.+-([a-zA-Z0-9]+)$/);
-    const collectionsPageMatch = path.match(/^\/[a-z]+\/collections$/);
-    const menusPageMatch = path.match(/^\/[a-z]+\/menus$/);
+    const recipeMatch = path.match(/^\/[a-z0-9_-]+\/recipe\/.+-([a-zA-Z0-9]+)$/);
+    const collectionMatch = path.match(/^\/[a-z0-9_-]+\/collection\/.+-([a-zA-Z0-9]+)$/);
+    const menuMatch = path.match(/^\/[a-z0-9_-]+\/menu\/.+-([a-zA-Z0-9]+)$/);
+    const collectionsPageMatch = path.match(/^\/[a-z0-9_-]+\/collections$/);
+    const menusPageMatch = path.match(/^\/[a-z0-9_-]+\/menus$/);
     
     if (recipeMatch) {
         const id = recipeMatch[1];
+        console.log('📖 Recipe match:', id);
         const recipe = recipes.find(r => r.id === id);
         if (recipe) {
             loadRecipe(id, false);
@@ -1047,6 +1311,7 @@ function loadFromURL() {
         }
     } else if (collectionMatch) {
         const id = collectionMatch[1];
+        console.log('📚 Collection match:', id);
         const collection = collections.find(c => c.id === id);
         if (collection) {
             loadCollectionDetail(id, false);
@@ -1064,10 +1329,14 @@ function loadFromURL() {
             console.warn('⚠️ Menu not found:', id, 'Available menu IDs:', menus.map(m => m.id));
         }
     } else if (collectionsPageMatch) {
+        console.log('📚 Collections page match');
         switchToView('collections');
     } else if (menusPageMatch) {
+        console.log('🍽️ Menus page match');
         switchToView('menus');
     } else {
+        // Default to home view for username-only URLs
+        console.log('🏠 Defaulting to home view');
         showHomeView();
     }
 }
@@ -1084,6 +1353,8 @@ window.addEventListener('popstate', (e) => {
             loadMenuDetail(e.state.id, false);
         } else if (e.state.type === 'menus') {
             switchToView('menus');
+        } else if (e.state.type === 'feed') {
+            showFeedView();
         }
     } else {
         const path = window.location.pathname;
@@ -1628,6 +1899,14 @@ function enterViewMode() {
 
 // Show home view (collections)
 function showHomeView() {
+    console.log('🏠 showHomeView called');
+    console.log('👀 Current viewing user:', API.viewingUser);
+    console.log('🔐 Current logged-in user:', API.currentUser?.username);
+    
+    // Show sidebar (in case it was hidden by 404 view)
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('hidden');
+    
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
         view.classList.add('hidden');
@@ -1636,6 +1915,7 @@ function showHomeView() {
     
     homeView.classList.remove('hidden');
     homeView.classList.add('active');
+    console.log('✅ Home view made visible');
     
     currentRecipeId = null;
     currentCollectionId = null;
@@ -1686,6 +1966,175 @@ function showNotFoundView() {
     currentRecipeId = null;
     currentCollectionId = null;
     currentMenuId = null;
+}
+
+function showFeedView() {
+    console.log('📰 showFeedView called');
+    
+    // Show sidebar (in case it was hidden by 404 view)
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('hidden');
+    
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    const feedView = document.getElementById('feedView');
+    if (feedView) {
+        feedView.classList.remove('hidden');
+        feedView.classList.add('active');
+        console.log('✅ Feed view made visible');
+    } else {
+        console.error('❌ Feed view element not found!');
+    }
+    
+    currentRecipeId = null;
+    currentCollectionId = null;
+    currentMenuId = null;
+    currentView = 'feed';
+    
+    // Load and render feed
+    loadFeed();
+    // Don't call updateURL - feed always stays at /
+}
+
+async function loadFeed() {
+    try {
+        const activities = await API.getFeed();
+        renderFeed(activities);
+    } catch (error) {
+        console.error('Error loading feed:', error);
+        const feedContainer = document.getElementById('feedContainer');
+        if (feedContainer) {
+            feedContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: #999;">Failed to load activity feed</div>';
+        }
+    }
+}
+
+async function renderFeed(activities) {
+    const feedContainer = document.getElementById('feedContainer');
+    const feedEmpty = document.getElementById('feedEmpty');
+    
+    if (!feedContainer) return;
+    
+    if (activities.length === 0) {
+        feedContainer.classList.add('hidden');
+        if (feedEmpty) feedEmpty.classList.remove('hidden');
+        return;
+    }
+    
+    feedContainer.classList.remove('hidden');
+    if (feedEmpty) feedEmpty.classList.add('hidden');
+    
+    // Fetch user data for avatars (cache to avoid duplicate requests)
+    const userGravatars = {};
+    const uniqueUsernames = [...new Set(activities.map(a => a.username))];
+    
+    await Promise.all(uniqueUsernames.map(async (username) => {
+        try {
+            const res = await fetch(`/api/${username}/user`);
+            if (res.ok) {
+                const userData = await res.json();
+                userGravatars[username] = userData.gravatarHash;
+            }
+        } catch (err) {
+            console.error(`Failed to fetch user data for ${username}:`, err);
+        }
+    }));
+    
+    feedContainer.innerHTML = activities.map(activity => {
+        const timeAgo = formatTimeAgo(new Date(activity.createdAt));
+        const actionText = getActionText(activity.type);
+        const icon = getActivityIcon(activity.type);
+        
+        // Build URL based on entity type
+        let entityUrl = '';
+        if (activity.type === 'recipe_created') {
+            entityUrl = `/${activity.username}/recipe/${activity.entitySlug}`;
+        } else if (activity.type === 'collection_created') {
+            entityUrl = `/${activity.username}/collection/${activity.entitySlug}`;
+        } else if (activity.type === 'menu_created') {
+            entityUrl = `/${activity.username}/menu/${activity.entitySlug}`;
+        }
+        
+        // Get avatar HTML (Gravatar with initials fallback)
+        const avatarHtml = getAvatarHtml(activity.username, userGravatars[activity.username], 40);
+        
+        return `
+            <div class="feed-item">
+                ${avatarHtml}
+                <div class="feed-content">
+                    <div class="feed-header-text">
+                        <a href="/${activity.username}" class="feed-username">@${activity.username}</a>
+                        <span class="feed-action">${actionText}</span>
+                        <a href="${entityUrl}" class="feed-entity-title" onclick="navigateToEntity(event, '${activity.type}', '${activity.entityId}', '${activity.entitySlug}', '${activity.username}')">${activity.entityTitle}</a>
+                    </div>
+                    ${activity.preview ? `<div class="feed-preview">${activity.preview}</div>` : ''}
+                    <div class="feed-timestamp">${icon} ${timeAgo}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getActionText(type) {
+    switch (type) {
+        case 'recipe_created': return 'created a recipe';
+        case 'collection_created': return 'created a collection';
+        case 'menu_created': return 'created a menu';
+        default: return 'did something';
+    }
+}
+
+function getActivityIcon(type) {
+    switch (type) {
+        case 'recipe_created': return '📝';
+        case 'collection_created': return '📁';
+        case 'menu_created': return '🍽️';
+        default: return '✨';
+    }
+}
+
+function formatTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    const intervals = {
+        year: 31536000,
+        month: 2592000,
+        week: 604800,
+        day: 86400,
+        hour: 3600,
+        minute: 60
+    };
+    
+    for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+        const interval = Math.floor(seconds / secondsInUnit);
+        if (interval >= 1) {
+            return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
+        }
+    }
+    
+    return 'just now';
+}
+
+function navigateToEntity(event, type, entityId, entitySlug, username) {
+    event.preventDefault();
+    
+    // Set viewing user
+    API.viewingUser = username;
+    
+    if (type === 'recipe_created') {
+        showRecipeDetail(entityId);
+        updateURL('recipe', `${entitySlug}`);
+    } else if (type === 'collection_created') {
+        showCollectionDetail(entityId);
+        updateURL('collection', `${entitySlug}`);
+    } else if (type === 'menu_created') {
+        showMenuDetail(entityId);
+        updateURL('menu', `${entitySlug}`);
+    }
 }
 
 /**
@@ -1797,8 +2246,12 @@ async function loadAllData() {
         updateUserDisplay();
         loadFromURL();
         
-        if (!currentRecipeId && !currentCollectionId && !currentMenuId) {
+        // Only default to home view if no specific view is set
+        if (!currentRecipeId && !currentCollectionId && !currentMenuId && currentView !== 'feed') {
+            console.log('🏠 No specific view set, defaulting to home');
             showHomeView();
+        } else {
+            console.log('✅ Specific view already set:', currentView || 'recipe/collection/menu');
         }
     } catch (error) {
         console.error('💥 Critical error loading data:', error);
@@ -2420,12 +2873,34 @@ navMenuBtn.addEventListener('click', (e) => {
 
 dropdownCollections.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
-    switchToView('collections');
+    // Navigate to current user's collections, not viewing user
+    if (API.currentUser) {
+        API.viewingUser = API.currentUser.username;
+        history.pushState({ type: 'collections' }, '', `/${API.currentUser.username}/collections`);
+        switchToView('collections');
+    }
+});
+
+const dropdownFeed = document.getElementById('dropdownFeed');
+dropdownFeed.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    // Navigate to root path
+    window.history.pushState({ type: 'feed' }, '', '/');
+    // Also update viewing user to current user when going to feed
+    if (API.currentUser) {
+        API.viewingUser = API.currentUser.username;
+    }
+    showFeedView();
 });
 
 dropdownMenus.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
-    switchToView('menus');
+    // Navigate to current user's menus, not viewing user
+    if (API.currentUser) {
+        API.viewingUser = API.currentUser.username;
+        history.pushState({ type: 'menus' }, '', `/${API.currentUser.username}/menus`);
+        switchToView('menus');
+    }
 });
 
 dropdownNewRecipe.addEventListener('click', () => {
@@ -2435,7 +2910,7 @@ dropdownNewRecipe.addEventListener('click', () => {
 
 dropdownShortcuts.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
-    shortcutsModal.style.display = 'flex';
+    shortcutsModal.classList.remove('hidden');
 });
 
 dropdownDebug.addEventListener('click', () => {
@@ -2453,7 +2928,10 @@ dropdownLogout.addEventListener('click', () => {
 
 // Close dropdown when clicking outside
 document.addEventListener('click', (e) => {
-    if (!navbarDropdown.contains(e.target) && !navMenuBtn.contains(e.target)) {
+    const navMenuBtnWrapper = document.getElementById('navMenuBtnWrapper');
+    if (!navbarDropdown.contains(e.target) && 
+        !navMenuBtn.contains(e.target) && 
+        !(navMenuBtnWrapper && navMenuBtnWrapper.contains(e.target))) {
         navbarDropdown.classList.add('hidden');
     }
 });
@@ -2543,7 +3021,7 @@ const debugContent = document.getElementById('debugContent');
 const debugCloseBtn = document.getElementById('debugCloseBtn');
 
 async function showDebugModal() {
-    debugModal.style.display = 'flex';
+    debugModal.classList.remove('hidden');
     debugModal.focus();
     debugContent.textContent = 'Loading debug info...';
     
@@ -2581,19 +3059,19 @@ async function showDebugModal() {
 }
 
 debugCloseBtn?.addEventListener('click', () => {
-    debugModal.style.display = 'none';
+    debugModal.classList.add('hidden');
 });
 
 debugModal?.addEventListener('click', (e) => {
     if (e.target === debugModal) {
-        debugModal.style.display = 'none';
+        debugModal.classList.add('hidden');
     }
 });
 
 debugModal?.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         e.stopPropagation();
-        debugModal.style.display = 'none';
+        debugModal.classList.add('hidden');
     }
     if (e.key === 'Tab') {
         // Trap focus within modal
@@ -2616,19 +3094,19 @@ const shortcutsModal = document.getElementById('shortcutsModal');
 const shortcutsCloseBtn = document.getElementById('shortcutsCloseBtn');
 
 shortcutsCloseBtn?.addEventListener('click', () => {
-    shortcutsModal.style.display = 'none';
+    shortcutsModal.classList.add('hidden');
 });
 
 shortcutsModal?.addEventListener('click', (e) => {
     if (e.target === shortcutsModal) {
-        shortcutsModal.style.display = 'none';
+        shortcutsModal.classList.add('hidden');
     }
 });
 
 shortcutsModal?.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         e.stopPropagation();
-        shortcutsModal.style.display = 'none';
+        shortcutsModal.classList.add('hidden');
     }
     if (e.key === 'Tab') {
         // Trap focus within modal
@@ -2651,6 +3129,11 @@ shortcutsModal?.addEventListener('keydown', (e) => {
 async function handleLogout() {
     try {
         console.log('🔐 Logging out...');
+        
+        // Clear API state first
+        API.currentUser = null;
+        API.viewingUser = null;
+        
         await auth.signOut();
         console.log('✅ Logout successful');
         
@@ -2662,8 +3145,8 @@ async function handleLogout() {
         currentCollectionId = null;
         currentMenuId = null;
         
-        // Redirect to login page
-        window.location.href = '/login';
+        // Force redirect to login page
+        window.location.replace('/login');
         
     } catch (error) {
         console.error('❌ Logout failed:', error);
