@@ -1460,19 +1460,19 @@ function renderCollectionsGrid() {
         const url = `/${API.viewingUser}/collection/${slug}-${col.id}`;
         const actionsHtml = isOwner ? `
                     <div class="collection-card-actions">
-                        <button onclick="copyCollectionLink(event, '${col.id}')" class="collection-action-btn" title="Copy link">
+                        <button onclick="event.preventDefault(); copyCollectionLink(event, '${col.id}')" class="collection-action-btn" title="Copy link">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                             </svg>
                         </button>
-                        <button onclick="event.stopPropagation(); editCollection('${col.id}')" class="collection-action-btn" title="Edit collection">
+                        <button onclick="event.preventDefault(); event.stopPropagation(); editCollection('${col.id}')" class="collection-action-btn" title="Edit collection">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                         </button>
-                        <button onclick="event.stopPropagation(); deleteCollection('${col.id}')" class="collection-action-btn" title="Delete collection">
+                        <button onclick="event.preventDefault(); event.stopPropagation(); deleteCollection('${col.id}')" class="collection-action-btn" title="Delete collection">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3,6 5,6 21,6"></polyline>
                                 <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"></path>
@@ -1520,19 +1520,19 @@ function renderMenusGrid() {
         const url = `/${API.viewingUser}/menu/${slug}-${menu.id}`;
         const actionsHtml = isOwner ? `
                     <div class="collection-card-actions">
-                        <button onclick="copyMenuLink(event, '${menu.id}')" class="collection-action-btn" title="Copy link">
+                        <button onclick="event.preventDefault(); copyMenuLink(event, '${menu.id}')" class="collection-action-btn" title="Copy link">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                             </svg>
                         </button>
-                        <button onclick="event.stopPropagation(); loadMenuDetail('${menu.id}'); enterMenuEditMode();" class="collection-action-btn" title="Edit menu">
+                        <button onclick="event.preventDefault(); event.stopPropagation(); loadMenuDetail('${menu.id}'); enterMenuEditMode();" class="collection-action-btn" title="Edit menu">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                         </button>
-                        <button onclick="event.stopPropagation(); deleteMenu('${menu.id}')" class="collection-action-btn" title="Delete menu">
+                        <button onclick="event.preventDefault(); event.stopPropagation(); deleteMenu('${menu.id}')" class="collection-action-btn" title="Delete menu">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3,6 5,6 21,6"></polyline>
                                 <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"></path>
