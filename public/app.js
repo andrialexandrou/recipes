@@ -1352,12 +1352,22 @@ async function loadAuthenticatedUserAvatar(avatarElement, usernameElement) {
             }
             
             usernameElement.textContent = `@${API.currentUser.username}`;
+            
+            // Add admin badge if user is staff
+            if (API.currentUser.isStaff) {
+                usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
+            }
         } else {
             // Fallback if user not found
             avatarElement.style.display = 'none';
             const initial = API.currentUser.username.charAt(0).toUpperCase();
             avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
             usernameElement.textContent = `@${API.currentUser.username}`;
+            
+            // Add admin badge if user is staff
+            if (API.currentUser.isStaff) {
+                usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
+            }
         }
     } catch (error) {
         console.error('Failed to fetch authenticated user info:', error);
@@ -1365,6 +1375,11 @@ async function loadAuthenticatedUserAvatar(avatarElement, usernameElement) {
         const initial = API.currentUser ? API.currentUser.username.charAt(0).toUpperCase() : '?';
         avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
         usernameElement.textContent = `@${API.currentUser.username}`;
+        
+        // Add admin badge if user is staff
+        if (API.currentUser?.isStaff) {
+            usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
+        }
     }
 }
 
@@ -2336,12 +2351,13 @@ async function renderSearchResults(users) {
         const isFollowing = following.includes(user.uid); // Compare UIDs, not usernames
         const isSelf = user.username === API.currentUser?.username;
         const profileUrl = `/${user.username}`;
+        const adminBadge = user.isStaff ? getAdminBadge({ isStaff: true }) : '';
         
         return `
             <a href="${profileUrl}" class="search-result-item" data-username="${user.username}">
                 ${getAvatarHtml(user.username, user.gravatarHash, 40)}
                 <div class="search-result-info">
-                    <div class="search-result-username">@${user.username}</div>
+                    <div class="search-result-username">@${user.username}${adminBadge}</div>
                     <div class="search-result-stats">${user.followersCount || 0} followers · ${user.followingCount || 0} following</div>
                 </div>
                 ${!isSelf ? `<button class="search-result-follow-btn ${isFollowing ? 'following' : ''}" data-username="${user.username}" data-uid="${user.uid}">
@@ -2423,8 +2439,9 @@ async function renderFeed(activities) {
     feedContainer.classList.remove('hidden');
     if (feedEmpty) feedEmpty.classList.add('hidden');
     
-    // Fetch user data for avatars (cache to avoid duplicate requests)
+    // Fetch user data for avatars and staff status (cache to avoid duplicate requests)
     const userGravatars = {};
+    const userIsStaff = {};
     const uniqueUsernames = [...new Set(activities.map(a => a.username))];
     
     await Promise.all(uniqueUsernames.map(async (username) => {
@@ -2433,6 +2450,7 @@ async function renderFeed(activities) {
             if (res.ok) {
                 const userData = await res.json();
                 userGravatars[username] = userData.gravatarHash;
+                userIsStaff[username] = userData.isStaff || false;
             }
         } catch (err) {
             console.error(`Failed to fetch user data for ${username}:`, err);
@@ -2467,12 +2485,15 @@ async function renderFeed(activities) {
         // Get avatar HTML (Gravatar with initials fallback)
         const avatarHtml = getAvatarHtml(activity.username, userGravatars[activity.username], 40);
         
+        // Get admin badge if user is staff
+        const adminBadge = userIsStaff[activity.username] ? getAdminBadge({ isStaff: true }) : '';
+        
         return `
             <div class="feed-item">
                 ${avatarHtml}
                 <div class="feed-content">
                     <div class="feed-header-text">
-                        <a href="/${activity.username}" class="feed-username">@${activity.username}</a>
+                        <a href="/${activity.username}" class="feed-username">@${activity.username}${adminBadge}</a>
                         <span class="feed-action">${actionText}</span>
                         <a href="${entityUrl}" class="feed-entity-title">${activity.entityTitle}</a>
                     </div>
@@ -3334,6 +3355,12 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Helper function to render admin badge if user is staff
+function getAdminBadge(user) {
+    if (!user || !user.isStaff) return '';
+    return '<span class="admin-badge" title="Admin">✦</span>';
 }
 
 function formatDate(dateString) {

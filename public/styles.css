@@ -2408,6 +2408,24 @@ body:has(.auth-container) {
     text-decoration: underline;
 }
 
+/* Admin Badge */
+.admin-badge {
+    display: inline-block;
+    color: #6b5d52;
+    font-size: 0.85em;
+    margin-left: 4px;
+    opacity: 0.8;
+    vertical-align: baseline;
+    position: relative;
+    top: -0.05em;
+    cursor: help;
+    transition: opacity 0.2s ease;
+}
+
+.admin-badge:hover {
+    opacity: 1;
+}
+
 .feed-action {
     color: #666;
 }
