@@ -537,6 +537,7 @@ const DOM = {
     menuDescriptionDisplay: document.getElementById('menuDescriptionDisplay'),
     menuMarkdownTextarea: document.getElementById('menuMarkdownTextarea'),
     menuPreviewContent: document.getElementById('menuPreviewContent'),
+    menuActions: document.getElementById('menuActions'),
     
     // Recipe
     titleInput: document.getElementById('titleInput'),
@@ -2086,9 +2087,31 @@ function updateRecipeActionButtons(recipe) {
             <button id="metadataEditBtn" class="metadata-action-btn metadata-action-btn-primary" title="Edit">
                 <i class="fa-solid fa-pen"></i>
             </button>
-            <button id="metadataCopyLinkBtn" class="metadata-action-btn" title="Copy link">
-                <i class="fa-solid fa-link"></i>
-            </button>
+            <div class="share-dropdown-container">
+                <button id="metadataShareBtn" class="metadata-action-btn" title="Share">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                </button>
+                <div id="shareDropdown" class="share-dropdown hidden">
+                    <button class="share-dropdown-item" onclick="copyRecipeLink(event)">
+                        <i class="fa-solid fa-link"></i>
+                        <span>Copy Link</span>
+                    </button>
+                    <div class="share-dropdown-divider"></div>
+                    <div class="share-dropdown-label">Copy Content As:</div>
+                    <button class="share-dropdown-item" onclick="copyRecipeContent('markdown')">
+                        <i class="fa-brands fa-markdown"></i>
+                        <span>Original</span>
+                    </button>
+                    <button class="share-dropdown-item" onclick="copyRecipeContent('plaintext')">
+                        <i class="fa-solid fa-align-left"></i>
+                        <span>Plain Text</span>
+                    </button>
+                    <button class="share-dropdown-item" onclick="copyRecipeContent('html')">
+                        <i class="fa-brands fa-html5"></i>
+                        <span>Rich Text</span>
+                    </button>
+                </div>
+            </div>
             <button id="metadataAddToCollectionBtn" class="metadata-action-btn" title="Add to collection">
                 <i class="fa-solid fa-folder-plus"></i>
             </button>
@@ -2097,17 +2120,158 @@ function updateRecipeActionButtons(recipe) {
             </button>
         `;
         document.getElementById('metadataEditBtn').onclick = enterEditMode;
-        document.getElementById('metadataCopyLinkBtn').onclick = copyRecipeLink;
+        document.getElementById('metadataShareBtn').onclick = toggleShareDropdown;
         document.getElementById('metadataAddToCollectionBtn').onclick = showCollectionModal;
         document.getElementById('metadataDeleteBtn2').onclick = deleteCurrentRecipe;
     } else {
-        // View mode (non-owner) - only copy link
+        // View mode (non-owner) - share dropdown only
         metadataActions.innerHTML = `
-            <button id="metadataCopyLinkBtn" class="metadata-action-btn" title="Copy link">
-                <i class="fa-solid fa-link"></i>
+            <div class="share-dropdown-container">
+                <button id="metadataShareBtn" class="metadata-action-btn" title="Share">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                </button>
+                <div id="shareDropdown" class="share-dropdown hidden">
+                    <button class="share-dropdown-item" onclick="copyRecipeLink(event)">
+                        <i class="fa-solid fa-link"></i>
+                        <span>Copy Link</span>
+                    </button>
+                    <div class="share-dropdown-divider"></div>
+                    <div class="share-dropdown-label">Copy Content As:</div>
+                    <button class="share-dropdown-item" onclick="copyRecipeContent('markdown')">
+                        <i class="fa-brands fa-markdown"></i>
+                        <span>Original</span>
+                    </button>
+                    <button class="share-dropdown-item" onclick="copyRecipeContent('plaintext')">
+                        <i class="fa-solid fa-align-left"></i>
+                        <span>Plain Text</span>
+                    </button>
+                    <button class="share-dropdown-item" onclick="copyRecipeContent('html')">
+                        <i class="fa-brands fa-html5"></i>
+                        <span>Rich Text</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById('metadataShareBtn').onclick = toggleShareDropdown;
+    }
+}
+
+// Toggle share dropdown
+function toggleShareDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('shareDropdown');
+    if (!dropdown) return;
+    
+    dropdown.classList.toggle('hidden');
+    
+    // Close dropdown when clicking outside
+    if (!dropdown.classList.contains('hidden')) {
+        const closeDropdown = (e) => {
+            if (!e.target.closest('.share-dropdown-container')) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeDropdown);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+    }
+}
+
+// Update menu action buttons based on edit mode and ownership
+function updateMenuActionButtons(menu) {
+    const menuActions = DOM.menuActions;
+    if (!menuActions) return;
+    
+    const isOwner = API.currentUser && API.currentUser.username === API.viewingUser;
+    
+    if (isMenuEditMode) {
+        // Edit mode: Show save, cancel, delete buttons
+        menuActions.innerHTML = `
+            <button onclick="saveMenu()" class="metadata-action-btn metadata-action-btn-primary">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button onclick="exitMenuEditMode()" class="metadata-action-btn">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button onclick="deleteMenu('${menu.id}')" class="metadata-action-btn metadata-action-btn-danger">
+                <i class="fas fa-trash"></i> Delete
             </button>
         `;
-        document.getElementById('metadataCopyLinkBtn').onclick = copyRecipeLink;
+    } else if (isOwner) {
+        // Owner view mode: Show edit, share, delete buttons
+        menuActions.innerHTML = `
+            <button onclick="enterMenuEditMode()" class="metadata-action-btn">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+            <div class="share-dropdown-container">
+                <button onclick="toggleMenuShareDropdown(event)" class="metadata-action-btn" id="menuShareBtn">
+                    <i class="fas fa-arrow-up-from-square"></i> Share
+                </button>
+                <div class="share-dropdown hidden" id="menuShareDropdown">
+                    <button onclick="copyMenuLink(event, '${menu.id}')" class="share-dropdown-item">
+                        <i class="fas fa-link"></i> Copy Link
+                    </button>
+                    <div class="share-dropdown-divider"></div>
+                    <div class="share-dropdown-label">Copy Content As:</div>
+                    <button onclick="copyMenuContent(event, '${menu.id}', 'markdown')" class="share-dropdown-item">
+                        <i class="fab fa-markdown"></i> Original
+                    </button>
+                    <button onclick="copyMenuContent(event, '${menu.id}', 'plaintext')" class="share-dropdown-item">
+                        <i class="fas fa-align-left"></i> Plain Text
+                    </button>
+                    <button onclick="copyMenuContent(event, '${menu.id}', 'html')" class="share-dropdown-item">
+                        <i class="fab fa-html5"></i> Rich Text
+                    </button>
+                </div>
+            </div>
+            <button onclick="deleteMenu('${menu.id}')" class="metadata-action-btn metadata-action-btn-danger">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        `;
+    } else {
+        // Non-owner view mode: Show only share button
+        menuActions.innerHTML = `
+            <div class="share-dropdown-container">
+                <button onclick="toggleMenuShareDropdown(event)" class="metadata-action-btn" id="menuShareBtn">
+                    <i class="fas fa-arrow-up-from-square"></i> Share
+                </button>
+                <div class="share-dropdown hidden" id="menuShareDropdown">
+                    <button onclick="copyMenuLink(event, '${menu.id}')" class="share-dropdown-item">
+                        <i class="fas fa-link"></i> Copy Link
+                    </button>
+                    <div class="share-dropdown-divider"></div>
+                    <div class="share-dropdown-label">Copy Content As:</div>
+                    <button onclick="copyMenuContent(event, '${menu.id}', 'markdown')" class="share-dropdown-item">
+                        <i class="fab fa-markdown"></i> Original
+                    </button>
+                    <button onclick="copyMenuContent(event, '${menu.id}', 'plaintext')" class="share-dropdown-item">
+                        <i class="fas fa-align-left"></i> Plain Text
+                    </button>
+                    <button onclick="copyMenuContent(event, '${menu.id}', 'html')" class="share-dropdown-item">
+                        <i class="fab fa-html5"></i> Rich Text
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Toggle menu share dropdown visibility
+function toggleMenuShareDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('menuShareDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
+        
+        // Close dropdown when clicking outside
+        if (!dropdown.classList.contains('hidden')) {
+            const closeDropdown = (e) => {
+                if (!dropdown.contains(e.target) && e.target.id !== 'menuShareBtn') {
+                    dropdown.classList.add('hidden');
+                    document.removeEventListener('click', closeDropdown);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+        }
     }
 }
 
@@ -2853,12 +3017,19 @@ function copyRecipeLink(event) {
     const button = event?.target?.closest('button') || document.getElementById('metadataCopyLinkBtn');
     
     navigator.clipboard.writeText(url).then(() => {
+        // Close dropdown
+        const dropdown = document.getElementById('shareDropdown');
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+        }
+        
+        // Show brief success feedback
         if (button) {
             const originalHTML = button.innerHTML;
-            button.innerHTML = '<i class="fa-solid fa-check"></i>';
+            button.innerHTML = '<i class="fa-solid fa-check"></i> <span>Copied!</span>';
             setTimeout(() => {
                 button.innerHTML = originalHTML;
-            }, 2000);
+            }, 1500);
         }
     });
 }
@@ -2884,6 +3055,72 @@ function copyCollectionLink(event, collectionId) {
     });
 }
 
+// Copy recipe content in different formats
+function copyRecipeContent(format) {
+    const recipe = recipes.find(r => r.id === currentRecipeId);
+    if (!recipe) return;
+    
+    let content = '';
+    
+    if (format === 'markdown') {
+        // Copy raw markdown
+        content = `# ${recipe.title}\n\n${recipe.content}`;
+    } else if (format === 'plaintext') {
+        // Convert markdown to plain text (strip formatting)
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = marked.parse(cleanMarkdown(recipe.content || ''));
+        content = `${recipe.title}\n\n${tempDiv.textContent || tempDiv.innerText}`;
+    } else if (format === 'html') {
+        // Convert markdown to HTML
+        content = `<h1>${escapeHtml(recipe.title)}</h1>\n${marked.parse(cleanMarkdown(recipe.content || ''))}`;
+    }
+    
+    navigator.clipboard.writeText(content).then(() => {
+        // Close dropdown
+        const dropdown = document.getElementById('shareDropdown');
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+        }
+        
+        // Show success feedback briefly
+        console.log('Recipe content copied:', format);
+    });
+}
+
+// Copy menu content in different formats
+function copyMenuContent(format) {
+    const menu = menus.find(m => m.id === currentMenuId);
+    if (!menu) return;
+    
+    let content = '';
+    
+    if (format === 'markdown') {
+        // Copy raw markdown
+        content = `# ${menu.name}\n\n${menu.description ? menu.description + '\n\n' : ''}${menu.content}`;
+    } else if (format === 'plaintext') {
+        // Convert markdown to plain text (strip formatting)
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = marked.parse(cleanMarkdown(menu.content || ''));
+        const descText = menu.description ? `${menu.description}\n\n` : '';
+        content = `${menu.name}\n\n${descText}${tempDiv.textContent || tempDiv.innerText}`;
+    } else if (format === 'html') {
+        // Convert markdown to HTML
+        const descHtml = menu.description ? `<p>${escapeHtml(menu.description)}</p>\n` : '';
+        content = `<h1>${escapeHtml(menu.name)}</h1>\n${descHtml}${marked.parse(cleanMarkdown(menu.content || ''))}`;
+    }
+    
+    navigator.clipboard.writeText(content).then(() => {
+        // Close dropdown
+        const dropdown = document.getElementById('menuShareDropdown');
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+        }
+        
+        // Show success feedback
+        console.log('Menu content copied:', format);
+    });
+}
+
 function copyMenuLink(event, menuId) {
     event.stopPropagation();
     const menu = menus.find(m => m.id === menuId);
@@ -2895,6 +3132,12 @@ function copyMenuLink(event, menuId) {
     const button = event.target.closest('button');
     
     navigator.clipboard.writeText(url).then(() => {
+        // Close dropdown
+        const dropdown = document.getElementById('menuShareDropdown');
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+        }
+        
         if (button) {
             const originalHTML = button.innerHTML;
             button.innerHTML = '<i class="fa-solid fa-check"></i>';
@@ -3236,6 +3479,7 @@ function loadMenuDetail(menuId, updateHistory = true) {
     }
     
     updateEditControls(); // Show/hide edit controls based on ownership
+    updateMenuActionButtons(menu); // Update action buttons
 }
 
 function enterMenuEditMode() {
@@ -3251,6 +3495,10 @@ function enterMenuEditMode() {
     
     // Initialize EasyMDE editor when entering edit mode
     initializeMenuEditor();
+    
+    // Update action buttons for edit mode
+    const menu = menus.find(m => m.id === currentMenuId);
+    if (menu) updateMenuActionButtons(menu);
     
     menuTitleInput.focus();
 }
@@ -3279,6 +3527,14 @@ function exitMenuEditMode() {
     menuDescriptionInput.classList.add('hidden');
     menuPreviewContent.classList.remove('hidden');
     menuMarkdownTextarea.classList.add('hidden');
+    
+    // Update action buttons for view mode
+    updateMenuActionButtons(menu);
+}
+
+// Wrapper function for save button
+async function saveMenu() {
+    await saveMenuChanges();
 }
 
 async function saveMenuChanges() {

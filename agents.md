@@ -45,12 +45,12 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Metadata tracking (created, updated dates)
 - Slug-based URLs: `/{username}/recipe/alabama-white-sauce-ABC123`
 - Edit/view mode toggle
-- Copy link functionality
+- Share dropdown with copy link and copy content options
 - Toolbar buttons: bold, italic, strikethrough, headings, lists, links, images, preview, fullscreen
 
 **Key Files:**
 
-- `public/app.js` - Recipe CRUD operations, EasyMDE initialization
+- `public/app.js` - Recipe CRUD operations, EasyMDE initialization, share functionality
 - `server.js` - `/api/:username/recipes` endpoints
 
 ### 2. Collections System
@@ -78,12 +78,12 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Optional description field
 - Reference recipes within menus
 - Edit/view mode toggle
-- Copy link functionality for menus (list view)
+- Share dropdown with copy link and copy content options
 - Metadata tracking
 
 **Key Files:**
 
-- `public/app.js` - Menu CRUD operations, EasyMDE initialization
+- `public/app.js` - Menu CRUD operations, EasyMDE initialization, share functionality
 - `server.js` - `/api/:username/menus` endpoints
 
 ### 4. Image Upload (Paste-to-Upload)
@@ -111,7 +111,53 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/app.js` - `handleImagePaste()`, `compressImage()`
 - `server.js` - `/api/:username/photos` endpoints
 
-### 5. Authentication System
+### 5. Share Functionality
+
+**Status: ✅ Complete**
+
+**Philosophy:** Unified sharing experience with options for both linking and content copying.
+
+**Features:**
+
+- Share dropdown replaces single copy link button
+- Available on recipe and menu detail views
+- Owner mode: Share button alongside Edit, Add to Collection, Delete buttons
+- Non-owner mode: Share button only (read-only access)
+- Outside-click detection auto-closes dropdown
+
+**Share Options:**
+
+1. **Copy Link** - Copies URL to clipboard for easy sharing
+2. **Copy Content As:**
+   - **Markdown** - Raw markdown source with title (for editing elsewhere)
+   - **Plain Text** - Rendered text without formatting (strips HTML)
+   - **HTML** - Rendered HTML with title as h1 (for rich paste destinations)
+
+**UI/UX:**
+
+- Share button uses fa-share-nodes icon
+- Dropdown positioned below button (right-aligned)
+- Divider and label separate copy link from content options
+- Format-specific icons: fa-markdown, fa-align-left, fa-html5
+- Success feedback shows checkmark in clicked button
+- Smooth transitions and hover states
+
+**Technical Details:**
+
+- `copyRecipeContent(event, recipeId, format)` - Handles recipe copying
+- `copyMenuContent(event, menuId, format)` - Handles menu copying
+- `toggleShareDropdown(event)` - Toggle for recipe dropdown
+- `toggleMenuShareDropdown(event)` - Toggle for menu dropdown
+- Markdown→HTML conversion using marked.js
+- HTML→plaintext using temp div with textContent extraction
+
+**Key Files:**
+
+- `public/app.js` - Share functions (lines 2086-2279), toggle functions
+- `public/styles.css` - Share dropdown styles (lines 1651-1708)
+- `public/index.html` - Menu actions container
+
+### 6. Authentication System
 
 **Status: ✅ Complete**
 
@@ -172,7 +218,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/signup.html` - Signup page with username collection
 - `public/app.js` - Auth state handling, `onAuthStateChanged`, `isStaff` check
 
-### 6. Multi-User Architecture with UserId
+### 7. Multi-User Architecture with UserId
 
 **Status: ✅ Complete**
 
@@ -224,7 +270,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/app.js` - `API.currentUser`, `API.viewingUser`, `updateEditControls()`, dual recipe contexts
 - `public/index.html` - Sidebar structure with authenticated user display
 
-### 7. Gravatar Integration
+### 8. Gravatar Integration
 
 **Status: ✅ Complete**
 
@@ -238,7 +284,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/app.js` - `getGravatarUrl()`, `md5()`
 - `public/index.html` - SparkMD5 CDN
 
-### 7. Navigation & UI
+### 9. Navigation & UI
 
 **Status: ✅ Complete**
 
@@ -297,7 +343,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/styles.css` - All styling
 - `public/app.js` - View switching, navigation, breadcrumb rendering
 
-### 8. Keyboard Shortcuts
+### 10. Keyboard Shortcuts
 
 **Status: ❌ Removed**
 
@@ -317,7 +363,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/app.js` - Keyboard event handlers (now commented out)
 - `public/index.html` - Shortcuts modal and menu item (now commented out)
 
-### 9. Activity Feed & Follow System
+### 11. Activity Feed & Follow System
 
 **Status: ✅ Complete**
 
@@ -382,7 +428,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 - 📚 [Activity Feed & Follow System Architecture](docs/architecture/activity-feed-and-follows.md) - Detailed architecture, data flow, and scaling considerations
 
-### 10. User Search & Discovery
+### 12. User Search & Discovery
 
 **Status: ✅ Complete**
 
@@ -425,7 +471,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 - `scripts/enable-search-for-all-users.js` - Sets `isSearchable: true` for all existing users
 
-### 11. Firebase Integration
+### 13. Firebase Integration
 
 **Status: ✅ Complete**
 
@@ -463,7 +509,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 - `server.js` - Firebase Admin initialization
 - `.env` - Environment configuration
 
-### 12. URL Routing
+### 14. URL Routing
 
 **Status: ✅ Complete**
 
@@ -488,7 +534,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 - `server.js` - Catch-all route for SPA
 - `public/app.js` - `loadFromURL()`, `updateURL()`
 
-### 13. Browser History & Page Titles
+### 15. Browser History & Page Titles
 
 **Status: ✅ Complete**
 

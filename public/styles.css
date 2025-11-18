@@ -1516,6 +1516,14 @@ body {
     min-width: 0; /* Allow flex item to shrink below content size */
 }
 
+.menu-actions {
+    margin: 20px auto 0;
+    max-width: 800px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
 .menu-content {
     margin-top: 20px;
     max-width: 800px;
@@ -1648,6 +1656,67 @@ body {
 .metadata-action-btn-danger:hover {
     background: rgba(220, 53, 69, 0.1);
     color: #8b4545;
+}
+
+/* Share Dropdown */
+.share-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.share-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #fcfbf9;
+    border: 1px solid #d9d4cb;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    width: 200px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.share-dropdown-item {
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-size: 13px;
+    font-family: 'Georgia', serif;
+    color: #5a5a5a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.15s ease;
+}
+
+.share-dropdown-item:hover {
+    background: #f0ede8;
+}
+
+.share-dropdown-item i {
+    width: 14px;
+    color: #8a7d6f;
+    font-size: 13px;
+}
+
+.share-dropdown-divider {
+    height: 1px;
+    background: #e5e0d8;
+    margin: 6px 0;
+}
+
+.share-dropdown-label {
+    padding: 8px 14px 4px;
+    font-size: 11px;
+    color: #8a7d6f;
+    font-family: 'Georgia', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 /* Collections Menu (Spotify-style dropdown) */
@@ -1836,6 +1905,12 @@ body {
         width: 100%;
         margin-top: 24px;
     }
+    
+    /* Share dropdown opens upward when metadata is at bottom */
+    .recipe-metadata .share-dropdown {
+        top: auto;
+        bottom: calc(100% + 4px);
+    }
 }
 
 /* Medium screens - metadata below when sidebar is open */
@@ -1851,6 +1926,12 @@ body {
     .sidebar:not(.collapsed) ~ .main-content .recipe-metadata {
         width: 100%;
         margin-top: 24px;
+    }
+    
+    /* Share dropdown opens upward when metadata is at bottom */
+    .sidebar:not(.collapsed) ~ .main-content .recipe-metadata .share-dropdown {
+        top: auto;
+        bottom: calc(100% + 4px);
     }
 }
 

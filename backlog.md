@@ -19,6 +19,8 @@ Future features and improvements for Sous.
 - **Breadcrumbs with Username Navigation** - ✅ All views now have breadcrumbs with username navigation (@username > Section > Item). Provides consistent wayfinding across recipes (sidebar and collection views), collections, and menus.
 - **Double Click Bug on Cards** - ✅ Fixed event propagation issue requiring double-clicks on collection/menu cards
 - **Admin Badge for Creator** - ✅ Displays sparkle (✦) badge next to staff usernames throughout the app (sidebar, activity feed, search results). Helps users identify who to reach out to for support.
+- **Copy Recipe Content** - ✅ Added "Copy Content As" options to share dropdown with format choices: Markdown (source), Plain Text (stripped formatting), or HTML (rendered). Available on recipes and menus.
+- **Share Button with Options** - ✅ Converted single copy link button to share dropdown menu with "Copy Link" and "Copy Content As" options (Markdown/Plain Text/HTML). Unified sharing experience across recipes and menus.
 
 ## 🐛 Bugs
 
@@ -27,11 +29,9 @@ Future features and improvements for Sous.
 
 ## Quick Wins (Small Effort)
 
-- **Copy Recipe Content** - Add "Copy Content" action in the recipe metadata actions section (next to copy link) with dropdown/options for format: Markdown (source), Plain Text (rendered without formatting), or HTML (rendered with formatting). This enables easy pasting into other apps, sharing via chat/email, or archiving. Also add this feature to menus.
 - **Empty Feed State with Sample Content** - When a new user's feed is empty (not following anyone yet), show sample/featured content from a designated account (e.g., site admin) with clear messaging: "Your feed is empty! Here are some recipes to explore..." Display sample recipes with a prominent "Follow @username to see more" CTA. This gives new users immediate value and demonstrates how the feed works without forcing follows.
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email
-- **Share Button with Options** - Convert the copy link icon button to a share button with a dropdown/menu of sharing options. For now, include "Copy Link" as the primary action. Open to low-lift suggestions on modern sharing patterns (Web Share API for mobile, social media quick-shares, etc.) and OS integration possibilities
 
 ## Medium Effort
 
