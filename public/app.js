@@ -1804,6 +1804,8 @@ function loadCollectionDetail(id, updateUrl = true) {
                 </div>` : '';
         collectionHeader.innerHTML = `
             <div class="breadcrumb">
+                <a href="/${API.viewingUser}" class="breadcrumb-link">@${API.viewingUser}</a>
+                <span class="breadcrumb-separator">></span>
                 <a href="/${API.viewingUser}/collections" class="breadcrumb-link">Collections</a>
                 <span class="breadcrumb-separator">></span>
                 <span class="breadcrumb-current">${escapeHtml(collection.name)}</span>
@@ -1815,14 +1817,16 @@ function loadCollectionDetail(id, updateUrl = true) {
             <p class="collection-description">${escapeHtml(collection.description || '')}</p>
         `;
         
-        // Add click handler to breadcrumb link
-        const breadcrumbLink = collectionHeader.querySelector('.breadcrumb-link');
-        if (breadcrumbLink) {
-            breadcrumbLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchToView('collections');
-            });
-        }
+        // Add click handlers to breadcrumb links
+        const breadcrumbLinks = collectionHeader.querySelectorAll('.breadcrumb-link');
+        breadcrumbLinks[0]?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showHomeView();
+        });
+        breadcrumbLinks[1]?.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchToView('collections');
+        });
     }
     
     const collectionRecipeIds = collection.recipeIds || [];
@@ -1891,6 +1895,8 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
         
         // Show full breadcrumb path
         breadcrumb.innerHTML = `
+            <a href="/${API.viewingUser}" class="breadcrumb-link">@${API.viewingUser}</a>
+            <span class="breadcrumb-separator">></span>
             <a href="/${API.viewingUser}/collections" class="breadcrumb-link">Collections</a>
             <span class="breadcrumb-separator">></span>
             <a href="/${API.viewingUser}/collection/${collectionSlug}-${currentCollectionId}" class="breadcrumb-link">${escapeHtml(collection.name)}</a>
@@ -1903,9 +1909,13 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
         const breadcrumbLinks = breadcrumb.querySelectorAll('.breadcrumb-link');
         breadcrumbLinks[0]?.addEventListener('click', (e) => {
             e.preventDefault();
-            switchToView('collections');
+            showHomeView();
         });
         breadcrumbLinks[1]?.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchToView('collections');
+        });
+        breadcrumbLinks[2]?.addEventListener('click', (e) => {
             e.preventDefault();
             loadCollectionDetail(currentCollectionId);
         });
