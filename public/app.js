@@ -3070,21 +3070,40 @@ function copyRecipeContent(format) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = marked.parse(cleanMarkdown(recipe.content || ''));
         content = `${recipe.title}\n\n${tempDiv.textContent || tempDiv.innerText}`;
+        navigator.clipboard.writeText(content).then(() => {
+            closeShareDropdown();
+            console.log('Recipe content copied:', format);
+        });
     } else if (format === 'html') {
-        // Convert markdown to HTML
-        content = `<h1>${escapeHtml(recipe.title)}</h1>\n${marked.parse(cleanMarkdown(recipe.content || ''))}`;
-    }
-    
-    navigator.clipboard.writeText(content).then(() => {
-        // Close dropdown
-        const dropdown = document.getElementById('shareDropdown');
-        if (dropdown) {
-            dropdown.classList.add('hidden');
-        }
+        // Convert markdown to rich HTML for pasting into Google Docs, Word, etc.
+        const htmlContent = `<h1>${escapeHtml(recipe.title)}</h1>\n${marked.parse(cleanMarkdown(recipe.content || ''))}`;
+        const plainContent = `${recipe.title}\n\n${document.createElement('div').textContent = htmlContent}`;
         
-        // Show success feedback briefly
-        console.log('Recipe content copied:', format);
-    });
+        // Use ClipboardItem to write both HTML and plain text formats
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const plainBlob = new Blob([content], { type: 'text/plain' });
+        const clipboardItem = new ClipboardItem({
+            'text/html': blob,
+            'text/plain': plainBlob
+        });
+        
+        navigator.clipboard.write([clipboardItem]).then(() => {
+            closeShareDropdown();
+            console.log('Recipe content copied as rich text:', format);
+        }).catch(err => {
+            console.error('Failed to copy rich text:', err);
+            // Fallback to plain text
+            navigator.clipboard.writeText(htmlContent);
+        });
+    }
+}
+
+// Helper to close share dropdown
+function closeShareDropdown() {
+    const dropdown = document.getElementById('shareDropdown');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+    }
 }
 
 // Copy menu content in different formats
@@ -3097,28 +3116,53 @@ function copyMenuContent(format) {
     if (format === 'markdown') {
         // Copy raw markdown
         content = `# ${menu.name}\n\n${menu.description ? menu.description + '\n\n' : ''}${menu.content}`;
+        navigator.clipboard.writeText(content).then(() => {
+            closeMenuShareDropdown();
+            console.log('Menu content copied:', format);
+        });
     } else if (format === 'plaintext') {
         // Convert markdown to plain text (strip formatting)
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = marked.parse(cleanMarkdown(menu.content || ''));
         const descText = menu.description ? `${menu.description}\n\n` : '';
         content = `${menu.name}\n\n${descText}${tempDiv.textContent || tempDiv.innerText}`;
+        navigator.clipboard.writeText(content).then(() => {
+            closeMenuShareDropdown();
+            console.log('Menu content copied:', format);
+        });
     } else if (format === 'html') {
-        // Convert markdown to HTML
+        // Convert markdown to rich HTML for pasting into Google Docs, Word, etc.
         const descHtml = menu.description ? `<p>${escapeHtml(menu.description)}</p>\n` : '';
-        content = `<h1>${escapeHtml(menu.name)}</h1>\n${descHtml}${marked.parse(cleanMarkdown(menu.content || ''))}`;
-    }
-    
-    navigator.clipboard.writeText(content).then(() => {
-        // Close dropdown
-        const dropdown = document.getElementById('menuShareDropdown');
-        if (dropdown) {
-            dropdown.classList.add('hidden');
-        }
+        const htmlContent = `<h1>${escapeHtml(menu.name)}</h1>\n${descHtml}${marked.parse(cleanMarkdown(menu.content || ''))}`;
         
-        // Show success feedback
-        console.log('Menu content copied:', format);
-    });
+        // Use ClipboardItem to write both HTML and plain text formats
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+        const plainContent = tempDiv.textContent || tempDiv.innerText;
+        const plainBlob = new Blob([plainContent], { type: 'text/plain' });
+        const clipboardItem = new ClipboardItem({
+            'text/html': blob,
+            'text/plain': plainBlob
+        });
+        
+        navigator.clipboard.write([clipboardItem]).then(() => {
+            closeMenuShareDropdown();
+            console.log('Menu content copied as rich text:', format);
+        }).catch(err => {
+            console.error('Failed to copy rich text:', err);
+            // Fallback to plain text
+            navigator.clipboard.writeText(htmlContent);
+        });
+    }
+}
+
+// Helper to close menu share dropdown
+function closeMenuShareDropdown() {
+    const dropdown = document.getElementById('menuShareDropdown');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+    }
 }
 
 function copyMenuLink(event, menuId) {
