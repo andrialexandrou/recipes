@@ -268,20 +268,34 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Recipe list with live filtering
 - Collapsible on mobile
 
+**Breadcrumbs:**
+
+- **All views have breadcrumbs with username navigation** - Provides consistent wayfinding across the app
+- Pattern: `@username > Section > Item`
+- Breadcrumb examples:
+  - Collections list: `@username > Collections`
+  - Collection detail: `@username > Collections > Collection Name`
+  - Menus list: `@username > Menus`
+  - Menu detail: `@username > Menus > Menu Name`
+  - Recipe (sidebar): `@username > Recipe Title`
+  - Recipe (from collection): `@username > Collections > Collection Name > Recipe Title`
+- Clicking `@username` navigates back to user's home view
+- All breadcrumb links use `preventDefault()` for SPA navigation
+
 **Views:**
 
 - Home (collections + menus grid)
-- Collections list
-- Collection detail
-- Menus list
-- Menu detail
-- Recipe detail
+- Collections list (with breadcrumb)
+- Collection detail (with breadcrumb)
+- Menus list (with breadcrumb)
+- Menu detail (with breadcrumb)
+- Recipe detail (with breadcrumb)
 
 **Key Files:**
 
-- `public/index.html` - DOM structure
+- `public/index.html` - DOM structure, breadcrumb elements
 - `public/styles.css` - All styling
-- `public/app.js` - View switching, navigation
+- `public/app.js` - View switching, navigation, breadcrumb rendering
 
 ### 8. Keyboard Shortcuts
 

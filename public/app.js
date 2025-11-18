@@ -543,7 +543,10 @@ const DOM = {
     titleDisplay: document.getElementById('titleDisplay'),
     markdownTextarea: document.getElementById('markdownTextarea'),
     previewContent: document.getElementById('previewContent'),
-    breadcrumb: document.getElementById('breadcrumb')
+    breadcrumb: document.getElementById('breadcrumb'),
+    menuBreadcrumb: document.getElementById('menuBreadcrumb'),
+    collectionsViewBreadcrumb: document.getElementById('collectionsViewBreadcrumb'),
+    menusViewBreadcrumb: document.getElementById('menusViewBreadcrumb')
 };
 
 // =============================================================================
@@ -1118,6 +1121,25 @@ function switchToView(viewName) {
             collectionsView.classList.add('active');
             homeBtn.classList.add('active');
             renderCollectionsGrid();
+            
+            // Render breadcrumb
+            const collectionsViewBreadcrumb = DOM.collectionsViewBreadcrumb;
+            if (collectionsViewBreadcrumb) {
+                collectionsViewBreadcrumb.innerHTML = `
+                    <a href="/${username}" class="breadcrumb-link">@${username}</a>
+                    <span class="breadcrumb-separator">></span>
+                    <span class="breadcrumb-current">Collections</span>
+                `;
+                collectionsViewBreadcrumb.classList.remove('hidden');
+                
+                // Add click handler to username link
+                const breadcrumbLink = collectionsViewBreadcrumb.querySelector('.breadcrumb-link');
+                breadcrumbLink?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showHomeView();
+                });
+            }
+            
             updateEditControls(); // Show/hide create button
             document.title = `Collections - @${username} - Sous`;
             history.pushState({ type: 'collections' }, `Collections - @${username} - Sous`, `/${username}/collections`);
@@ -1131,6 +1153,25 @@ function switchToView(viewName) {
             menusView.classList.remove('hidden');
             menusView.classList.add('active');
             renderMenusGrid();
+            
+            // Render breadcrumb
+            const menusViewBreadcrumb = DOM.menusViewBreadcrumb;
+            if (menusViewBreadcrumb) {
+                menusViewBreadcrumb.innerHTML = `
+                    <a href="/${username}" class="breadcrumb-link">@${username}</a>
+                    <span class="breadcrumb-separator">></span>
+                    <span class="breadcrumb-current">Menus</span>
+                `;
+                menusViewBreadcrumb.classList.remove('hidden');
+                
+                // Add click handler to username link
+                const breadcrumbLink = menusViewBreadcrumb.querySelector('.breadcrumb-link');
+                breadcrumbLink?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showHomeView();
+                });
+            }
+            
             updateEditControls(); // Show/hide create button
             document.title = `Menus - @${username} - Sous`;
             history.pushState({ type: 'menus' }, `Menus - @${username} - Sous`, `/${username}/menus`);
@@ -1920,8 +1961,20 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
             loadCollectionDetail(currentCollectionId);
         });
     } else {
-        // Hide breadcrumb for sidebar navigation
-        breadcrumb.classList.add('hidden');
+        // Show simple breadcrumb for sidebar navigation
+        breadcrumb.innerHTML = `
+            <a href="/${API.viewingUser}" class="breadcrumb-link">@${API.viewingUser}</a>
+            <span class="breadcrumb-separator">></span>
+            <span class="breadcrumb-current">${escapeHtml(recipe.title)}</span>
+        `;
+        breadcrumb.classList.remove('hidden');
+        
+        // Add click handler to username link
+        const breadcrumbLink = breadcrumb.querySelector('.breadcrumb-link');
+        breadcrumbLink?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showHomeView();
+        });
     }
     
     enterViewMode();
@@ -3136,6 +3189,30 @@ function loadMenuDetail(menuId, updateHistory = true) {
     menuDescriptionInput.classList.add('hidden');
     menuPreviewContent.classList.remove('hidden');
     menuMarkdownTextarea.classList.add('hidden');
+    
+    // Render breadcrumb
+    const menuBreadcrumb = DOM.menuBreadcrumb;
+    if (menuBreadcrumb) {
+        menuBreadcrumb.innerHTML = `
+            <a href="/${API.viewingUser}" class="breadcrumb-link">@${API.viewingUser}</a>
+            <span class="breadcrumb-separator">></span>
+            <a href="/${API.viewingUser}/menus" class="breadcrumb-link">Menus</a>
+            <span class="breadcrumb-separator">></span>
+            <span class="breadcrumb-current">${escapeHtml(menu.name)}</span>
+        `;
+        menuBreadcrumb.classList.remove('hidden');
+        
+        // Add click handlers to breadcrumb links
+        const breadcrumbLinks = menuBreadcrumb.querySelectorAll('.breadcrumb-link');
+        breadcrumbLinks[0]?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showHomeView();
+        });
+        breadcrumbLinks[1]?.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchToView('menus');
+        });
+    }
     
     updateEditControls(); // Show/hide edit controls based on ownership
 }
