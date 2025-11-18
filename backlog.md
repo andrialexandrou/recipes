@@ -47,7 +47,7 @@ Future features and improvements for Sous.
 
 ## Large Features
 
-- **Redesign Mobile Experience** - The current responsive web experience feels odd on mobile. Need to fully redesign the mobile experience to be truly mobile-first with native-feeling interactions, gestures, and navigation patterns. May require building a separate mobile-optimized app/view rather than just responsive CSS adjustments. Consider: touch-first interactions, bottom navigation, card-based UI, swipe gestures, mobile-specific editing UX.
+- **Redesign Mobile Experience** - The current responsive web experience feels odd on mobile. Need to fully redesign the mobile experience to be truly mobile-first with native-feeling interactions, gestures, and navigation patterns. May require building a separate mobile-optimized app/view rather than just responsive CSS adjustments. Consider: touch-first interactions, bottom navigation, card-based UI, swipe gestures, mobile-specific editing UX. **Important: Increase font sizes significantly for mobile - current text is too small for comfortable phone use. Ideally detect mobile context and apply larger typography scale.**
 - **Pinned Content & User Overview Page Redesign** - Restructure the user overview page (`/{username}`) to show content in this order: Recipes, Menus, Collections. Add a "Pinned" section at the top where users can pin their favorite/featured items. On mobile, show grouped sections that display up to 6-8 items of each type with a "View All" link to see the full list. Implementation details:
   - Add `isPinned` boolean field to recipes, menus, and collections
   - Add pin/unpin action button to each item (star icon or pin icon)

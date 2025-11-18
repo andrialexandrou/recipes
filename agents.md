@@ -477,7 +477,55 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 - `scripts/enable-search-for-all-users.js` - Sets `isSearchable: true` for all existing users
 
-### 13. Firebase Integration
+### 13. User Profile Page
+
+**Status: ✅ Complete**
+
+**Philosophy:** Provide a comprehensive user profile view that showcases a user's content in an organized, browsable format.
+
+**Features:**
+
+- Hero section with circular avatar (128px), username, and stats
+- Five stat metrics: Recipes count, Collections count, Menus count, Following count, Followers count
+- Follow/Unfollow button (hidden for own profile)
+- Tabbed content navigation: Recipes, Collections, Menus
+- Grid layout for all content types with responsive design
+- Server-side sorting by recency (newest first)
+- Edit/delete controls only visible on own profile
+
+**Tab Content:**
+
+- **Recipes Tab**: Grid of recipe cards with title and "X time ago" date
+- **Collections Tab**: Grid of collection cards with title, description, recipe count, and edit/delete buttons (owner only)
+- **Menus Tab**: Grid of menu cards with title, description, "X time ago" date, and edit/delete buttons (owner only)
+
+**Technical Implementation:**
+
+- Default view when navigating to `/{username}` route
+- Three separate grid rendering functions for each tab
+- Tab switching triggers re-render of active tab content
+- CSS `.active` class controls tab and panel visibility
+- Profile data fetched from `/api/${username}/user` endpoint
+- Follow button uses `toggleFollowFromProfile()` function
+
+**Data Sorting:**
+
+- Recipes: `updatedAt` descending (most recently edited first)
+- Collections: `createdAt` descending (newest first)
+- Menus: `updatedAt` descending (most recently edited first)
+- Requires Firestore composite indexes:
+  - `recipes`: `userId` + `updatedAt` (descending)
+  - `collections`: `userId` + `createdAt` (descending)
+  - `menus`: `userId` + `updatedAt` (descending)
+
+**Key Files:**
+
+- `public/app.js` - `renderProfilePage()`, `switchProfileTab()`, three grid render functions
+- `public/index.html` - Profile hero, tabs, and tab panels in `#homeView`
+- `public/styles.css` - Profile-specific styles (`.profile-*` classes)
+- `server.js` - `.orderBy()` clauses added to all GET endpoints
+
+### 14. Firebase Integration
 
 **Status: ✅ Complete**
 
@@ -485,7 +533,7 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 - `users` - {username, email, following[] (UIDs), followers[] (UIDs), followingCount, followersCount, isSearchable (boolean), createdAt, isStaff (optional boolean), gravatarHash (computed server-side)}
 - `recipes` - {id, title, content, username, userId, createdAt, updatedAt, activityPublished (boolean)}
-- `collections` - {id, name, description, username, userId, recipeIds[]}
+- `collections` - {id, name, description, username, userId, recipeIds[], createdAt}
 - `menus` - {id, name, description, content, username, userId, recipeIds[], createdAt, updatedAt}
 - `photos` - {id, filename, url, username, uploadedAt, size, mimetype}
 - `activities` - {userId, username, type, entityId, entityTitle, entitySlug, createdAt}
@@ -515,13 +563,13 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 - `server.js` - Firebase Admin initialization
 - `.env` - Environment configuration
 
-### 14. URL Routing
+### 15. URL Routing
 
 **Status: ✅ Complete**
 
 **Client-Side SPA Routing:**
 
-- `/{username}` - Home view
+- `/{username}` - User profile page (home view)
 - `/{username}/collections` - Collections list
 - `/{username}/collection/{slug}-{id}` - Collection detail
 - `/{username}/menus` - Menus list
@@ -540,7 +588,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 - `server.js` - Catch-all route for SPA
 - `public/app.js` - `loadFromURL()`, `updateURL()`
 
-### 15. Browser History & Page Titles
+### 16. Browser History & Page Titles
 
 **Status: ✅ Complete**
 

@@ -229,10 +229,15 @@ let photos = [];
 async function validateUsername(req, res, next) {
     const username = req.params.username;
     
+    console.log(`🔍 Validating username: ${username}`);
+    
     // Try to resolve username to userId from Firestore first (primary source of truth)
     if (useFirebase && db) {
         try {
+            console.log(`🔥 Querying Firestore for user: ${username}`);
             const usersSnapshot = await db.collection('users').where('username', '==', username).limit(1).get();
+            console.log(`📊 Query returned ${usersSnapshot.size} results`);
+            
             if (!usersSnapshot.empty) {
                 const userDoc = usersSnapshot.docs[0];
                 req.userId = userDoc.id; // Store Firebase Auth UID
@@ -240,6 +245,7 @@ async function validateUsername(req, res, next) {
                 console.log(`✅ Resolved ${username} → userId: ${req.userId}`);
                 return next();
             } else {
+                console.log(`⚠️ User ${username} not found in Firestore, checking hardcoded list...`);
                 // Not in Firestore, check hardcoded list as fallback
                 const user = users.find(u => u.username === username);
                 if (user) {
@@ -248,11 +254,13 @@ async function validateUsername(req, res, next) {
                     req.username = username;
                     return next();
                 } else {
+                    console.log(`❌ User ${username} not found anywhere`);
                     return res.status(404).json({ error: 'User not found' });
                 }
             }
         } catch (error) {
-            console.error('Error resolving userId:', error);
+            console.error('❌ Error resolving userId:', error.message);
+            console.error('Error details:', error);
             // Fall through to hardcoded list check
         }
     }
@@ -743,7 +751,8 @@ app.get('/api/:username/recipes', validateUsername, async (req, res) => {
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const query = buildUserQuery(db.collection('recipes'), req);
+                const query = buildUserQuery(db.collection('recipes'), req)
+                    .orderBy('updatedAt', 'desc');
                 const querySnapshot = await query.get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,
@@ -1041,7 +1050,8 @@ app.get('/api/:username/collections', validateUsername, async (req, res) => {
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const collectionsRef = buildUserQuery(db.collection('collections'), req);
+                const collectionsRef = buildUserQuery(db.collection('collections'), req)
+                    .orderBy('createdAt', 'desc');
                 const querySnapshot = await collectionsRef.get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,
@@ -1408,7 +1418,8 @@ app.get('/api/:username/menus', validateUsername, async (req, res) => {
     try{
         if (useFirebase && db && !firebaseFailureDetected) {
             try {
-                const menusRef = buildUserQuery(db.collection('menus'), req);
+                const menusRef = buildUserQuery(db.collection('menus'), req)
+                    .orderBy('updatedAt', 'desc');
                 const querySnapshot = await menusRef.get();
                 const data = querySnapshot.docs.map(doc => ({
                     id: doc.id,

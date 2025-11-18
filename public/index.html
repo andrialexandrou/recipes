@@ -153,44 +153,85 @@
         
         <div class="content-area">
             <div id="homeView" class="view-section active">
-                <!-- Skeleton loading state -->
-                <div id="homeViewSkeleton" class="home-skeleton">
-                    <div class="home-section">
-                        <div class="skeleton-header"></div>
-                        <div class="collections-grid">
-                            <div class="skeleton-card"></div>
-                            <div class="skeleton-card"></div>
-                            <div class="skeleton-card"></div>
-                        </div>
+                <!-- Profile Hero Section -->
+                <div class="profile-hero">
+                    <div class="profile-avatar-container">
+                        <img id="profileAvatar" class="profile-avatar" src="" alt="User avatar">
                     </div>
-                    <div class="home-section">
-                        <div class="skeleton-header"></div>
-                        <div class="collections-grid">
-                            <div class="skeleton-card"></div>
-                            <div class="skeleton-card"></div>
-                            <div class="skeleton-card"></div>
+                    <div class="profile-info">
+                        <h1 class="profile-username" id="profileUsername"></h1>
+                        <div class="profile-stats">
+                            <span class="profile-stat">
+                                <span class="profile-stat-value" id="profileRecipeCount">0</span>
+                                <span class="profile-stat-label">Recipes</span>
+                            </span>
+                            <span class="profile-stat">
+                                <span class="profile-stat-value" id="profileCollectionCount">0</span>
+                                <span class="profile-stat-label">Collections</span>
+                            </span>
+                            <span class="profile-stat">
+                                <span class="profile-stat-value" id="profileMenuCount">0</span>
+                                <span class="profile-stat-label">Menus</span>
+                            </span>
+                            <span class="profile-stat profile-stat-link" id="profileFollowingLink">
+                                <span class="profile-stat-value" id="profileFollowingCount">0</span>
+                                <span class="profile-stat-label">Following</span>
+                            </span>
+                            <span class="profile-stat profile-stat-link" id="profileFollowersLink">
+                                <span class="profile-stat-value" id="profileFollowersCount">0</span>
+                                <span class="profile-stat-label">Followers</span>
+                            </span>
                         </div>
+                        <button id="profileFollowBtn" class="profile-follow-btn hidden">Follow</button>
                     </div>
                 </div>
-                <!-- Actual content (hidden initially) -->
-                <div id="homeViewContent" class="hidden">
-                    <div class="home-section">
-                        <div class="collections-header">
-                            <h2>Menus</h2>
-                            <button class="new-collection-btn" id="newMenuBtnHome" title="New Menu">
+
+                <!-- Tabbed Content Navigation -->
+                <div class="profile-tabs">
+                    <button class="profile-tab active" data-tab="recipes">Recipes</button>
+                    <button class="profile-tab" data-tab="collections">Collections</button>
+                    <button class="profile-tab" data-tab="menus">Menus</button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="profile-tab-content">
+                    <!-- Recipes Tab -->
+                    <div id="profileRecipesTab" class="profile-tab-panel active">
+                        <div class="profile-actions">
+                            <button class="new-collection-btn" id="newRecipeBtnProfile" title="New Recipe">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
-                        <div class="collections-grid" id="menusGridHome"></div>
+                        <div class="recipes-grid" id="recipesGridProfile"></div>
+                        <div class="profile-empty hidden" id="recipesEmpty">
+                            <p>No recipes yet</p>
+                        </div>
                     </div>
-                    <div class="home-section">
-                        <div class="collections-header">
-                            <h2>Collections</h2>
-                            <button class="new-collection-btn" id="newCollectionBtnHome" title="New Collection">
+
+                    <!-- Collections Tab -->
+                    <div id="profileCollectionsTab" class="profile-tab-panel">
+                        <div class="profile-actions">
+                            <button class="new-collection-btn" id="newCollectionBtnProfile" title="New Collection">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
-                        <div class="collections-grid" id="collectionsGridHome"></div>
+                        <div class="collections-grid" id="collectionsGridProfile"></div>
+                        <div class="profile-empty hidden" id="collectionsEmpty">
+                            <p>No collections yet</p>
+                        </div>
+                    </div>
+
+                    <!-- Menus Tab -->
+                    <div id="profileMenusTab" class="profile-tab-panel">
+                        <div class="profile-actions">
+                            <button class="new-collection-btn" id="newMenuBtnProfile" title="New Menu">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="collections-grid" id="menusGridProfile"></div>
+                        <div class="profile-empty hidden" id="menusEmpty">
+                            <p>No menus yet</p>
+                        </div>
                     </div>
                 </div>
             </div>

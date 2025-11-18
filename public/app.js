@@ -520,8 +520,10 @@ const DOM = {
     // Collections
     collectionsGrid: document.getElementById('collectionsGrid'),
     collectionsGridHome: document.getElementById('collectionsGridHome'),
+    collectionsGridProfile: document.getElementById('collectionsGridProfile'),
     newCollectionBtn: document.getElementById('newCollectionBtn'),
     newCollectionBtnHome: document.getElementById('newCollectionBtnHome'),
+    newCollectionBtnProfile: document.getElementById('newCollectionBtnProfile'),
     collectionTitle: document.getElementById('collectionTitle'),
     collectionDescription: document.getElementById('collectionDescription'),
     collectionRecipes: document.getElementById('collectionRecipes'),
@@ -529,8 +531,10 @@ const DOM = {
     // Menus
     menusGrid: document.getElementById('menusGrid'),
     menusGridHome: document.getElementById('menusGridHome'),
+    menusGridProfile: document.getElementById('menusGridProfile'),
     newMenuBtn: document.getElementById('newMenuBtn'),
     newMenuBtnHome: document.getElementById('newMenuBtnHome'),
+    newMenuBtnProfile: document.getElementById('newMenuBtnProfile'),
     menuTitleInput: document.getElementById('menuTitleInput'),
     menuTitleDisplay: document.getElementById('menuTitleDisplay'),
     menuDescriptionInput: document.getElementById('menuDescriptionInput'),
@@ -540,6 +544,8 @@ const DOM = {
     menuActions: document.getElementById('menuActions'),
     
     // Recipe
+    recipesGridProfile: document.getElementById('recipesGridProfile'),
+    newRecipeBtnProfile: document.getElementById('newRecipeBtnProfile'),
     titleInput: document.getElementById('titleInput'),
     titleDisplay: document.getElementById('titleDisplay'),
     markdownTextarea: document.getElementById('markdownTextarea'),
@@ -1784,7 +1790,7 @@ function renderRecipeList(filter = '') {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             // Reset collection context when loading from sidebar
-            currentCollectionId = null;
+            State.currentCollectionId = null;
             
             // Sidebar always shows authenticated user's recipes
             // So clicking a recipe should navigate to it using proper URL navigation
@@ -2369,21 +2375,317 @@ function showHomeView() {
     currentCollectionId = null;
     currentMenuId = null;
     
-    const skeleton = document.getElementById('homeViewSkeleton');
-    const content = document.getElementById('homeViewContent');
-    
-    // Check if this is a first-time user with no content (only show for owner)
-    const isOwner = API.viewingUser === API.currentUser?.username;
-    const hasNoContent = recipes.length === 0 && collections.length === 0 && menus.length === 0;
-    
-    if (isOwner && hasNoContent) {
-        showOnboardingBanner(skeleton, content);
-    } else {
-        showNormalHomeView(skeleton, content);
-    }
+    // Render profile page
+    renderProfilePage();
     
     updateEditControls(); // Show/hide create buttons based on ownership
     updateURL(null, null);
+}
+
+// Render profile page
+async function renderProfilePage() {
+    console.log('📄 Rendering profile page for:', API.viewingUser);
+    
+    // Get user data
+    let userData = null;
+    try {
+        const response = await fetch(`/api/${API.viewingUser}/user`);
+        userData = await response.json();
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+    }
+    
+    // Set avatar
+    const profileAvatar = document.getElementById('profileAvatar');
+    if (profileAvatar && userData?.gravatarHash) {
+        profileAvatar.src = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=256&d=identicon`;
+    }
+    
+    // Set username
+    const profileUsername = document.getElementById('profileUsername');
+    if (profileUsername) {
+        profileUsername.textContent = `@${API.viewingUser}`;
+    }
+    
+    // Set stats
+    const profileRecipeCount = document.getElementById('profileRecipeCount');
+    const profileCollectionCount = document.getElementById('profileCollectionCount');
+    const profileMenuCount = document.getElementById('profileMenuCount');
+    const profileFollowingCount = document.getElementById('profileFollowingCount');
+    const profileFollowersCount = document.getElementById('profileFollowersCount');
+    
+    if (profileRecipeCount) profileRecipeCount.textContent = recipes.length;
+    if (profileCollectionCount) profileCollectionCount.textContent = collections.length;
+    if (profileMenuCount) profileMenuCount.textContent = menus.length;
+    if (profileFollowingCount) profileFollowingCount.textContent = userData?.followingCount || 0;
+    if (profileFollowersCount) profileFollowersCount.textContent = userData?.followersCount || 0;
+    
+    // Show/hide follow button
+    const profileFollowBtn = document.getElementById('profileFollowBtn');
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    const isFollowing = API.currentUser?.following?.includes(userData?.uid);
+    
+    if (profileFollowBtn) {
+        if (isOwner || !API.currentUser) {
+            profileFollowBtn.classList.add('hidden');
+        } else {
+            profileFollowBtn.classList.remove('hidden');
+            if (isFollowing) {
+                profileFollowBtn.textContent = 'Following';
+                profileFollowBtn.classList.add('following');
+            } else {
+                profileFollowBtn.textContent = 'Follow';
+                profileFollowBtn.classList.remove('following');
+            }
+        }
+    }
+    
+    // Render grids
+    renderProfileRecipesGrid();
+    renderProfileCollectionsGrid();
+    renderProfileMenusGrid();
+    
+    // Set up tab switching
+    const tabs = document.querySelectorAll('.profile-tab');
+    tabs.forEach(tab => {
+        tab.onclick = () => switchProfileTab(tab.dataset.tab);
+    });
+    
+    // Activate recipes tab by default
+    switchProfileTab('recipes');
+    
+    // Set up follow button
+    if (profileFollowBtn && !isOwner && API.currentUser) {
+        profileFollowBtn.onclick = () => toggleFollowFromProfile(userData?.uid);
+    }
+}
+
+// Switch profile tabs
+function switchProfileTab(tabName) {
+    console.log('🔄 Switching to tab:', tabName);
+    
+    // Update tab buttons
+    document.querySelectorAll('.profile-tab').forEach(tab => {
+        if (tab.dataset.tab === tabName) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+    
+    // Update tab panels
+    document.querySelectorAll('.profile-tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    
+    const activePanel = document.getElementById(`profile${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Tab`);
+    if (activePanel) {
+        activePanel.classList.add('active');
+    }
+    
+    // Render content for the active tab
+    if (tabName === 'recipes') {
+        renderProfileRecipesGrid();
+    } else if (tabName === 'collections') {
+        renderProfileCollectionsGrid();
+    } else if (tabName === 'menus') {
+        renderProfileMenusGrid();
+    }
+}
+
+// Render profile recipes grid
+function renderProfileRecipesGrid() {
+    console.log('📄 renderProfileRecipesGrid called');
+    const grid = document.getElementById('recipesGridProfile');
+    const empty = document.getElementById('recipesEmpty');
+    console.log('Grid element:', grid);
+    console.log('Recipes count:', recipes.length);
+    
+    if (!grid) {
+        console.warn('⚠️ recipesGridProfile element not found!');
+        return;
+    }
+    
+    if (recipes.length === 0) {
+        grid.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        return;
+    }
+    
+    if (empty) empty.classList.add('hidden');
+    
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    
+    grid.innerHTML = recipes.map(recipe => {
+        const slug = recipe.title ? slugify(recipe.title) : 'untitled';
+        const url = `/${API.viewingUser}/recipe/${slug}-${recipe.id}`;
+        return `
+            <a href="${url}" class="collection-card" data-id="${recipe.id}">
+                <div class="collection-card-header">
+                    <h3 class="collection-card-title">${escapeHtml(recipe.title || 'Untitled')}</h3>
+                </div>
+                <div class="collection-card-meta">
+                    <span class="collection-card-date">${formatTimeAgo(recipe.updatedAt || recipe.createdAt)}</span>
+                </div>
+            </a>
+        `;
+    }).join('');
+    
+    // Add click handlers
+    grid.querySelectorAll('.collection-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadRecipe(card.dataset.id);
+        });
+    });
+}
+
+// Render profile collections grid
+function renderProfileCollectionsGrid() {
+    console.log('📦 renderProfileCollectionsGrid called');
+    const grid = document.getElementById('collectionsGridProfile');
+    const empty = document.getElementById('collectionsEmpty');
+    console.log('Grid element:', grid);
+    console.log('Collections count:', collections.length);
+    
+    if (!grid) {
+        console.warn('⚠️ collectionsGridProfile element not found!');
+        return;
+    }
+    
+    if (collections.length === 0) {
+        grid.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        return;
+    }
+    
+    if (empty) empty.classList.add('hidden');
+    
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    
+    grid.innerHTML = collections.map(col => {
+        const recipeCount = col.recipeIds ? col.recipeIds.length : 0;
+        return `
+            <div class="collection-card" data-id="${col.id}">
+                <div class="collection-card-header">
+                    <h3 class="collection-card-title">${escapeHtml(col.name)}</h3>
+                    ${isOwner ? `
+                        <div class="collection-card-actions">
+                            <button onclick="event.preventDefault(); event.stopPropagation(); editCollection('${col.id}')" class="collection-action-btn" title="Edit collection">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="event.preventDefault(); event.stopPropagation(); deleteCollection('${col.id}')" class="collection-action-btn" title="Delete collection">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+                ${col.description ? `<p class="collection-card-description">${escapeHtml(col.description)}</p>` : ''}
+                <div class="collection-card-meta">
+                    <span class="collection-card-count">${recipeCount} ${recipeCount === 1 ? 'recipe' : 'recipes'}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click handlers
+    grid.querySelectorAll('.collection-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadCollectionDetail(card.dataset.id);
+        });
+    });
+}
+
+// Render profile menus grid
+function renderProfileMenusGrid() {
+    console.log('🍽️ renderProfileMenusGrid called');
+    const grid = document.getElementById('menusGridProfile');
+    const empty = document.getElementById('menusEmpty');
+    console.log('Grid element:', grid);
+    console.log('Menus count:', menus.length);
+    
+    if (!grid) {
+        console.warn('⚠️ menusGridProfile element not found!');
+        return;
+    }
+    
+    if (menus.length === 0) {
+        grid.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        return;
+    }
+    
+    if (empty) empty.classList.add('hidden');
+    
+    const isOwner = API.viewingUser === API.currentUser?.username;
+    
+    grid.innerHTML = menus.map(menu => `
+        <div class="collection-card" data-id="${menu.id}">
+            <div class="collection-card-header">
+                <h3 class="collection-card-title">${escapeHtml(menu.name)}</h3>
+                ${isOwner ? `
+                    <div class="collection-card-actions">
+                        <button onclick="event.preventDefault(); event.stopPropagation(); loadMenuDetail('${menu.id}'); enterMenuEditMode();" class="collection-action-btn" title="Edit menu">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="event.preventDefault(); event.stopPropagation(); deleteMenu('${menu.id}')" class="collection-action-btn" title="Delete menu">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+            ${menu.description ? `<p class="collection-card-description">${escapeHtml(menu.description)}</p>` : ''}
+            <div class="collection-card-meta">
+                <span class="collection-card-date">${formatTimeAgo(menu.updatedAt || menu.createdAt)}</span>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add click handlers
+    grid.querySelectorAll('.collection-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadMenuDetail(card.dataset.id);
+        });
+    });
+}
+
+// Toggle follow from profile page
+async function toggleFollowFromProfile(userIdToFollow) {
+    if (!API.currentUser || !userIdToFollow) return;
+    
+    const isFollowing = API.currentUser.following?.includes(userIdToFollow);
+    const profileFollowBtn = document.getElementById('profileFollowBtn');
+    
+    try {
+        if (isFollowing) {
+            await API.unfollowUser(userIdToFollow);
+            API.currentUser.following = API.currentUser.following.filter(id => id !== userIdToFollow);
+            if (profileFollowBtn) {
+                profileFollowBtn.textContent = 'Follow';
+                profileFollowBtn.classList.remove('following');
+            }
+        } else {
+            await API.followUser(userIdToFollow);
+            if (!API.currentUser.following) API.currentUser.following = [];
+            API.currentUser.following.push(userIdToFollow);
+            if (profileFollowBtn) {
+                profileFollowBtn.textContent = 'Following';
+                profileFollowBtn.classList.add('following');
+            }
+        }
+        
+        // Update follower count
+        const profileFollowersCount = document.getElementById('profileFollowersCount');
+        if (profileFollowersCount) {
+            const currentCount = parseInt(profileFollowersCount.textContent) || 0;
+            profileFollowersCount.textContent = isFollowing ? currentCount - 1 : currentCount + 1;
+        }
+    } catch (error) {
+        console.error('Error toggling follow:', error);
+        alert('Error updating follow status');
+    }
 }
 
 function showNotFoundView() {
@@ -2713,7 +3015,15 @@ function getActivityIcon(type) {
 }
 
 function formatTimeAgo(date) {
-    const seconds = Math.floor((new Date() - date) / 1000);
+    if (!date) return 'just now';
+    
+    // Convert to Date object if it's a string
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if valid date
+    if (isNaN(dateObj.getTime())) return 'just now';
+    
+    const seconds = Math.floor((new Date() - dateObj) / 1000);
     
     const intervals = {
         year: 31536000,
@@ -3090,6 +3400,10 @@ function copyRecipeContent(format) {
     if (format === 'markdown') {
         // Copy raw markdown
         content = `# ${recipe.title}\n\n${recipe.content}`;
+        navigator.clipboard.writeText(content).then(() => {
+            closeShareDropdown();
+            console.log('Recipe content copied:', format);
+        });
     } else if (format === 'plaintext') {
         // Convert markdown to plain text (strip formatting)
         const tempDiv = document.createElement('div');
@@ -3716,10 +4030,10 @@ const navNewRecipeBtn = document.getElementById('navNewRecipeBtn');
 if (navNewRecipeBtn) {
     navNewRecipeBtn.addEventListener('click', createNewRecipe);
 }
-newCollectionBtn.addEventListener('click', createNewCollection);
-newCollectionBtnHome.addEventListener('click', createNewCollection);
-newMenuBtn.addEventListener('click', createNewMenu);
-newMenuBtnHome.addEventListener('click', createNewMenu);
+if (newCollectionBtn) newCollectionBtn.addEventListener('click', createNewCollection);
+if (newCollectionBtnHome) newCollectionBtnHome.addEventListener('click', createNewCollection);
+if (newMenuBtn) newMenuBtn.addEventListener('click', createNewMenu);
+if (newMenuBtnHome) newMenuBtnHome.addEventListener('click', createNewMenu);
 
 // Navbar dropdown handlers
 navMenuBtn.addEventListener('click', async (e) => {
