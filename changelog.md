@@ -2,6 +2,21 @@
 
 All notable changes to the Sous recipe manager.
 
+## 2025-11-17
+
+### Fixed Sidebar Recipe Navigation on Cross-User Profiles
+
+**Bug fix for broken sidebar recipe links when viewing other users' profiles:**
+
+- Fixed sidebar recipe click handlers to properly navigate when viewing another user's profile
+- Now correctly switches context by setting `API.viewingUser`, reloading data via `loadAllData()`, then calling `loadFromURL()`
+- Fixed variable references: using `State.authenticatedUserRecipes` and `State.currentCollectionId` instead of undefined variables
+- Sidebar recipe links now work consistently whether viewing your own profile or someone else's
+- URL bar updates correctly and recipe content loads as expected
+
+**Files Modified:**
+- `public/app.js` - Fixed click and keydown event handlers in `renderRecipeList()`
+
 ## 2025-11-16
 
 ### Sidebar Always Shows Authenticated User Content

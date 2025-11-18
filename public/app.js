@@ -1787,30 +1787,55 @@ function renderRecipeList(filter = '') {
             currentCollectionId = null;
             
             // Sidebar always shows authenticated user's recipes
-            // So when clicking, navigate to authenticated user's profile if not already there
-            if (API.currentUser && API.viewingUser !== API.currentUser.username) {
-                API.viewingUser = API.currentUser.username;
-                // Reload viewing user's data to switch context
-                loadAllData().then(() => {
-                    loadRecipe(item.dataset.id);
-                });
-            } else {
-                loadRecipe(item.dataset.id);
+            // So clicking a recipe should navigate to it using proper URL navigation
+            const recipeId = item.dataset.id;
+            const recipe = State.authenticatedUserRecipes.find(r => r.id === recipeId);
+            if (recipe) {
+                const slug = recipe.title ? slugify(recipe.title) : 'untitled';
+                const username = API.currentUser?.username;
+                const url = `/${username}/recipe/${slug}-${recipeId}`;
+                
+                // If viewing another user's profile, need to switch context and reload data
+                if (API.currentUser && API.viewingUser !== API.currentUser.username) {
+                    API.viewingUser = API.currentUser.username;
+                    // Update URL and reload data, then load from URL
+                    history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                    loadAllData().then(() => {
+                        loadFromURL();
+                    });
+                } else {
+                    // Same user, just navigate
+                    history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                    loadFromURL();
+                }
             }
         });
         item.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                currentCollectionId = null;
+                State.currentCollectionId = null;
                 
                 // Sidebar always shows authenticated user's recipes
-                if (API.currentUser && API.viewingUser !== API.currentUser.username) {
-                    API.viewingUser = API.currentUser.username;
-                    loadAllData().then(() => {
-                        loadRecipe(item.dataset.id);
-                    });
-                } else {
-                    loadRecipe(item.dataset.id);
+                const recipeId = item.dataset.id;
+                const recipe = State.authenticatedUserRecipes.find(r => r.id === recipeId);
+                if (recipe) {
+                    const slug = recipe.title ? slugify(recipe.title) : 'untitled';
+                    const username = API.currentUser?.username;
+                    const url = `/${username}/recipe/${slug}-${recipeId}`;
+                    
+                    // If viewing another user's profile, need to switch context and reload data
+                    if (API.currentUser && API.viewingUser !== API.currentUser.username) {
+                        API.viewingUser = API.currentUser.username;
+                        // Update URL and reload data, then load from URL
+                        history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                        loadAllData().then(() => {
+                            loadFromURL();
+                        });
+                    } else {
+                        // Same user, just navigate
+                        history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                        loadFromURL();
+                    }
                 }
             }
         });
