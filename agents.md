@@ -63,11 +63,12 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - Collection detail view with recipe cards
 - Copy link functionality for collections (list view and detail view)
 - Metadata shows which collections contain each recipe (as clickable anchor tags)
+- Edit collection name/description without affecting recipe list (server uses partial updates)
 
 **Key Files:**
 
 - `public/app.js` - Collection rendering and management
-- `server.js` - `/api/:username/collections` endpoints
+- `server.js` - `/api/:username/collections` endpoints with partial update support
 
 ### 3. Menus Feature
 
@@ -129,27 +130,32 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 
 1. **Copy Link** - Copies URL to clipboard for easy sharing
 2. **Copy Content As:**
-   - **Markdown** - Raw markdown source with title (for editing elsewhere)
+   - **Original** - Raw markdown source with title (for editing elsewhere)
    - **Plain Text** - Rendered text without formatting (strips HTML)
-   - **HTML** - Rendered HTML with title as h1 (for rich paste destinations)
+   - **Rich Text** - Rendered HTML with title as h1 (for rich paste destinations)
 
 **UI/UX:**
 
-- Share button uses fa-share-nodes icon
-- Dropdown positioned below button (right-aligned)
+- Share button uses fa-arrow-up-from-bracket icon
+- Dropdown positioned below button (left-aligned to button)
+- Opens upward (northeast) when metadata section reflows to bottom on narrow screens
 - Divider and label separate copy link from content options
 - Format-specific icons: fa-markdown, fa-align-left, fa-html5
-- Success feedback shows checkmark in clicked button
+- Dropdown auto-closes on item selection for immediate feedback
+- Copy Link shows brief "Copied!" confirmation
 - Smooth transitions and hover states
 
 **Technical Details:**
 
-- `copyRecipeContent(event, recipeId, format)` - Handles recipe copying
-- `copyMenuContent(event, menuId, format)` - Handles menu copying
+- `copyRecipeContent(format)` - Handles recipe copying (closes dropdown after copy)
+- `copyMenuContent(format)` - Handles menu copying (closes dropdown after copy)
+- `copyRecipeLink(event)` - Copies recipe URL (closes dropdown after copy)
+- `copyMenuLink(event, menuId)` - Copies menu URL (closes dropdown after copy)
 - `toggleShareDropdown(event)` - Toggle for recipe dropdown
 - `toggleMenuShareDropdown(event)` - Toggle for menu dropdown
 - Markdown→HTML conversion using marked.js
 - HTML→plaintext using temp div with textContent extraction
+- Responsive positioning: opens upward on mobile and when sidebar pushes metadata to bottom
 
 **Key Files:**
 

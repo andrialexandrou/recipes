@@ -20,11 +20,11 @@ Future features and improvements for Sous.
 - **Double Click Bug on Cards** - ✅ Fixed event propagation issue requiring double-clicks on collection/menu cards
 - **Admin Badge for Creator** - ✅ Displays sparkle (✦) badge next to staff usernames throughout the app (sidebar, activity feed, search results). Helps users identify who to reach out to for support.
 - **Copy Recipe Content** - ✅ Added "Copy Content As" options to share dropdown with format choices: Markdown (source), Plain Text (stripped formatting), or HTML (rendered). Available on recipes and menus.
-- **Share Button with Options** - ✅ Converted single copy link button to share dropdown menu with "Copy Link" and "Copy Content As" options (Markdown/Plain Text/HTML). Unified sharing experience across recipes and menus.
+- **Share Button with Options** - ✅ Converted single copy link button to share dropdown menu with "Copy Link" and "Copy Content As" options (Original/Plain Text/Rich Text). Unified sharing experience across recipes and menus. Dropdown auto-closes on selection for clear feedback.
+- **Collection Edit Bug** - ✅ Fixed bug where editing collection name/description would delete all recipes. Server now uses partial updates, only modifying fields explicitly provided in request.
 
 ## 🐛 Bugs
 
-- **Collection Edit Wipes Recipe List** - When editing a collection description, all recipes are removed from the collection. Appears to be data loss during the edit/save flow. Needs investigation of collection update logic.
 - **Custom Domain Does Not Trigger PWA Behavior** - When adding to home screen from my-sous.com (custom domain), iOS does not treat it as a native web app like it does with the Vercel URL. The custom domain opens in Safari instead of standalone mode. Works correctly on Vercel domain. Attempted fixes: dynamic manifest.json endpoint, proper MIME types, iOS-specific meta tags, cache headers. Needs deeper investigation into domain configuration, SSL certificates, or iOS-specific caching behavior.
 
 ## Quick Wins (Small Effort)

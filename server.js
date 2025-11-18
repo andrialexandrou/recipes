@@ -1171,10 +1171,16 @@ app.put('/api/:username/collections/:id', validateUsername, async (req, res) => 
                 if (!docSnap.exists || !belongsToUser) {
                     return res.status(404).json({ error: 'Collection not found' });
                 }
-                const updates = { name, description, recipeIds: recipeIds || [] };
+                
+                // Only update fields that are provided
+                const updates = {};
+                if (name !== undefined) updates.name = name;
+                if (description !== undefined) updates.description = description;
+                if (recipeIds !== undefined) updates.recipeIds = recipeIds;
+                
                 await docRef.update(updates);
                 console.log('🔥 Collection updated in Firebase:', req.params.id);
-                res.json({ id: req.params.id, ...updates });
+                res.json({ id: req.params.id, ...collectionData, ...updates });
             } catch (firebaseError) {
                 console.error('❌ Firebase collection update failed:', firebaseError.message);
                 disableFirebaseMode('Collection update failed: ' + firebaseError.message);
@@ -1183,8 +1189,12 @@ app.put('/api/:username/collections/:id', validateUsername, async (req, res) => 
                 if (!collection) {
                     return res.status(404).json({ error: 'Collection not found' });
                 }
-                const updates = { name, description, recipeIds };
-                Object.assign(collection, updates);
+                
+                // Only update fields that are provided
+                if (name !== undefined) collection.name = name;
+                if (description !== undefined) collection.description = description;
+                if (recipeIds !== undefined) collection.recipeIds = recipeIds;
+                
                 console.log('📝 Collection updated in memory storage:', req.params.id);
                 res.json(collection);
             }
@@ -1193,8 +1203,12 @@ app.put('/api/:username/collections/:id', validateUsername, async (req, res) => 
             if (!collection) {
                 return res.status(404).json({ error: 'Collection not found' });
             }
-            const updates = { name, description, recipeIds };
-            Object.assign(collection, updates);
+            
+            // Only update fields that are provided
+            if (name !== undefined) collection.name = name;
+            if (description !== undefined) collection.description = description;
+            if (recipeIds !== undefined) collection.recipeIds = recipeIds;
+            
             console.log('📝 Collection updated in memory storage:', req.params.id);
             res.json(collection);
         }
