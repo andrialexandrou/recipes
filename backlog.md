@@ -4,32 +4,22 @@ Future features and improvements for Sous.
 
 ## 🚀 GA Blockers (Must-Have Before Launch)
 
-- **User Profile Page (LTK-inspired)** - Create dedicated profile page at `/{username}` with hero section (avatar, bio, stats), follow button, tabbed content navigation (Recipes/Collections/Menus), and visual grid layout. Separate from home view to showcase user's public presence.
-- **User Account Settings Page** - Create `/settings` page where users can adjust account settings (including search visibility toggle), manage API keys for various services (AI parsing, etc.), update email/password, view usage stats
-- **Following/Followers List View** - Display lists of users you're following and users who follow you. Needs a reasonable placement (perhaps in user profile/settings, or as a dedicated view accessible from profile). Should show avatars, usernames, and allow quick follow/unfollow actions.
 - **Gravatar Avatar Indicator** - Add visual indicator to inform users that their avatar is pulled from Gravatar. Include a quick link with Font Awesome icon to gravatar.com for easy setup. This helps users understand where their profile picture comes from and how to customize it.
 - **Configure PWA and Open Graph for my-sous.com** - Update all PWA manifest settings, Open Graph meta tags, and related configuration to use my-sous.com as the primary domain. Remove or deprioritize Vercel app URLs. Ensure PWA behavior works correctly on the custom domain (currently broken—see Bugs section).
 - **Fix Image Upload in Markdown Editor** - Image paste-to-upload is not working in the markdown editor. Need to debug and fix the paste event handling, compression, and upload flow.
-# Feature Backlog
-
-Future features and improvements for Sous.
-
-## 🚀 GA Blockers (Must-Have Before Launch)
-
-**✅ All GA blockers complete! Ready to launch.**
 
 ## Recently Completed ✅
 
+- **Hide Sidebar Toggle for Logged Out Users** - ✅ The hamburger menu toggle button (left side of navbar) is now hidden when not logged in
+- **Scroll to Top on Navigation** - ✅ Added automatic scroll to top on all navigation events for better UX
+- **Profile Hero Skeleton UI** - ✅ Added skeleton loading states for profile hero section (avatar, username, stats, follow button)
+- **Empty Feed State with Sample Content** - ✅ New users see sample content from staff account when feed is empty
+- **Reset Password** - ✅ Users can now reset their password via email
+- **User Profile Page (LTK-inspired)** - ✅ Dedicated profile page at `/{username}` with hero section (avatar, bio, stats), follow button, tabbed content navigation (Recipes/Collections/Menus), and visual grid layout
+- **User Account Settings Page** - ✅ Created `/settings` page where users can adjust account settings (search visibility toggle), update bio/avatar, change password, and delete account
 - **Following/Followers List View** - ✅ Tabbed modal showing following and followers lists with avatars, bios, and follow/unfollow actions. Single optimized endpoint fetches both lists in one request.
 - **Public Changelog Page** - ✅ User-facing "What's New" page accessible from navbar menu. Highlights features in friendly language with visual indicators for new features, improvements, and fixes.
 - **Reusable Modal System (ModalUtils)** - ✅ Created consistent modal utility with focus trapping, escape key handling, and overlay click handling. All modals (debug, follow, settings password/delete) now use this system.
-- **User Profile Page (LTK-inspired)** - ✅ Dedicated profile page at `/{username}` with hero section (avatar, bio, stats), follow button, tabbed content navigation (Recipes/Collections/Menus), and visual grid layout
-- **User Account Settings Page** - ✅ Created `/settings` page where users can adjust account settings (search visibility toggle), update bio/avatar, change password, and delete account
-- **Follow Users** - ✅ Implemented fan-out architecture for follows
-- **Activity Feed/Wall** - ✅ Personal feed showing followed users' content
-
-## Recently Completed ✅
-
 - **Follow Users** - ✅ Implemented fan-out architecture for follows
 - **Activity Feed/Wall** - ✅ Personal feed showing followed users' content
 - **Copy Link for Collections** - ✅ Added copy link button to collections list view and detail view
@@ -48,17 +38,13 @@ Future features and improvements for Sous.
 
 ## Quick Wins (Small Effort)
 
-- **Hide Sidebar Toggle for Logged Out Users** - The hamburger menu toggle button (left side of navbar) should be hidden when not logged in, since logged-out users don't have a sidebar to expand. Currently visible but non-functional for anonymous visitors.
-- **Scroll to Top on Navigation** - Classic SPA problem: when navigating between views (e.g., clicking into a recipe from a user's profile), the scroll position is maintained instead of resetting to the top. Users should see the top of the new page (recipe title, menu name, etc.) not the middle/bottom where they were scrolling on the previous view. Add `scrollTo(0, 0)` or scroll to main content container's top on all navigation events.
-- **Profile Hero Skeleton UI** - Add skeleton loading state for profile hero section (avatar, username, stats, follow button) to prevent: (1) showing broken image placeholder text before avatar loads, and (2) showing previous user's avatar when navigating between different user profiles. Skeleton should match hero layout and smoothly transition to actual content.
-- **Empty Feed State with Sample Content** - When a new user's feed is empty (not following anyone yet), show sample/featured content from a designated account (e.g., site admin) with clear messaging: "Your feed is empty! Here are some recipes to explore..." Display sample recipes with a prominent "Follow @username to see more" CTA. This gives new users immediate value and demonstrates how the feed works without forcing follows.
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
-- **Reset Password** - Allow users to reset their password via email
 
 ## Medium Effort
 
 - **Pull-to-Refresh for iOS Home Screen App** - Enable native iOS pull-to-refresh gesture when app is installed on iPhone home screen. Current fixed layout with `overflow: hidden` on body prevents native gesture. Options: (1) Restructure layout to make body scrollable instead of internal containers, or (2) Implement custom pull-to-refresh that works with current scrollable containers. Trade-off: Layout restructure (enables native iOS feature) vs. custom implementation (keeps current design intact).
 - **Collection Activity Feed** - Add new activity type `recipe_added_to_collection` to show when users add recipes to their collections. This gives more visibility to curation activity and helps followers discover recipes through collections.
+- **Dynamic Open Graph Tags for Shared Links** - Make Open Graph metadata contextual based on what's being shared. When someone shares a link to a recipe, collection, menu, or user profile, the social media preview card should reflect that specific content—recipe title/description, collection name, menu details, or user profile info—instead of generic "Sous, recipes worth sharing" text. Server-side rendering or meta tag injection needed to ensure crawlers see the right data.
 - **Open Graph Cards for Social Sharing** - Generate Open Graph meta tags for recipes, collections, and menus to create rich preview cards when sharing links. Use page content and user-provided images to auto-generate cards. Optional: As a pro feature, use AI to generate enhanced cards with title, estimated duration from recipe notes, basic instructions, etc.
 - **Rich Recipe Cards** - Generate beautiful, structured recipe cards with parsed metadata (temp, time, prep time, ingredients, steps, key points). See `public/example-recipe-card.png` for reference design. This may be separate from Open Graph images—more comprehensive than what fits in a social media preview.
 - **Recipe Scrapbooks** - Add a scrapbook/memory section to each recipe to preserve personal history: original handwritten cards from grandma, photos from each time you made it, notes about what occasion it was for, who you made it with, etc. A timeline of memories attached to each recipe.
@@ -81,6 +67,7 @@ Future features and improvements for Sous.
 
 ## Potential Features (Brainstorming)
 
+- **Shared Authorship / Collaborative Recipes** - Allow multiple users to co-author a recipe, collection, or menu. One person owns it, but they can add other users as editors who can make changes. This enables families to maintain shared recipe collections, cooking groups to collaborate on menus, etc. Implementation: Add `editors: [userId]` array field to recipes/collections/menus. Since nothing is currently private, focus on editor permissions (not viewer permissions). UI: Add "Share with Editor" button that searches for users and adds them. Show collaborator avatars on the document. Trade-off: Need to introduce basic permissions model (owner vs editor) but avoid complexity of full ACL system.
 - **Export Recipes as PDF Book** - Generate a formatted PDF book from selected recipes or entire catalog with professional layout, table of contents, and typography
 - **Recipe Notes/Modifications** - Add a notes field to track what you changed or tweaked in a recipe (e.g., "Used less salt", "Doubled the garlic", "Baked at 375° instead")
 - **Potluck Planning Templates** - Templates or blank forms for potluck planning (who's bringing what, dietary restrictions, serving sizes, etc.)
