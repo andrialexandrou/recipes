@@ -5,12 +5,12 @@ Future features and improvements for Sous.
 ## 🚀 GA Blockers (Must-Have Before Launch)
 
 - **User Profile Page (LTK-inspired)** - Create dedicated profile page at `/{username}` with hero section (avatar, bio, stats), follow button, tabbed content navigation (Recipes/Collections/Menus), and visual grid layout. Separate from home view to showcase user's public presence.
-- **User Account Settings Page** - Create `/settings` page where users can adjust account settings (including search visibility toggle), manage API keys for various services (AI parsing, etc.), update email/password, view usage stats
 - **Following/Followers List View** - Display lists of users you're following and users who follow you. Needs a reasonable placement (perhaps in user profile/settings, or as a dedicated view accessible from profile). Should show avatars, usernames, and allow quick follow/unfollow actions.
 - **Public Changelog & Blog** - Set up public-facing changelog URL (maybe `/changelog` or separate site) that updates as features ship. Also support blog posts from site runners. Consider: Same site vs. separate marketing site, CMS vs. markdown files, update workflow
 
 ## Recently Completed ✅
 
+- **User Account Settings Page** - ✅ Implemented full settings page at `/settings` with account information display, email/password updates (with re-authentication for security), search visibility toggle, and account deletion with confirmation modal. All settings backed by secure server endpoints using Firebase ID token verification.
 - **Follow Users** - ✅ Implemented fan-out architecture for follows
 - **Activity Feed/Wall** - ✅ Personal feed showing followed users' content
 - **Copy Link for Collections** - ✅ Added copy link button to collections list view and detail view
@@ -29,6 +29,9 @@ Future features and improvements for Sous.
 
 ## Quick Wins (Small Effort)
 
+- **Hide Sidebar Toggle for Logged Out Users** - The hamburger menu toggle button (left side of navbar) should be hidden when not logged in, since logged-out users don't have a sidebar to expand. Currently visible but non-functional for anonymous visitors.
+- **Scroll to Top on Navigation** - Classic SPA problem: when navigating between views (e.g., clicking into a recipe from a user's profile), the scroll position is maintained instead of resetting to the top. Users should see the top of the new page (recipe title, menu name, etc.) not the middle/bottom where they were scrolling on the previous view. Add `scrollTo(0, 0)` or scroll to main content container's top on all navigation events.
+- **Profile Hero Skeleton UI** - Add skeleton loading state for profile hero section (avatar, username, stats, follow button) to prevent: (1) showing broken image placeholder text before avatar loads, and (2) showing previous user's avatar when navigating between different user profiles. Skeleton should match hero layout and smoothly transition to actual content.
 - **Empty Feed State with Sample Content** - When a new user's feed is empty (not following anyone yet), show sample/featured content from a designated account (e.g., site admin) with clear messaging: "Your feed is empty! Here are some recipes to explore..." Display sample recipes with a prominent "Follow @username to see more" CTA. This gives new users immediate value and demonstrates how the feed works without forcing follows.
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 - **Reset Password** - Allow users to reset their password via email

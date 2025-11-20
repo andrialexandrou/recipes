@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Sous</title>
+    <meta name="description" content="Manage your Sous account settings and preferences">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sous">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <link rel="apple-touch-startup-image" href="/favicon.png">
+    
+    <link rel="icon" type="image/png" id="favicon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
+    <script>
+        // Set favicon based on environment
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        document.getElementById('favicon').href = isLocal ? '/favicon-dev.png' : '/favicon.png';
+    </script>
+</head>
+<body>
+    <div class="settings-container">
+        <div class="settings-header">
+            <a href="/" class="settings-back-btn">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Sous</span>
+            </a>
+            <h1>Account Settings</h1>
+        </div>
+
+        <div class="settings-content">
+            <!-- Account Information Section -->
+            <section class="settings-section">
+                <h2 class="settings-section-title">Account Information</h2>
+                
+                <div class="settings-item">
+                    <label class="settings-label">Username</label>
+                    <div class="settings-value" id="displayUsername">Loading...</div>
+                    <p class="settings-help">Your username cannot be changed</p>
+                </div>
+
+                <div class="settings-item">
+                    <label class="settings-label" for="emailInput">Email Address</label>
+                    <input type="email" id="emailInput" class="settings-input" placeholder="your@email.com">
+                    <button id="updateEmailBtn" class="settings-btn settings-btn-secondary">Update Email</button>
+                    <div id="emailError" class="error-message"></div>
+                    <div id="emailSuccess" class="success-message"></div>
+                </div>
+
+                <div class="settings-item">
+                    <label class="settings-label">Password</label>
+                    <button id="changePasswordBtn" class="settings-btn settings-btn-secondary">Change Password</button>
+                </div>
+            </section>
+
+            <!-- Password Change Modal -->
+            <div id="passwordModal" class="settings-modal hidden">
+                <div class="settings-modal-content">
+                    <div class="settings-modal-header">
+                        <h3>Change Password</h3>
+                        <button id="closePasswordModal" class="settings-modal-close">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <form id="passwordForm" class="settings-modal-form">
+                        <div class="form-group">
+                            <label for="currentPassword">Current Password</label>
+                            <input type="password" id="currentPassword" autocomplete="current-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" id="newPassword" autocomplete="new-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm New Password</label>
+                            <input type="password" id="confirmPassword" autocomplete="new-password" required>
+                        </div>
+                        <div id="passwordError" class="error-message"></div>
+                        <div id="passwordSuccess" class="success-message"></div>
+                        <div class="settings-modal-actions">
+                            <button type="button" id="cancelPasswordBtn" class="settings-btn settings-btn-secondary">Cancel</button>
+                            <button type="submit" id="savePasswordBtn" class="settings-btn settings-btn-primary">Update Password</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Privacy Section -->
+            <section class="settings-section">
+                <h2 class="settings-section-title">Privacy</h2>
+                
+                <div class="settings-item">
+                    <div class="settings-toggle-container">
+                        <div class="settings-toggle-info">
+                            <label class="settings-label" for="searchableToggle">Appear in search results</label>
+                            <p class="settings-help">Allow other users to find and follow you</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="searchableToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div id="searchableError" class="error-message"></div>
+                    <div id="searchableSuccess" class="success-message"></div>
+                </div>
+            </section>
+
+            <!-- Danger Zone Section -->
+            <section class="settings-section settings-danger-zone">
+                <h2 class="settings-section-title">Danger Zone</h2>
+                
+                <div class="settings-item">
+                    <label class="settings-label">Delete Account</label>
+                    <p class="settings-help">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                    <button id="deleteAccountBtn" class="settings-btn settings-btn-danger">Delete Account</button>
+                </div>
+            </section>
+
+            <!-- Delete Account Confirmation Modal -->
+            <div id="deleteModal" class="settings-modal hidden">
+                <div class="settings-modal-content">
+                    <div class="settings-modal-header">
+                        <h3>Delete Account</h3>
+                        <button id="closeDeleteModal" class="settings-modal-close">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="settings-modal-body">
+                        <p><strong>Warning:</strong> This action cannot be undone.</p>
+                        <p>All your recipes, collections, menus, and photos will be permanently deleted.</p>
+                        <form id="deleteForm" class="settings-modal-form">
+                            <div class="form-group">
+                                <label for="deletePassword">Enter your password to confirm</label>
+                                <input type="password" id="deletePassword" autocomplete="current-password" required>
+                            </div>
+                            <div id="deleteError" class="error-message"></div>
+                            <div class="settings-modal-actions">
+                                <button type="button" id="cancelDeleteBtn" class="settings-btn settings-btn-secondary">Cancel</button>
+                                <button type="submit" id="confirmDeleteBtn" class="settings-btn settings-btn-danger">Delete My Account</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcvHMjul-zt4Di5cjVf1Yi6CRS4dSRc78",
+            authDomain: "recipe-manager-4c340.firebaseapp.com",
+            projectId: "recipe-manager-4c340"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        
+        let currentUser = null;
+        
+        // Check authentication status
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                // Not logged in, redirect to login
+                window.location.href = '/login';
+                return;
+            }
+            
+            currentUser = user;
+            await loadUserSettings();
+        });
+        
+        // Load user settings from server
+        async function loadUserSettings() {
+            try {
+                const response = await fetch('/api/user/settings', {
+                    headers: {
+                        'Authorization': `Bearer ${await currentUser.getIdToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load settings');
+                }
+                
+                const data = await response.json();
+                
+                // Update UI with user data
+                document.getElementById('displayUsername').textContent = `@${data.username}`;
+                document.getElementById('emailInput').value = currentUser.email || '';
+                document.getElementById('searchableToggle').checked = data.isSearchable !== false;
+                
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                showError('emailError', 'Failed to load settings. Please refresh the page.');
+            }
+        }
+        
+        // Update email address
+        document.getElementById('updateEmailBtn').addEventListener('click', async () => {
+            const newEmail = document.getElementById('emailInput').value.trim();
+            const updateBtn = document.getElementById('updateEmailBtn');
+            
+            if (!newEmail) {
+                showError('emailError', 'Please enter an email address');
+                return;
+            }
+            
+            if (newEmail === currentUser.email) {
+                showError('emailError', 'This is already your current email');
+                return;
+            }
+            
+            try {
+                updateBtn.disabled = true;
+                updateBtn.textContent = 'Updating...';
+                clearMessages('emailError', 'emailSuccess');
+                
+                await currentUser.updateEmail(newEmail);
+                await updateUserEmailOnServer(newEmail);
+                
+                showSuccess('emailSuccess', 'Email updated successfully');
+                updateBtn.disabled = false;
+                updateBtn.textContent = 'Update Email';
+                
+            } catch (error) {
+                console.error('Error updating email:', error);
+                let errorMessage = error.message;
+                
+                if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = 'For security, please sign out and sign in again before changing your email.';
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'This email is already in use by another account.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                }
+                
+                showError('emailError', errorMessage);
+                updateBtn.disabled = false;
+                updateBtn.textContent = 'Update Email';
+            }
+        });
+        
+        // Update email on server
+        async function updateUserEmailOnServer(email) {
+            const response = await fetch('/api/user/settings', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await currentUser.getIdToken()}`
+                },
+                body: JSON.stringify({ email })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update email on server');
+            }
+        }
+        
+        // Password change modal
+        const passwordModal = document.getElementById('passwordModal');
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
+        const closePasswordModal = document.getElementById('closePasswordModal');
+        const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+        const passwordForm = document.getElementById('passwordForm');
+        
+        changePasswordBtn.addEventListener('click', () => {
+            passwordModal.classList.remove('hidden');
+            clearMessages('passwordError', 'passwordSuccess');
+            passwordForm.reset();
+            // Focus first input
+            setTimeout(() => document.getElementById('currentPassword').focus(), 100);
+        });
+        
+        closePasswordModal.addEventListener('click', () => {
+            passwordModal.classList.add('hidden');
+        });
+        
+        cancelPasswordBtn.addEventListener('click', () => {
+            passwordModal.classList.add('hidden');
+        });
+        
+        // Click outside modal to close
+        passwordModal.addEventListener('click', (e) => {
+            if (e.target === passwordModal) {
+                passwordModal.classList.add('hidden');
+            }
+        });
+        
+        // Close on escape key
+        passwordModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                passwordModal.classList.add('hidden');
+            }
+        });
+        
+        // Trap focus within modal
+        passwordModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                const focusableElements = passwordModal.querySelectorAll(
+                    'input:not([disabled]), button:not([disabled])'
+                );
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                
+                if (e.shiftKey && document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        });
+        
+        // Change password
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const saveBtn = document.getElementById('savePasswordBtn');
+            
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                showError('passwordError', 'New passwords do not match');
+                return;
+            }
+            
+            // Validate password length
+            if (newPassword.length < 6) {
+                showError('passwordError', 'Password must be at least 6 characters');
+                return;
+            }
+            
+            try {
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Updating...';
+                clearMessages('passwordError', 'passwordSuccess');
+                
+                // Re-authenticate user
+                const credential = firebase.auth.EmailAuthProvider.credential(
+                    currentUser.email,
+                    currentPassword
+                );
+                await currentUser.reauthenticateWithCredential(credential);
+                
+                // Update password
+                await currentUser.updatePassword(newPassword);
+                
+                showSuccess('passwordSuccess', 'Password updated successfully');
+                passwordForm.reset();
+                
+                // Close modal after 2 seconds
+                setTimeout(() => {
+                    passwordModal.classList.add('hidden');
+                }, 2000);
+                
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Update Password';
+                
+            } catch (error) {
+                console.error('Error updating password:', error);
+                let errorMessage = error.message;
+                
+                if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Current password is incorrect';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password is too weak. Please choose a stronger password.';
+                }
+                
+                showError('passwordError', errorMessage);
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Update Password';
+            }
+        });
+        
+        // Search visibility toggle
+        document.getElementById('searchableToggle').addEventListener('change', async (e) => {
+            const isSearchable = e.target.checked;
+            
+            try {
+                clearMessages('searchableError', 'searchableSuccess');
+                
+                const response = await fetch('/api/user/settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${await currentUser.getIdToken()}`
+                    },
+                    body: JSON.stringify({ isSearchable })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to update setting');
+                }
+                
+                showSuccess('searchableSuccess', isSearchable 
+                    ? 'You will now appear in search results' 
+                    : 'You are now hidden from search results');
+                
+                // Clear success message after 3 seconds
+                setTimeout(() => {
+                    clearMessages('searchableError', 'searchableSuccess');
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error updating searchable setting:', error);
+                showError('searchableError', 'Failed to update setting. Please try again.');
+                // Revert toggle
+                e.target.checked = !isSearchable;
+            }
+        });
+        
+        // Delete account modal
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+        const closeDeleteModal = document.getElementById('closeDeleteModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const deleteForm = document.getElementById('deleteForm');
+        
+        deleteAccountBtn.addEventListener('click', () => {
+            deleteModal.classList.remove('hidden');
+            clearMessages('deleteError');
+            deleteForm.reset();
+            // Focus first input
+            setTimeout(() => document.getElementById('deletePassword').focus(), 100);
+        });
+        
+        closeDeleteModal.addEventListener('click', () => {
+            deleteModal.classList.add('hidden');
+        });
+        
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteModal.classList.add('hidden');
+        });
+        
+        deleteModal.addEventListener('click', (e) => {
+            if (e.target === deleteModal) {
+                deleteModal.classList.add('hidden');
+            }
+        });
+        
+        // Close on escape key
+        deleteModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                deleteModal.classList.add('hidden');
+            }
+        });
+        
+        // Trap focus within modal
+        deleteModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                const focusableElements = deleteModal.querySelectorAll(
+                    'input:not([disabled]), button:not([disabled])'
+                );
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                
+                if (e.shiftKey && document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        });
+        
+        // Delete account
+        deleteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('deletePassword').value;
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            
+            try {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Deleting...';
+                clearMessages('deleteError');
+                
+                // Re-authenticate user
+                const credential = firebase.auth.EmailAuthProvider.credential(
+                    currentUser.email,
+                    password
+                );
+                await currentUser.reauthenticateWithCredential(credential);
+                
+                // Delete user data from server
+                const response = await fetch('/api/user/delete', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${await currentUser.getIdToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to delete account data');
+                }
+                
+                // Delete Firebase auth account
+                await currentUser.delete();
+                
+                // Redirect to home
+                window.location.href = '/';
+                
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                let errorMessage = error.message;
+                
+                if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Incorrect password';
+                } else if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = 'For security, please sign out and sign in again before deleting your account.';
+                }
+                
+                showError('deleteError', errorMessage);
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Delete My Account';
+            }
+        });
+        
+        // Helper functions
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.style.display = 'block';
+            }
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.style.display = 'block';
+            }
+        }
+        
+        function clearMessages(...elementIds) {
+            elementIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = '';
+                    element.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -525,7 +525,82 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - `public/styles.css` - Profile-specific styles (`.profile-*` classes)
 - `server.js` - `.orderBy()` clauses added to all GET endpoints
 
-### 14. Firebase Integration
+### 14. User Account Settings
+
+**Status: ✅ Complete**
+
+**Philosophy:** Give users full control over their account settings, privacy preferences, and security options through a clean, accessible settings interface.
+
+**Features:**
+
+- Dedicated settings page at `/settings` route (requires authentication)
+- Account information display (username, email)
+- Email address updates with Firebase Auth integration
+- Password change functionality with current password verification
+- Search visibility toggle (control appearance in user search)
+- Account deletion with password confirmation
+- Modal-based workflows for sensitive actions (password change, account deletion)
+- Responsive design for mobile and desktop
+- Back button to return to main app
+
+**Security Features:**
+
+- Firebase ID token verification for all settings endpoints
+- Re-authentication required for password changes
+- Password confirmation required for account deletion
+- Server-side validation and error handling
+- Proper error messages for auth failures
+
+**Settings Sections:**
+
+1. **Account Information**
+   - Display username (read-only)
+   - Update email address
+   - Change password (modal workflow)
+
+2. **Privacy**
+   - Toggle search visibility (isSearchable field)
+   - Immediate feedback on toggle changes
+   - Auto-save with success confirmation
+
+3. **Danger Zone**
+   - Account deletion with confirmation modal
+   - Password verification required
+   - Comprehensive data deletion (recipes, collections, menus, photos, activities, feeds, follows)
+   - Removes user from all followers/following relationships
+
+**Technical Implementation:**
+
+- Server endpoints at `/api/user/settings` (GET, PUT) and `/api/user/delete` (DELETE)
+- Firebase Admin SDK for authentication verification
+- Partial updates support (only updates provided fields)
+- Client-side password validation (length, matching)
+- Success/error messaging with auto-clear timeouts
+- Modal click-outside-to-close functionality
+
+**Data Deletion Process:**
+
+When user deletes account, the following data is removed:
+- All recipes (by userId)
+- All collections (by userId)
+- All menus (by userId)
+- All photos from Firebase Storage (`photos/{username}/`)
+- All photo metadata from Firestore
+- All activities created by user
+- User's personal feed (feeds/{userId}/activities)
+- User removed from all followers' following arrays
+- User removed from all followed users' followers arrays
+- User document from Firestore
+- Firebase Auth account (handled client-side after server confirmation)
+
+**Key Files:**
+
+- `public/settings.html` - Settings page with all UI and client-side logic
+- `public/styles.css` - Settings-specific styles (`.settings-*` classes)
+- `public/index.html` - Settings link in navbar dropdown menu
+- `server.js` - Three settings endpoints with authentication
+
+### 15. Firebase Integration
 
 **Status: ✅ Complete**
 
@@ -658,11 +733,26 @@ All navigation points include meaningful titles:
 ├── agents.md             # This file - keep updated!
 └── public/
     ├── index.html        # SPA shell
+    ├── login.html        # Login page
+    ├── signup.html       # Signup page
+    ├── settings.html     # Settings page
     ├── app.js            # Client-side application logic
     ├── styles.css        # All styling
     ├── favicon.png       # Production favicon
     └── favicon-dev.png   # Development favicon
 ```
+
+**⚠️ Important: HTML Header Sync**
+
+The standalone HTML pages (`index.html`, `login.html`, `signup.html`, `settings.html`) share common `<head>` elements that should be kept in sync when making changes:
+
+- **PWA Manifest tags** - For progressive web app support
+- **Apple mobile web app tags** - For iOS home screen installation
+- **Favicon logic** - Dev/prod environment switching
+- **Font preconnects** - For optimized loading
+- **CSS/JS library versions** - Keep consistent across pages
+
+When updating meta tags, PWA configuration, or adding new common headers, update all HTML pages to maintain consistency. Consider creating a sync script if this becomes frequent.
 
 ## Development Workflow
 

@@ -2,6 +2,44 @@
 
 All notable changes to the Sous recipe manager.
 
+## 2025-11-19
+
+### User Account Settings Page
+
+**Comprehensive settings interface for account management and privacy control:**
+
+**Features Implemented:**
+- New `/settings` page accessible from navbar dropdown menu
+- Account information section displaying username (read-only) and email
+- Email address updates with Firebase Auth integration
+- Password change functionality with modal workflow and current password verification
+- Privacy controls: Search visibility toggle (isSearchable field)
+- Account deletion with confirmation modal and password verification
+- Responsive design for mobile and desktop
+- Back button to return to main app
+
+**Security:**
+- Firebase ID token verification for all settings endpoints
+- Re-authentication required for password changes
+- Password confirmation required for account deletion
+- Server-side validation and error handling
+- Comprehensive data deletion on account deletion:
+  - All recipes, collections, menus deleted
+  - All photos removed from Firebase Storage
+  - All activities and feeds cleaned up
+  - User removed from all followers/following relationships
+  - User document and Firebase Auth account deleted
+
+**Files Modified:**
+- `public/settings.html` - New settings page with modals and forms
+- `public/styles.css` - Settings page styling (`.settings-*` classes)
+- `public/index.html` - Settings link in navbar dropdown
+- `server.js` - Three new endpoints: GET/PUT `/api/user/settings`, DELETE `/api/user/delete`
+
+**Documentation:**
+- `agents.md` - Added section 14: User Account Settings
+- `backlog.md` - Moved feature from GA Blockers to Recently Completed
+
 ## 2025-11-17
 
 ### Fixed Sidebar Recipe Navigation on Cross-User Profiles

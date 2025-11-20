@@ -1767,6 +1767,238 @@ app.delete('/api/:username/photos/:id', validateUsername, async (req, res) => {
     }
 });
 
+// ==================== USER SETTINGS ENDPOINTS ====================
+
+// Get user settings (requires authentication)
+app.get('/api/user/settings', async (req, res) => {
+    try {
+        // Extract Firebase ID token from Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        
+        const idToken = authHeader.split('Bearer ')[1];
+        
+        // Verify the Firebase ID token
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+        
+        if (useFirebase && db && !firebaseFailureDetected) {
+            const userDoc = await db.collection('users').doc(userId).get();
+            
+            if (!userDoc.exists) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            const userData = userDoc.data();
+            
+            res.json({
+                username: userData.username,
+                email: userData.email,
+                isSearchable: userData.isSearchable !== false,
+                createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt
+            });
+        } else {
+            res.status(503).json({ error: 'Firebase not available' });
+        }
+    } catch (error) {
+        console.error('Error fetching user settings:', error);
+        if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update user settings (requires authentication)
+app.put('/api/user/settings', async (req, res) => {
+    try {
+        // Extract Firebase ID token from Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        
+        const idToken = authHeader.split('Bearer ')[1];
+        
+        // Verify the Firebase ID token
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+        
+        const { email, isSearchable } = req.body;
+        
+        if (useFirebase && db && !firebaseFailureDetected) {
+            const userRef = db.collection('users').doc(userId);
+            const updateData = {};
+            
+            // Only update fields that are provided
+            if (email !== undefined) {
+                updateData.email = email;
+            }
+            
+            if (isSearchable !== undefined) {
+                updateData.isSearchable = isSearchable;
+            }
+            
+            await userRef.update(updateData);
+            console.log(`✅ Updated settings for user ${userId}`);
+            
+            res.json({ success: true });
+        } else {
+            res.status(503).json({ error: 'Firebase not available' });
+        }
+    } catch (error) {
+        console.error('Error updating user settings:', error);
+        if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete user account (requires authentication)
+app.delete('/api/user/delete', async (req, res) => {
+    try {
+        // Extract Firebase ID token from Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        
+        const idToken = authHeader.split('Bearer ')[1];
+        
+        // Verify the Firebase ID token
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+        
+        if (useFirebase && db && !firebaseFailureDetected) {
+            const userDoc = await db.collection('users').doc(userId).get();
+            
+            if (!userDoc.exists) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            const userData = userDoc.data();
+            const username = userData.username;
+            
+            console.log(`⚠️ Deleting all data for user ${username} (${userId})...`);
+            
+            // Delete all user's recipes
+            const recipesSnapshot = await db.collection('recipes')
+                .where('userId', '==', userId)
+                .get();
+            
+            const deletePromises = [];
+            
+            recipesSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.delete());
+            });
+            
+            // Delete all user's collections
+            const collectionsSnapshot = await db.collection('collections')
+                .where('userId', '==', userId)
+                .get();
+            
+            collectionsSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.delete());
+            });
+            
+            // Delete all user's menus
+            const menusSnapshot = await db.collection('menus')
+                .where('userId', '==', userId)
+                .get();
+            
+            menusSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.delete());
+            });
+            
+            // Delete all user's photos from Storage
+            try {
+                const bucket = admin.storage().bucket();
+                const [files] = await bucket.getFiles({
+                    prefix: `photos/${username}/`
+                });
+                
+                for (const file of files) {
+                    deletePromises.push(file.delete());
+                }
+            } catch (storageError) {
+                console.error('⚠️ Error deleting photos from Storage:', storageError.message);
+            }
+            
+            // Delete photo metadata from Firestore
+            const photosSnapshot = await db.collection('photos')
+                .where('username', '==', username)
+                .get();
+            
+            photosSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.delete());
+            });
+            
+            // Delete all activities created by this user
+            const activitiesSnapshot = await db.collection('activities')
+                .where('userId', '==', userId)
+                .get();
+            
+            activitiesSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.delete());
+            });
+            
+            // Delete user's personal feed
+            const feedSnapshot = await db.collection('feeds').doc(userId)
+                .collection('activities')
+                .get();
+            
+            feedSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.delete());
+            });
+            
+            // Remove user from all followers' following arrays
+            const followersSnapshot = await db.collection('users')
+                .where('following', 'array-contains', userId)
+                .get();
+            
+            followersSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.update({
+                    following: admin.firestore.FieldValue.arrayRemove(userId),
+                    followingCount: admin.firestore.FieldValue.increment(-1)
+                }));
+            });
+            
+            // Remove user from all followed users' followers arrays
+            const followingSnapshot = await db.collection('users')
+                .where('followers', 'array-contains', userId)
+                .get();
+            
+            followingSnapshot.forEach(doc => {
+                deletePromises.push(doc.ref.update({
+                    followers: admin.firestore.FieldValue.arrayRemove(userId),
+                    followersCount: admin.firestore.FieldValue.increment(-1)
+                }));
+            });
+            
+            // Wait for all deletions
+            await Promise.all(deletePromises);
+            
+            // Finally, delete the user document
+            await db.collection('users').doc(userId).delete();
+            
+            console.log(`✅ Successfully deleted all data for user ${username} (${userId})`);
+            
+            res.json({ success: true });
+        } else {
+            res.status(503).json({ error: 'Firebase not available' });
+        }
+    } catch (error) {
+        console.error('Error deleting user account:', error);
+        if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ==================== FOLLOW/UNFOLLOW ENDPOINTS ====================
 
 // Follow a user
@@ -1984,6 +2216,9 @@ app.get('*', (req, res) => {
     }
     if (req.path === '/signup') {
         return res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+    }
+    if (req.path === '/settings') {
+        return res.sendFile(path.join(__dirname, 'public', 'settings.html'));
     }
     
     // Default to main SPA - inject dynamic OG tags

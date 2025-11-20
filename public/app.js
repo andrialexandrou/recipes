@@ -4152,6 +4152,12 @@ dropdownDebug.addEventListener('click', () => {
     showDebugModal();
 });
 
+const dropdownSettings = document.getElementById('dropdownSettings');
+dropdownSettings.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    window.location.href = '/settings';
+});
+
 const dropdownLogout = document.getElementById('dropdownLogout');
 dropdownLogout.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');

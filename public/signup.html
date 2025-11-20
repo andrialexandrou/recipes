@@ -4,14 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account — Sous</title>
-    <link rel="icon" type="image/png" href="/favicon.png" id="favicon">
-    <link rel="stylesheet" href="/styles.css">
+    <meta name="description" content="Create your Sous account to start saving recipes">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sous">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <link rel="apple-touch-startup-image" href="/favicon.png">
+    
+    <link rel="icon" type="image/png" id="favicon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
     <script>
-        // Set dev favicon if on localhost
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            document.getElementById('favicon').href = '/favicon-dev.png';
-        }
+        // Set favicon based on environment
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        document.getElementById('favicon').href = isLocal ? '/favicon-dev.png' : '/favicon.png';
     </script>
 </head>
 <body>
