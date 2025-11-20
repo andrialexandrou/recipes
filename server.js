@@ -706,15 +706,17 @@ app.get('/api/:username/user', validateUsername, async (req, res) => {
             try {
                 const usersSnapshot = await db.collection('users').where('username', '==', username).limit(1).get();
                 if (!usersSnapshot.empty) {
-                    const userData = usersSnapshot.docs[0].data();
+                    const userDoc = usersSnapshot.docs[0];
+                    const userData = userDoc.data();
                     
                     // Compute Gravatar hash server-side (don't expose email)
                     const gravatarHash = userData.email 
                         ? crypto.createHash('md5').update(userData.email.toLowerCase().trim()).digest('hex')
                         : null;
                     
-                    // Only return public information
+                    // Return public information including uid (needed for follow functionality)
                     res.json({
+                        uid: userDoc.id, // Include uid from document ID
                         username: userData.username,
                         bio: userData.bio || '',
                         gravatarHash: gravatarHash,
@@ -722,7 +724,8 @@ app.get('/api/:username/user', validateUsername, async (req, res) => {
                         following: userData.following || [],
                         followers: userData.followers || [],
                         followingCount: userData.followingCount || 0,
-                        followersCount: userData.followersCount || 0
+                        followersCount: userData.followersCount || 0,
+                        isStaff: userData.isStaff || false
                     });
                 } else {
                     res.status(404).json({ error: 'User not found' });

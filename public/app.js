@@ -2474,6 +2474,8 @@ async function renderProfilePage() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     const isFollowing = API.currentUser?.following?.includes(userData?.uid);
     
+    console.log('🔍 Setting up follow button - userData:', userData);
+    
     if (profileFollowBtn) {
         if (isOwner || !API.currentUser) {
             profileFollowBtn.classList.add('hidden');
@@ -2486,6 +2488,15 @@ async function renderProfilePage() {
                 profileFollowBtn.textContent = 'Follow';
                 profileFollowBtn.classList.remove('following');
             }
+            
+            // Capture userData values in closure
+            const uid = userData?.uid;
+            const username = userData?.username;
+            console.log('✅ Captured for closure - uid:', uid, 'username:', username);
+            profileFollowBtn.onclick = () => {
+                console.log('🖱️ Follow button clicked - uid:', uid, 'username:', username);
+                toggleFollowFromProfile(uid, username);
+            };
         }
     }
     
@@ -2502,11 +2513,6 @@ async function renderProfilePage() {
     
     // Activate recipes tab by default
     switchProfileTab('recipes');
-    
-    // Set up follow button
-    if (profileFollowBtn && !isOwner && API.currentUser) {
-        profileFollowBtn.onclick = () => toggleFollowFromProfile(userData?.uid);
-    }
 }
 
 // Switch profile tabs
@@ -2701,28 +2707,42 @@ function renderProfileMenusGrid() {
 }
 
 // Toggle follow from profile page
-async function toggleFollowFromProfile(userIdToFollow) {
-    if (!API.currentUser || !userIdToFollow) return;
+async function toggleFollowFromProfile(userIdToFollow, usernameToFollow) {
+    console.log('🔄 toggleFollowFromProfile called', { userIdToFollow, usernameToFollow });
+    console.log('👤 API.currentUser:', API.currentUser);
     
-    const isFollowing = API.currentUser.following?.includes(userIdToFollow);
+    if (!API.currentUser) {
+        console.log('❌ Missing currentUser');
+        return;
+    }
+    
+    if (!userIdToFollow) {
+        console.log('❌ Missing userIdToFollow');
+        return;
+    }
+    
     const profileFollowBtn = document.getElementById('profileFollowBtn');
+    if (!profileFollowBtn) {
+        console.log('❌ profileFollowBtn not found');
+        return;
+    }
+    
+    const isFollowing = profileFollowBtn.classList.contains('following');
+    console.log('📊 Current state - isFollowing:', isFollowing, 'classList:', profileFollowBtn.className);
     
     try {
         if (isFollowing) {
-            await API.unfollowUser(userIdToFollow);
-            API.currentUser.following = API.currentUser.following.filter(id => id !== userIdToFollow);
-            if (profileFollowBtn) {
-                profileFollowBtn.textContent = 'Follow';
-                profileFollowBtn.classList.remove('following');
-            }
+            console.log('🔄 Unfollowing user...');
+            await API.unfollowUser(userIdToFollow, usernameToFollow);
+            profileFollowBtn.classList.remove('following');
+            profileFollowBtn.textContent = 'Follow';
+            console.log('✅ Unfollowed - new classList:', profileFollowBtn.className);
         } else {
-            await API.followUser(userIdToFollow);
-            if (!API.currentUser.following) API.currentUser.following = [];
-            API.currentUser.following.push(userIdToFollow);
-            if (profileFollowBtn) {
-                profileFollowBtn.textContent = 'Following';
-                profileFollowBtn.classList.add('following');
-            }
+            console.log('🔄 Following user...');
+            await API.followUser(userIdToFollow, usernameToFollow);
+            profileFollowBtn.classList.add('following');
+            profileFollowBtn.textContent = 'Following';
+            console.log('✅ Followed - new classList:', profileFollowBtn.className);
         }
         
         // Update follower count
@@ -2730,9 +2750,10 @@ async function toggleFollowFromProfile(userIdToFollow) {
         if (profileFollowersCount) {
             const currentCount = parseInt(profileFollowersCount.textContent) || 0;
             profileFollowersCount.textContent = isFollowing ? currentCount - 1 : currentCount + 1;
+            console.log('📊 Updated follower count:', profileFollowersCount.textContent);
         }
     } catch (error) {
-        console.error('Error toggling follow:', error);
+        console.error('❌ Error toggling follow:', error);
         alert('Error updating follow status');
     }
 }
