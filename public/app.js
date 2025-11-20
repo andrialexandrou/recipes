@@ -2029,6 +2029,11 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
     renderRecipeList(filterInput.value);
     updateEditControls(); // Show/hide edit controls based on ownership
     
+    // Focus on title to scroll it into view and ensure page starts at top
+    titleDisplay.setAttribute('tabindex', '-1');
+    titleDisplay.focus();
+    titleDisplay.removeAttribute('tabindex');
+    
     if (updateUrl) {
         updateURL('recipe', id);
     }
