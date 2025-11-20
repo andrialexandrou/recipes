@@ -4,35 +4,50 @@ All notable changes to the Sous recipe manager.
 
 ## 2025-11-20
 
-### Following/Followers List View & Modal System
+### GA Launch - Following/Followers & Modal System
 
-**Following/Followers Modal:**
-- Tabbed modal dialog showing Following and Followers lists
+**Following/Followers List View:**
+- Tabbed modal dialog showing Following and Followers lists in one view
 - Opens when clicking follower/following counts on any profile
 - Each tab shows user avatars, usernames, bios
 - Follow/unfollow buttons directly in modal (except for own account)
 - Click username to navigate to that user's profile
-- Modal closes on navigation
+- Single optimized endpoint `/api/users/:username/connections` returns both lists in one request
+- Efficient batch fetching: combines unique user IDs, removes duplicates, fetches all in parallel
 
 **Reusable Modal System (ModalUtils):**
-- Created `ModalUtils` utility for consistent modal behavior
+- Created `ModalUtils` utility for consistent modal behavior across entire app
 - Automatic focus trapping (Tab cycles within modal)
 - Escape key closes modal
 - Click overlay to close modal
 - Auto-focus first focusable element
-- All existing modals (debug, follow) now use ModalUtils
+- Refactored all existing modals to use ModalUtils:
+  - Debug modal (index.html)
+  - Follow modal (index.html)
+  - Password change modal (settings.html)
+  - Delete account modal (settings.html)
+- Removed ~200 lines of duplicate modal handling code
+- Consolidated CSS: removed old `.modal` and `.settings-modal-*` classes
+- All modals now use shared `.modal-overlay`, `.modal-content`, `.modal-header`, `.modal-body` styles
 
-**Server Endpoints:**
-- `GET /api/users/:username/following` - Returns list of users being followed
-- `GET /api/users/:username/followers` - Returns list of followers
-- Both return user details: username, bio, gravatarHash, follower counts
+**Public Changelog Page:**
+- Created user-facing "What's New" page at `/changelog.html`
+- Accessible from navbar menu (renamed from "Changelog" to "What's New" with sparkles icon)
+- User-friendly language focused on benefits, not technical details
+- Visual indicators for new features, improvements, and fixes
+- Organized by date with "Coming Soon" section
+- Responsive design, mobile-optimized
+- Easy to update by editing HTML file
 
 **Files Modified:**
-- `public/index.html` - Follow modal HTML with tabs
-- `public/styles.css` - Follow modal and tab styling
-- `public/app.js` - ModalUtils, showFollowModal(), loadFollowList(), modal integration
-- `server.js` - New endpoints for following/followers lists
+- `public/index.html` - Follow modal HTML with tabs, changelog menu link
+- `public/changelog.html` - New public changelog page
+- `public/settings.html` - Refactored to use ModalUtils, added ModalUtils code
+- `public/styles.css` - Consolidated modal styles, removed duplicates (~130 lines removed)
+- `public/app.js` - ModalUtils utility, follow modal functions, updated all modal usage
+- `server.js` - Single optimized `/api/users/:username/connections` endpoint
 - `agents.md` - Documented Modal System pattern
+- `backlog.md` - Marked all GA blockers as complete
 
 ## 2025-11-19
 

@@ -453,6 +453,92 @@ Detailed documentation for all features in Sous.
 - `server.js` - Catch-all route
 - `public/app.js` - `loadFromURL()`, `updateURL()`
 
+---
+
+## 21. Following/Followers List View
+
+**Status:** ✅ Complete
+
+**Philosophy:** Users should be able to see who they're following and who follows them, with the ability to manage these connections directly from the list.
+
+**Features:**
+- Tabbed modal dialog showing Following and Followers in one view
+- Opens when clicking follower/following counts on user profiles
+- Shows user avatars, usernames, and bios
+- Follow/unfollow buttons directly in lists (except own account)
+- Click username to navigate to profile
+- Single optimized API request fetches both lists
+- Smooth tab switching without additional network requests
+
+**Technical Details:**
+- Single endpoint `/api/users/:username/connections` returns both lists
+- Efficient batch fetching: combines unique user IDs, removes duplicates
+- Uses reusable ModalUtils for consistent behavior
+- Focus trapping, escape key, and overlay click handling
+- Server performs parallel user lookups for all connections
+
+**Key Files:**
+- `public/index.html` - Follow modal HTML structure
+- `public/app.js` - `showFollowModal()`, `loadFollowList()`, `handleFollowToggleInModal()`
+- `server.js` - `GET /api/users/:username/connections` endpoint
+- `public/styles.css` - `.follow-modal`, `.follow-tabs`, `.follow-list` styles
+
+---
+
+## 22. Reusable Modal System (ModalUtils)
+
+**Status:** ✅ Complete
+
+**Philosophy:** All modals in the app should behave consistently with proper accessibility features like focus trapping and keyboard navigation. A single utility should manage this behavior to avoid code duplication.
+
+**Features:**
+- Centralized modal management utility
+- Automatic focus trapping (Tab cycles within modal)
+- Escape key to close
+- Click overlay to close
+- Auto-focus first focusable element
+- Consistent behavior across all modals
+
+**Technical Details:**
+- `ModalUtils` object with `open()`, `close()`, `handleKeydown()`, `trapFocus()` methods
+- Tracks active modal and optional close callback
+- Dynamically adds event listeners on first use
+- All modals use shared `.modal-overlay` structure
+- Implemented in both `app.js` (main app) and `settings.html` (standalone page)
+
+**Key Files:**
+- `public/app.js` - ModalUtils implementation (lines ~600-680)
+- `public/settings.html` - ModalUtils copy for standalone settings page
+- `public/styles.css` - Unified `.modal-overlay` styles
+- `agents.md` - Modal System documentation and usage guidelines
+
+---
+
+## 23. Public Changelog Page
+
+**Status:** ✅ Complete
+
+**Philosophy:** Users should be able to see what's new and what's being worked on. The changelog should use friendly, benefit-focused language rather than technical jargon.
+
+**Features:**
+- Dedicated "What's New" page at `/changelog.html`
+- Accessible from navbar menu with sparkles icon
+- User-friendly descriptions of features
+- Visual indicators for feature types (new, improved, fixed)
+- Organized chronologically by release date
+- "Coming Soon" section for future features
+- Responsive mobile design
+
+**Technical Details:**
+- Static HTML page, easy to update manually
+- Consistent styling with rest of app
+- Back link to return to main app
+- No authentication required (public page)
+
+**Key Files:**
+- `public/changelog.html` - Standalone changelog page
+- `public/index.html` - Navbar menu link
+
 ## Removed Features
 
 ### Keyboard Shortcuts

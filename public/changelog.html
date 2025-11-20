@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What's New - Sous</title>
+    <meta name="description" content="Recent updates and improvements to Sous">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sous">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <link rel="apple-touch-startup-image" href="/favicon.png">
+    
+    <link rel="icon" type="image/png" id="favicon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
+    <script>
+        // Set favicon based on environment
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        document.getElementById('favicon').href = isLocal ? '/favicon-dev.png' : '/favicon.png';
+    </script>
+    
+    <style>
+        body {
+            background: #fcfbf9;
+            margin: 0;
+            font-family: Georgia, serif;
+            overflow-y: auto;
+            height: auto;
+            min-height: 100vh;
+        }
+        
+        .changelog-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .changelog-header {
+            margin-bottom: 48px;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #8b7d6b;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 24px;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: #6b5d52;
+        }
+        
+        .changelog-title {
+            font-family: 'Cinzel', serif;
+            font-size: 40px;
+            font-weight: 600;
+            color: #2d2d2d;
+            margin: 0 0 12px 0;
+        }
+        
+        .changelog-subtitle {
+            font-size: 18px;
+            color: #7a7066;
+            margin: 0;
+        }
+        
+        .changelog-content {
+            display: flex;
+            flex-direction: column;
+            gap: 48px;
+        }
+        
+        .changelog-entry {
+            border-bottom: 1px solid #e8e4dc;
+            padding: 24px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
+        }
+        
+        .changelog-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .changelog-date {
+            font-size: 14px;
+            color: #8b7d6b;
+            margin-bottom: 16px;
+        }
+        
+        .changelog-version {
+            font-size: 24px;
+            font-weight: 600;
+            color: #3a3a3a;
+            margin: 8px 0 20px 0;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e8e5df;
+        }
+        .changelog-items {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .changelog-item {
+            display: flex;
+            gap: 12px;
+            line-height: 1.6;
+            /* align-items: flex-start; */
+        }
+        
+        .changelog-item-icon {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            color: #6b5d52;
+            font-size: 16px;
+            margin-top: 4px;
+        }
+        
+        .changelog-item-content {
+            flex: 1;
+        }
+        
+        .changelog-item-title {
+            font-weight: 600;
+            color: #6b5d52;
+            margin-bottom: 4px;
+        }
+        
+        .changelog-item-description {
+            color: #5a5a5a;
+        }
+        
+        .changelog-item-title {
+            font-weight: 600;
+            color: #2d2d2d;
+            margin-bottom: 4px;
+        }
+        
+        .changelog-item-description {
+            color: #5a5a5a;
+            font-size: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .changelog-container {
+                padding: 40px 20px;
+            }
+            
+            .changelog-title {
+                font-size: 32px;
+            }
+            
+            .changelog-subtitle {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="changelog-container">
+        <div class="changelog-header">
+            <a href="/" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Sous</span>
+            </a>
+            <h1 class="changelog-title">What's New</h1>
+            <p class="changelog-subtitle">Recent updates and improvements to Sous</p>
+        </div>
+        
+        <div class="changelog-content">
+            <!-- November 2025 - Launch Features -->
+            <div class="changelog-entry">
+                <div class="changelog-date">November 2025</div>
+                <h2 class="changelog-version">Launch Release</h2>
+                <div class="changelog-items">
+                    <div class="changelog-item">
+                      <i class="fa-solid fa-user-group changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">Following & Followers</div>
+                            <div class="changelog-item-description">
+                                Follow other cooks to see their recipes in your feed. Check who's following you back.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="changelog-item">
+                        <i class="fa-solid fa-newspaper changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">Activity Feed</div>
+                            <div class="changelog-item-description">
+                                See what people you follow are cooking. New recipes, collections, and menus in one stream.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="changelog-item">
+                        <i class="fa-solid fa-circle-user changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">User Profiles</div>
+                            <div class="changelog-item-description">
+                                Everyone gets a profile page. Add a bio and avatar, showcase your recipes.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="changelog-item">
+                        <i class="fa-solid fa-magnifying-glass changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">User Search</div>
+                            <div class="changelog-item-description">
+                                Find people by username. Discover new cooks or connect with friends.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="changelog-item">
+                        <i class="fa-solid fa-folder changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">Collections & Menus</div>
+                            <div class="changelog-item-description">
+                                Group recipes into collections. Plan menus for dinner parties.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="changelog-item">
+                        <i class="fa-solid fa-arrow-up-from-bracket changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">Easy Sharing</div>
+                            <div class="changelog-item-description">
+                                Share via link. Copy as markdown, plain text, or HTML.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="changelog-item">
+                        <i class="fa-solid fa-image changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">Image Upload</div>
+                            <div class="changelog-item-description">
+                                Paste images directly into recipes. Auto-compressed, no upload buttons.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="changelog-item">
+                        <i class="fa-solid fa-eye-slash changelog-item-icon"></i>
+                        <div class="changelog-item-content">
+                            <div class="changelog-item-title">Privacy Controls</div>
+                            <div class="changelog-item-description">
+                                Control who can find you. Show up in search or stay private.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
