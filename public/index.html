@@ -377,12 +377,14 @@
     </div>
 
     <!-- Debug Modal -->
-    <div class="modal hidden" id="debugModal" tabindex="-1">
+    <div class="modal-overlay hidden" id="debugModal">
         <div class="modal-content">
-            <h2>Debug Info</h2>
-            <div id="debugContent">Loading...</div>
-            <div class="modal-actions">
-                <button id="debugCloseBtn">Close</button>
+            <div class="modal-header">
+                <h2>Debug Info</h2>
+                <button id="debugCloseBtn" class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre id="debugContent" style="font-family: monospace; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; color: #5a5a5a;">Loading...</pre>
             </div>
         </div>
     </div>
@@ -430,6 +432,27 @@
         </div>
     </div>
     -->
+
+    <!-- Following/Followers Modal -->
+    <div id="followModal" class="modal-overlay hidden">
+        <div class="modal-content follow-modal">
+            <div class="modal-header">
+                <h2>Connections</h2>
+                <button id="followModalClose" class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="follow-tabs">
+                <button class="follow-tab active" data-tab="following">Following</button>
+                <button class="follow-tab" data-tab="followers">Followers</button>
+            </div>
+            <div class="modal-body">
+                <div id="followingList" class="follow-list follow-tab-content active"></div>
+                <div id="followersList" class="follow-list follow-tab-content"></div>
+                <div id="followModalEmpty" class="follow-empty hidden">
+                    <p>No users to display</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>

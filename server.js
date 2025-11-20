@@ -2123,6 +2123,48 @@ app.delete('/api/users/:targetUserId/follow', async (req, res) => {
     }
 });
 
+// Get following or followers list for a user
+app.get('/api/users/:username/:type(following|followers)', validateUsername, async (req, res) => {
+    const { userId } = req; // From validateUsername middleware
+    const { type } = req.params; // 'following' or 'followers'
+    
+    try {
+        if (useFirebase && db && !firebaseFailureDetected) {
+            const userDoc = await db.collection('users').doc(userId).get();
+            const userIds = userDoc.data()?.[type] || [];
+            
+            if (userIds.length === 0) {
+                return res.json({ users: [] });
+            }
+            
+            // Fetch user details for all users in the list
+            const usersPromises = userIds.map(async (targetUserId) => {
+                const doc = await db.collection('users').doc(targetUserId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    return {
+                        userId: targetUserId,
+                        username: data.username,
+                        bio: data.bio || '',
+                        gravatarHash: data.gravatarHash || '',
+                        followersCount: data.followersCount || 0,
+                        followingCount: data.followingCount || 0
+                    };
+                }
+                return null;
+            });
+            
+            const users = (await Promise.all(usersPromises)).filter(u => u !== null);
+            res.json({ users });
+        } else {
+            res.status(503).json({ error: 'Firebase not available' });
+        }
+    } catch (error) {
+        console.error(`Error fetching ${type} list:`, error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get activity feed for current user
 app.get('/api/feed', async (req, res) => {
     const { userId } = req.query;

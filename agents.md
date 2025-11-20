@@ -188,6 +188,35 @@ function updateEditControls() {
 - Focus-based scrolling for recipes (browser-native behavior)
 - No manual `window.scrollTo()` calls
 
+### Modal System
+
+**ModalUtils** - Reusable modal utility for consistent behavior across all modals:
+
+```javascript
+ModalUtils.open(modalElement, closeCallback)  // Opens modal with focus trap
+ModalUtils.close()                             // Closes active modal
+```
+
+**Features:**
+- Automatic focus trapping (Tab cycles within modal)
+- Escape key to close
+- Click overlay to close
+- Auto-focus first focusable element
+- Consistent behavior across all dialogs
+
+**Usage:**
+```javascript
+// Open a modal
+ModalUtils.open(DOM.followModal, () => {
+  console.log('Modal closed');
+});
+
+// Close button
+closeButton.addEventListener('click', () => ModalUtils.close());
+```
+
+**All modals should use ModalUtils** instead of manual event handlers.
+
 ### Activity Feed Architecture
 
 **Fan-Out on Write Pattern:**

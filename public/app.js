@@ -567,7 +567,14 @@ const DOM = {
     breadcrumb: document.getElementById('breadcrumb'),
     menuBreadcrumb: document.getElementById('menuBreadcrumb'),
     collectionsViewBreadcrumb: document.getElementById('collectionsViewBreadcrumb'),
-    menusViewBreadcrumb: document.getElementById('menusViewBreadcrumb')
+    menusViewBreadcrumb: document.getElementById('menusViewBreadcrumb'),
+    
+    // Follow Modal
+    followModal: document.getElementById('followModal'),
+    followModalClose: document.getElementById('followModalClose'),
+    followingList: document.getElementById('followingList'),
+    followersList: document.getElementById('followersList'),
+    followModalEmpty: document.getElementById('followModalEmpty')
 };
 
 // =============================================================================
@@ -592,6 +599,89 @@ const SkeletonUI = {
     showContent(contentElement, skeletonElement) {
         if (skeletonElement) skeletonElement.classList.add('hidden');
         if (contentElement) contentElement.classList.remove('hidden');
+    }
+};
+
+// Modal utilities for reusable modal behavior
+const ModalUtils = {
+    // Store active modal and its close callback
+    activeModal: null,
+    closeCallback: null,
+    
+    // Open a modal with focus trapping and escape handling
+    open(modalElement, closeCallback) {
+        if (!modalElement) return;
+        
+        this.activeModal = modalElement;
+        this.closeCallback = closeCallback;
+        
+        modalElement.classList.remove('hidden');
+        
+        // Focus first focusable element
+        setTimeout(() => {
+            const firstFocusable = this.getFocusableElements(modalElement)[0];
+            if (firstFocusable) firstFocusable.focus();
+        }, 0);
+        
+        // Add event listeners
+        if (!modalElement._modalListenersAdded) {
+            modalElement.addEventListener('keydown', (e) => this.handleKeydown(e, modalElement));
+            modalElement.addEventListener('click', (e) => {
+                // Close on overlay click
+                if (e.target === modalElement) {
+                    this.close();
+                }
+            });
+            modalElement._modalListenersAdded = true;
+        }
+    },
+    
+    // Close the active modal
+    close() {
+        if (this.activeModal) {
+            this.activeModal.classList.add('hidden');
+            if (this.closeCallback) {
+                this.closeCallback();
+            }
+            this.activeModal = null;
+            this.closeCallback = null;
+        }
+    },
+    
+    // Handle keydown events (Escape and Tab)
+    handleKeydown(e, modalElement) {
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+            this.close();
+            return;
+        }
+        
+        if (e.key === 'Tab') {
+            this.trapFocus(e, modalElement);
+        }
+    },
+    
+    // Trap focus within modal
+    trapFocus(e, modalElement) {
+        const focusableElements = this.getFocusableElements(modalElement);
+        if (focusableElements.length === 0) return;
+        
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        
+        if (e.shiftKey && document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+        }
+    },
+    
+    // Get all focusable elements in modal
+    getFocusableElements(modalElement) {
+        const selector = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        return Array.from(modalElement.querySelectorAll(selector));
     }
 };
 
@@ -2467,6 +2557,8 @@ async function renderProfilePage() {
     // Set stats
     const profileFollowingCount = document.getElementById('profileFollowingCount');
     const profileFollowersCount = document.getElementById('profileFollowersCount');
+    const profileFollowingLink = document.getElementById('profileFollowingLink');
+    const profileFollowersLink = document.getElementById('profileFollowersLink');
     
     if (profileFollowingCount) {
         profileFollowingCount.textContent = userData?.followingCount || 0;
@@ -2475,6 +2567,16 @@ async function renderProfilePage() {
     if (profileFollowersCount) {
         profileFollowersCount.textContent = userData?.followersCount || 0;
         profileFollowersCount.classList.remove('skeleton-text');
+    }
+    
+    // Add click handlers for following/followers lists
+    if (profileFollowingLink && userData?.username) {
+        profileFollowingLink.style.cursor = 'pointer';
+        profileFollowingLink.onclick = () => showFollowModal('following', userData.username);
+    }
+    if (profileFollowersLink && userData?.username) {
+        profileFollowersLink.style.cursor = 'pointer';
+        profileFollowersLink.onclick = () => showFollowModal('followers', userData.username);
     }
     
     // Show/hide follow button
@@ -2770,6 +2872,175 @@ async function toggleFollowFromProfile(userIdToFollow, usernameToFollow) {
         console.error('❌ Error toggling follow:', error);
         alert('Error updating follow status');
     }
+}
+
+// =============================================================================
+// FOLLOW MODAL FUNCTIONS
+// =============================================================================
+
+async function showFollowModal(initialTab, username) {
+    console.log(`📋 Opening follow modal (${initialTab} tab) for ${username}`);
+    
+    // Clear previous content
+    DOM.followingList.innerHTML = '';
+    DOM.followersList.innerHTML = '';
+    DOM.followModalEmpty.classList.add('hidden');
+    
+    // Set active tab
+    const tabs = DOM.followModal.querySelectorAll('.follow-tab');
+    const tabContents = DOM.followModal.querySelectorAll('.follow-tab-content');
+    
+    tabs.forEach(tab => {
+        const isActive = tab.dataset.tab === initialTab;
+        tab.classList.toggle('active', isActive);
+    });
+    
+    tabContents.forEach(content => {
+        const isActive = content.id === (initialTab === 'following' ? 'followingList' : 'followersList');
+        content.classList.toggle('active', isActive);
+    });
+    
+    // Setup tab click handlers
+    tabs.forEach(tab => {
+        tab.onclick = () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const targetList = tab.dataset.tab === 'following' ? DOM.followingList : DOM.followersList;
+            tabContents.forEach(content => content.classList.remove('active'));
+            targetList.classList.add('active');
+            
+            // Load data for this tab if not already loaded
+            if (targetList.children.length === 0) {
+                loadFollowList(tab.dataset.tab, username, targetList);
+            }
+        };
+    });
+    
+    // Load initial tab data
+    const initialList = initialTab === 'following' ? DOM.followingList : DOM.followersList;
+    await loadFollowList(initialTab, username, initialList);
+    
+    // Open modal with utilities (handles focus trap, escape, etc.)
+    ModalUtils.open(DOM.followModal, closeFollowModal);
+}
+
+async function loadFollowList(type, username, listElement) {
+    console.log(`📋 Loading ${type} list for ${username}`);
+    
+    try {
+        // Fetch list from server
+        const endpoint = `/api/users/${username}/${type}`;
+        
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error('Failed to fetch users');
+        
+        const data = await response.json();
+        const users = data.users || [];
+        
+        if (users.length === 0) {
+            DOM.followModalEmpty.classList.remove('hidden');
+            return;
+        }
+        
+        DOM.followModalEmpty.classList.add('hidden');
+        
+        // Render user list
+        for (const user of users) {
+            const item = document.createElement('div');
+            item.className = 'follow-item';
+            
+            const gravatarUrl = user.gravatarHash 
+                ? `https://www.gravatar.com/avatar/${user.gravatarHash}?d=retro&s=88`
+                : `https://www.gravatar.com/avatar/00000000000000000000000000000000?d=retro&s=88`;
+            
+            const isCurrentUser = API.currentUser && user.username === API.currentUser.username;
+            const isFollowing = API.currentUser && State.users[user.username]?.isFollowing;
+            
+            item.innerHTML = `
+                <img src="${gravatarUrl}" alt="${user.username}" class="follow-item-avatar">
+                <div class="follow-item-info">
+                    <a href="/${user.username}" class="follow-item-username">@${user.username}</a>
+                    ${user.bio ? `<div class="follow-item-bio">${escapeHtml(user.bio)}</div>` : ''}
+                </div>
+                ${!isCurrentUser ? `
+                    <div class="follow-item-action">
+                        <button class="follow-btn ${isFollowing ? 'following' : ''}" 
+                                data-user-id="${user.userId}"
+                                data-username="${user.username}">
+                            ${isFollowing ? 'Following' : 'Follow'}
+                        </button>
+                    </div>
+                ` : ''}
+            `;
+            
+            listElement.appendChild(item);
+            
+            // Add click handler to username link
+            const usernameLink = item.querySelector('.follow-item-username');
+            usernameLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeFollowModal();
+                const username = user.username;
+                document.title = `@${username} - Sous`;
+                window.history.pushState({ type: 'home', username }, `@${username} - Sous`, `/${username}`);
+                API.viewingUser = username;
+                loadAllData().then(() => {
+                    renderProfilePage();
+                });
+            });
+            
+            // Add click handler to follow button if present
+            if (!isCurrentUser) {
+                const followBtn = item.querySelector('.follow-btn');
+                followBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await handleFollowToggleInModal(followBtn, user.userId, user.username);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+        DOM.followModalEmpty.textContent = 'Error loading users';
+        DOM.followModalEmpty.classList.remove('hidden');
+    }
+}
+
+async function handleFollowToggleInModal(button, userId, username) {
+    const isFollowing = button.classList.contains('following');
+    
+    try {
+        if (isFollowing) {
+            await API.unfollowUser(userId, username);
+            button.classList.remove('following');
+            button.textContent = 'Follow';
+        } else {
+            await API.followUser(userId, username);
+            button.classList.add('following');
+            button.textContent = 'Following';
+        }
+        
+        // Update cached user data
+        if (!State.users[username]) {
+            State.users[username] = {};
+        }
+        State.users[username].isFollowing = !isFollowing;
+        
+    } catch (error) {
+        console.error('Error toggling follow:', error);
+        alert('Error updating follow status');
+    }
+}
+
+function closeFollowModal() {
+    // Modal closing handled by ModalUtils
+    console.log('📋 Follow modal closed');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function showNotFoundView() {
@@ -4110,6 +4381,11 @@ filterInput.addEventListener('input', (e) => {
     renderRecipeList(e.target.value);
 });
 
+// Follow modal close button
+if (DOM.followModalClose) {
+    DOM.followModalClose.addEventListener('click', () => ModalUtils.close());
+}
+
 // Nav bar new recipe button
 const navNewRecipeBtn = document.getElementById('navNewRecipeBtn');
 if (navNewRecipeBtn) {
@@ -4342,8 +4618,6 @@ const debugContent = document.getElementById('debugContent');
 const debugCloseBtn = document.getElementById('debugCloseBtn');
 
 async function showDebugModal() {
-    debugModal.classList.remove('hidden');
-    debugModal.focus();
     debugContent.textContent = 'Loading debug info...';
     
     try {
@@ -4377,37 +4651,13 @@ async function showDebugModal() {
     } catch (error) {
         debugContent.textContent = `Error fetching debug info: ${error.message}`;
     }
+    
+    // Open modal with utilities (handles focus trap, escape, etc.)
+    ModalUtils.open(debugModal);
 }
 
 debugCloseBtn?.addEventListener('click', () => {
-    debugModal.classList.add('hidden');
-});
-
-debugModal?.addEventListener('click', (e) => {
-    if (e.target === debugModal) {
-        debugModal.classList.add('hidden');
-    }
-});
-
-debugModal?.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        e.stopPropagation();
-        debugModal.classList.add('hidden');
-    }
-    if (e.key === 'Tab') {
-        // Trap focus within modal
-        const focusableElements = debugModal.querySelectorAll('button');
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-        
-        if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-        } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-        }
-    }
+    ModalUtils.close();
 });
 
 // Search Page functionality

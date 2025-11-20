@@ -2,6 +2,38 @@
 
 All notable changes to the Sous recipe manager.
 
+## 2025-11-20
+
+### Following/Followers List View & Modal System
+
+**Following/Followers Modal:**
+- Tabbed modal dialog showing Following and Followers lists
+- Opens when clicking follower/following counts on any profile
+- Each tab shows user avatars, usernames, bios
+- Follow/unfollow buttons directly in modal (except for own account)
+- Click username to navigate to that user's profile
+- Modal closes on navigation
+
+**Reusable Modal System (ModalUtils):**
+- Created `ModalUtils` utility for consistent modal behavior
+- Automatic focus trapping (Tab cycles within modal)
+- Escape key closes modal
+- Click overlay to close modal
+- Auto-focus first focusable element
+- All existing modals (debug, follow) now use ModalUtils
+
+**Server Endpoints:**
+- `GET /api/users/:username/following` - Returns list of users being followed
+- `GET /api/users/:username/followers` - Returns list of followers
+- Both return user details: username, bio, gravatarHash, follower counts
+
+**Files Modified:**
+- `public/index.html` - Follow modal HTML with tabs
+- `public/styles.css` - Follow modal and tab styling
+- `public/app.js` - ModalUtils, showFollowModal(), loadFollowList(), modal integration
+- `server.js` - New endpoints for following/followers lists
+- `agents.md` - Documented Modal System pattern
+
 ## 2025-11-19
 
 ### Quick Wins & UI Polish

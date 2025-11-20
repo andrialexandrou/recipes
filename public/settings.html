@@ -70,15 +70,14 @@
             </section>
 
             <!-- Password Change Modal -->
-            <div id="passwordModal" class="settings-modal hidden">
-                <div class="settings-modal-content">
-                    <div class="settings-modal-header">
-                        <h3>Change Password</h3>
-                        <button id="closePasswordModal" class="settings-modal-close">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+            <div id="passwordModal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Change Password</h2>
+                        <button id="closePasswordModal" class="modal-close" aria-label="Close">&times;</button>
                     </div>
-                    <form id="passwordForm" class="settings-modal-form">
+                    <div class="modal-body">
+                        <form id="passwordForm" class="settings-form">
                         <div class="form-group">
                             <label for="currentPassword">Current Password</label>
                             <input type="password" id="currentPassword" autocomplete="current-password" required>
@@ -93,11 +92,12 @@
                         </div>
                         <div id="passwordError" class="error-message"></div>
                         <div id="passwordSuccess" class="success-message"></div>
-                        <div class="settings-modal-actions">
+                        <div class="modal-actions">
                             <button type="button" id="cancelPasswordBtn" class="settings-btn settings-btn-secondary">Cancel</button>
                             <button type="submit" id="savePasswordBtn" class="settings-btn settings-btn-primary">Update Password</button>
                         </div>
                     </form>
+                    </div>
                 </div>
             </div>
 
@@ -133,24 +133,22 @@
             </section>
 
             <!-- Delete Account Confirmation Modal -->
-            <div id="deleteModal" class="settings-modal hidden">
-                <div class="settings-modal-content">
-                    <div class="settings-modal-header">
-                        <h3>Delete Account</h3>
-                        <button id="closeDeleteModal" class="settings-modal-close">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+            <div id="deleteModal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Delete Account</h2>
+                        <button id="closeDeleteModal" class="modal-close" aria-label="Close">&times;</button>
                     </div>
-                    <div class="settings-modal-body">
-                        <p><strong>Warning:</strong> This action cannot be undone.</p>
-                        <p>All your recipes, collections, menus, and photos will be permanently deleted.</p>
-                        <form id="deleteForm" class="settings-modal-form">
+                    <div class="modal-body">
+                        <p style="margin-bottom: 12px;"><strong>Warning:</strong> This action cannot be undone.</p>
+                        <p style="margin-bottom: 20px;">All your recipes, collections, menus, and photos will be permanently deleted.</p>
+                        <form id="deleteForm" class="settings-form">
                             <div class="form-group">
                                 <label for="deletePassword">Enter your password to confirm</label>
                                 <input type="password" id="deletePassword" autocomplete="current-password" required>
                             </div>
                             <div id="deleteError" class="error-message"></div>
-                            <div class="settings-modal-actions">
+                            <div class="modal-actions">
                                 <button type="button" id="cancelDeleteBtn" class="settings-btn settings-btn-secondary">Cancel</button>
                                 <button type="submit" id="confirmDeleteBtn" class="settings-btn settings-btn-danger">Delete My Account</button>
                             </div>
@@ -166,6 +164,80 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     
     <script>
+        // Modal utilities - same as app.js
+        const ModalUtils = {
+            activeModal: null,
+            closeCallback: null,
+            
+            open(modalElement, closeCallback) {
+                if (!modalElement) return;
+                
+                this.activeModal = modalElement;
+                this.closeCallback = closeCallback;
+                
+                modalElement.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    const firstFocusable = this.getFocusableElements(modalElement)[0];
+                    if (firstFocusable) firstFocusable.focus();
+                }, 0);
+                
+                if (!modalElement._modalListenersAdded) {
+                    modalElement.addEventListener('keydown', (e) => this.handleKeydown(e, modalElement));
+                    modalElement.addEventListener('click', (e) => {
+                        if (e.target === modalElement) {
+                            this.close();
+                        }
+                    });
+                    modalElement._modalListenersAdded = true;
+                }
+            },
+            
+            close() {
+                if (this.activeModal) {
+                    this.activeModal.classList.add('hidden');
+                    if (this.closeCallback) {
+                        this.closeCallback();
+                    }
+                    this.activeModal = null;
+                    this.closeCallback = null;
+                }
+            },
+            
+            handleKeydown(e, modalElement) {
+                if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    this.close();
+                    return;
+                }
+                
+                if (e.key === 'Tab') {
+                    this.trapFocus(e, modalElement);
+                }
+            },
+            
+            trapFocus(e, modalElement) {
+                const focusableElements = this.getFocusableElements(modalElement);
+                if (focusableElements.length === 0) return;
+                
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                
+                if (e.shiftKey && document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            },
+            
+            getFocusableElements(modalElement) {
+                const selector = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+                return Array.from(modalElement.querySelectorAll(selector));
+            }
+        };
+
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAcvHMjul-zt4Di5cjVf1Yi6CRS4dSRc78",
@@ -280,52 +352,17 @@
         const passwordForm = document.getElementById('passwordForm');
         
         changePasswordBtn.addEventListener('click', () => {
-            passwordModal.classList.remove('hidden');
             clearMessages('passwordError', 'passwordSuccess');
             passwordForm.reset();
-            // Focus first input
-            setTimeout(() => document.getElementById('currentPassword').focus(), 100);
+            ModalUtils.open(passwordModal);
         });
         
         closePasswordModal.addEventListener('click', () => {
-            passwordModal.classList.add('hidden');
+            ModalUtils.close();
         });
         
         cancelPasswordBtn.addEventListener('click', () => {
-            passwordModal.classList.add('hidden');
-        });
-        
-        // Click outside modal to close
-        passwordModal.addEventListener('click', (e) => {
-            if (e.target === passwordModal) {
-                passwordModal.classList.add('hidden');
-            }
-        });
-        
-        // Close on escape key
-        passwordModal.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                passwordModal.classList.add('hidden');
-            }
-        });
-        
-        // Trap focus within modal
-        passwordModal.addEventListener('keydown', (e) => {
-            if (e.key === 'Tab') {
-                const focusableElements = passwordModal.querySelectorAll(
-                    'input:not([disabled]), button:not([disabled])'
-                );
-                const firstElement = focusableElements[0];
-                const lastElement = focusableElements[focusableElements.length - 1];
-                
-                if (e.shiftKey && document.activeElement === firstElement) {
-                    e.preventDefault();
-                    lastElement.focus();
-                } else if (!e.shiftKey && document.activeElement === lastElement) {
-                    e.preventDefault();
-                    firstElement.focus();
-                }
-            }
+            ModalUtils.close();
         });
         
         // Change password
@@ -369,7 +406,7 @@
                 
                 // Close modal after 2 seconds
                 setTimeout(() => {
-                    passwordModal.classList.add('hidden');
+                    ModalUtils.close();
                 }, 2000);
                 
                 saveBtn.disabled = false;
@@ -436,51 +473,17 @@
         const deleteForm = document.getElementById('deleteForm');
         
         deleteAccountBtn.addEventListener('click', () => {
-            deleteModal.classList.remove('hidden');
             clearMessages('deleteError');
             deleteForm.reset();
-            // Focus first input
-            setTimeout(() => document.getElementById('deletePassword').focus(), 100);
+            ModalUtils.open(deleteModal);
         });
         
         closeDeleteModal.addEventListener('click', () => {
-            deleteModal.classList.add('hidden');
+            ModalUtils.close();
         });
         
         cancelDeleteBtn.addEventListener('click', () => {
-            deleteModal.classList.add('hidden');
-        });
-        
-        deleteModal.addEventListener('click', (e) => {
-            if (e.target === deleteModal) {
-                deleteModal.classList.add('hidden');
-            }
-        });
-        
-        // Close on escape key
-        deleteModal.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                deleteModal.classList.add('hidden');
-            }
-        });
-        
-        // Trap focus within modal
-        deleteModal.addEventListener('keydown', (e) => {
-            if (e.key === 'Tab') {
-                const focusableElements = deleteModal.querySelectorAll(
-                    'input:not([disabled]), button:not([disabled])'
-                );
-                const firstElement = focusableElements[0];
-                const lastElement = focusableElements[focusableElements.length - 1];
-                
-                if (e.shiftKey && document.activeElement === firstElement) {
-                    e.preventDefault();
-                    lastElement.focus();
-                } else if (!e.shiftKey && document.activeElement === lastElement) {
-                    e.preventDefault();
-                    firstElement.focus();
-                }
-            }
+            ModalUtils.close();
         });
         
         // Delete account
