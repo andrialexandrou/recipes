@@ -652,7 +652,6 @@ body {
 .collection-recipes {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 40px;
 }
 
 .collection-recipe-list {
