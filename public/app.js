@@ -4039,28 +4039,6 @@ if (newMenuBtnHome) newMenuBtnHome.addEventListener('click', createNewMenu);
 navMenuBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     navbarDropdown.classList.toggle('hidden');
-    
-    // Update user info in dropdown
-    if (!navbarDropdown.classList.contains('hidden') && API.currentUser) {
-        const dropdownProfile = document.getElementById('dropdownProfile');
-        const dropdownUsername = document.getElementById('dropdownUsername');
-        
-        // Fetch user data to get gravatarHash
-        const userRes = await fetch(`/api/${API.currentUser.username}/user`);
-        if (userRes.ok) {
-            const userData = await userRes.json();
-            // Use getAvatarHtml to create avatar with fallback
-            const avatarHtml = getAvatarHtml(API.currentUser.username, userData.gravatarHash, 40);
-            // Replace the img element with the avatar HTML
-            const existingAvatar = dropdownProfile.querySelector('img, .feed-avatar-fallback');
-            if (existingAvatar) {
-                existingAvatar.remove();
-            }
-            // Insert avatar HTML before username
-            dropdownProfile.insertAdjacentHTML('afterbegin', avatarHtml);
-            dropdownUsername.textContent = `@${API.currentUser.username}`;
-        }
-    }
 });
 
 dropdownCollections.addEventListener('click', () => {
@@ -4086,6 +4064,20 @@ dropdownCollections.addEventListener('click', () => {
             loadAllData();
         }
         switchToView('collections');
+    }
+});
+
+const dropdownProfile = document.getElementById('dropdownProfile');
+dropdownProfile.addEventListener('click', () => {
+    navbarDropdown.classList.add('hidden');
+    if (API.currentUser) {
+        const username = API.currentUser.username;
+        document.title = `@${username} - Sous`;
+        window.history.pushState({ type: 'home', username }, `@${username} - Sous`, `/${username}`);
+        API.viewingUser = username;
+        loadAllData().then(() => {
+            renderProfilePage();
+        });
     }
 });
 
