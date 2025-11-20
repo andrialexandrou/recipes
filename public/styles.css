@@ -2957,12 +2957,17 @@ input:checked + .toggle-slider:before {
 }
 
 .feed-empty {
-    text-align: center;
-    padding: 80px 20px;
+    padding: 40px 20px;
     color: #999;
 }
 
-.feed-empty > div:first-child {
+
+.feed-empty-main {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.feed-empty-main > div:first-child {
     font-size: 48px;
     margin-bottom: 20px;
 }
@@ -2975,7 +2980,24 @@ input:checked + .toggle-slider:before {
 
 .feed-empty p {
     font-size: 16px;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
+    color: #999;
+}
+
+.feed-empty-cta {
+    background: #6b5d52;
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.feed-empty-cta:hover {
+    background: #5a4d43;
 }
 
 .user-not-found {

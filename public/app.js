@@ -2955,6 +2955,15 @@ async function loadFeed() {
     try {
         const activities = await API.getFeed();
         renderFeed(activities);
+        
+        // Set up explore users button
+        const exploreUsersBtn = document.getElementById('exploreUsersBtn');
+        if (exploreUsersBtn) {
+            exploreUsersBtn.onclick = () => {
+                showSearchView();
+                updateURL('/search', 'Search Users - Sous');
+            };
+        }
     } catch (error) {
         console.error('Error loading feed:', error);
         const feedContainer = document.getElementById('feedContainer');
