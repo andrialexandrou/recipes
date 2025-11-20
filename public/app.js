@@ -204,6 +204,13 @@ const API = {
                                 console.log('👤 Logged in as (email fallback):', this.currentUser.username, `(${this.currentUser.email})`);
                             }
                             
+                            // Show sidebar for authenticated user
+                            const sidebar = document.getElementById('sidebar');
+                            if (sidebar) {
+                                sidebar.classList.remove('hidden');
+                                console.log('✅ Sidebar shown (authenticated user)');
+                            }
+                            
                             // Set viewing user (will be overridden by URL if needed)
                             if (!this.viewingUser) {
                                 this.viewingUser = this.currentUser.username;
@@ -2419,6 +2426,14 @@ async function renderProfilePage() {
     // Set avatar
     const profileAvatar = document.getElementById('profileAvatar');
     if (profileAvatar && userData?.gravatarHash) {
+        // Keep skeleton until image loads
+        profileAvatar.onload = () => {
+            profileAvatar.classList.remove('skeleton-avatar');
+        };
+        profileAvatar.onerror = () => {
+            // Remove skeleton even if image fails to load
+            profileAvatar.classList.remove('skeleton-avatar');
+        };
         profileAvatar.src = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=256&d=identicon`;
     }
     
@@ -2426,20 +2441,33 @@ async function renderProfilePage() {
     const profileUsername = document.getElementById('profileUsername');
     if (profileUsername) {
         profileUsername.textContent = `@${API.viewingUser}`;
+        profileUsername.classList.remove('skeleton-text');
+    }
+    
+    // Set bio
+    const profileBio = document.getElementById('profileBio');
+    if (profileBio) {
+        if (userData?.bio) {
+            profileBio.textContent = userData.bio;
+            profileBio.classList.remove('hidden');
+        } else {
+            profileBio.classList.add('hidden');
+        }
+        profileBio.classList.remove('skeleton-text');
     }
     
     // Set stats
-    const profileRecipeCount = document.getElementById('profileRecipeCount');
-    const profileCollectionCount = document.getElementById('profileCollectionCount');
-    const profileMenuCount = document.getElementById('profileMenuCount');
     const profileFollowingCount = document.getElementById('profileFollowingCount');
     const profileFollowersCount = document.getElementById('profileFollowersCount');
     
-    if (profileRecipeCount) profileRecipeCount.textContent = recipes.length;
-    if (profileCollectionCount) profileCollectionCount.textContent = collections.length;
-    if (profileMenuCount) profileMenuCount.textContent = menus.length;
-    if (profileFollowingCount) profileFollowingCount.textContent = userData?.followingCount || 0;
-    if (profileFollowersCount) profileFollowersCount.textContent = userData?.followersCount || 0;
+    if (profileFollowingCount) {
+        profileFollowingCount.textContent = userData?.followingCount || 0;
+        profileFollowingCount.classList.remove('skeleton-text');
+    }
+    if (profileFollowersCount) {
+        profileFollowersCount.textContent = userData?.followersCount || 0;
+        profileFollowersCount.classList.remove('skeleton-text');
+    }
     
     // Show/hide follow button
     const profileFollowBtn = document.getElementById('profileFollowBtn');

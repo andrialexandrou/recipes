@@ -55,6 +55,15 @@
                 </div>
 
                 <div class="settings-item">
+                    <label class="settings-label" for="bioTextarea">Bio</label>
+                    <textarea id="bioTextarea" class="settings-textarea" placeholder="Tell people about yourself..." maxlength="160" rows="3"></textarea>
+                    <p class="settings-help"><span id="bioCharCount">0</span>/160 characters</p>
+                    <button id="saveBioBtn" class="settings-btn settings-btn-primary">Save Bio</button>
+                    <div id="bioError" class="error-message"></div>
+                    <div id="bioSuccess" class="success-message"></div>
+                </div>
+
+                <div class="settings-item">
                     <label class="settings-label">Password</label>
                     <button id="changePasswordBtn" class="settings-btn settings-btn-secondary">Change Password</button>
                 </div>
@@ -201,6 +210,13 @@
                 document.getElementById('displayEmail').textContent = currentUser.email || 'No email';
                 document.getElementById('searchableToggle').checked = data.isSearchable !== false;
                 
+                // Load bio
+                const bioTextarea = document.getElementById('bioTextarea');
+                if (bioTextarea) {
+                    bioTextarea.value = data.bio || '';
+                    updateBioCharCount();
+                }
+                
             } catch (error) {
                 console.error('Error loading settings:', error);
                 const errorMsg = document.createElement('div');
@@ -209,6 +225,51 @@
                 errorMsg.textContent = 'Failed to load settings. Please refresh the page.';
                 document.querySelector('.settings-content').prepend(errorMsg);
             }
+        }
+        
+        // Bio character count and save
+        const bioTextarea = document.getElementById('bioTextarea');
+        const bioCharCount = document.getElementById('bioCharCount');
+        const saveBioBtn = document.getElementById('saveBioBtn');
+        
+        function updateBioCharCount() {
+            if (bioTextarea && bioCharCount) {
+                bioCharCount.textContent = bioTextarea.value.length;
+            }
+        }
+        
+        if (bioTextarea) {
+            bioTextarea.addEventListener('input', updateBioCharCount);
+        }
+        
+        if (saveBioBtn) {
+            saveBioBtn.addEventListener('click', async () => {
+                clearMessages('bioError', 'bioSuccess');
+                
+                try {
+                    const idToken = await auth.currentUser.getIdToken();
+                    const response = await fetch('/api/user/settings', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}`
+                        },
+                        body: JSON.stringify({
+                            bio: bioTextarea.value.trim()
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to update bio');
+                    }
+                    
+                    showMessage('bioSuccess', 'Bio updated successfully!');
+                } catch (error) {
+                    console.error('Error updating bio:', error);
+                    showMessage('bioError', error.message);
+                }
+            });
         }
         
         // Password change modal

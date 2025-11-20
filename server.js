@@ -716,6 +716,7 @@ app.get('/api/:username/user', validateUsername, async (req, res) => {
                     // Only return public information
                     res.json({
                         username: userData.username,
+                        bio: userData.bio || '',
                         gravatarHash: gravatarHash,
                         createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt,
                         following: userData.following || [],
@@ -1797,6 +1798,7 @@ app.get('/api/user/settings', async (req, res) => {
                 username: userData.username,
                 email: userData.email,
                 isSearchable: userData.isSearchable !== false,
+                bio: userData.bio || '',
                 createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt
             });
         } else {
@@ -1826,7 +1828,7 @@ app.put('/api/user/settings', async (req, res) => {
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         const userId = decodedToken.uid;
         
-        const { email, isSearchable } = req.body;
+        const { email, isSearchable, bio } = req.body;
         
         if (useFirebase && db && !firebaseFailureDetected) {
             const userRef = db.collection('users').doc(userId);
@@ -1839,6 +1841,10 @@ app.put('/api/user/settings', async (req, res) => {
             
             if (isSearchable !== undefined) {
                 updateData.isSearchable = isSearchable;
+            }
+            
+            if (bio !== undefined) {
+                updateData.bio = bio;
             }
             
             await userRef.update(updateData);
