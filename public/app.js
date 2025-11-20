@@ -141,6 +141,13 @@ const API = {
                                         };
                                         console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`, this.currentUser.isStaff ? '🛠️ Staff' : '', 'gravatarHash:', gravatarHash ? 'computed' : 'none');
                                         
+                                        // Show sidebar for authenticated user
+                                        const sidebar = document.getElementById('sidebar');
+                                        if (sidebar) {
+                                            sidebar.classList.remove('hidden');
+                                            console.log('✅ Sidebar shown (authenticated user)');
+                                        }
+                                        
                                         // Set viewing user
                                         if (!this.viewingUser) {
                                             this.viewingUser = this.currentUser.username;
@@ -900,6 +907,15 @@ if (authenticatedUserLink) {
 function updateEditControls() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     const isLoggedIn = !!API.currentUser;
+    
+    // Sidebar toggle: show when logged in, hide when logged out
+    if (sidebarToggle) {
+        if (isLoggedIn) {
+            sidebarToggle.classList.remove('hidden');
+        } else {
+            sidebarToggle.classList.add('hidden');
+        }
+    }
     
     // Navbar: show menu button and search if logged in, sign in button if logged out
     const navMenuBtn = document.getElementById('navMenuBtn');
