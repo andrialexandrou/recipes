@@ -261,10 +261,12 @@ body {
 
 .preview-content {
     font-family: 'Georgia', serif;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.7;
     color: #3d3d3d;
     max-width: 720px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Markdown preview styling */
@@ -322,6 +324,8 @@ body {
     color: #7a7066; 
     text-decoration: underline;
     text-decoration-color: #d9d4cb;
+    word-break: break-all;
+    overflow-wrap: break-word;
 }
 
 .preview-content a:hover { 
@@ -569,7 +573,6 @@ body {
 }
 
 .collection-detail-header {
-    padding: 24px 40px;
     border-bottom: 1px solid #e5e0d8;
 }
 
@@ -2094,6 +2097,30 @@ body {
     .profile-stats {
         gap: 12px;
         flex-wrap: wrap;
+    }
+    
+    /* Condensed cards on mobile */
+    .recipes-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .collection-card {
+        padding: 16px 18px;
+    }
+    
+    .collection-card-title {
+        font-size: 17px;
+    }
+    
+    .collection-card-description {
+        font-size: 14px;
+        margin-top: 8px;
+    }
+    
+    .collection-card-count,
+    .collection-card-date {
+        font-size: 12px;
     }
     
     .collections-header {
