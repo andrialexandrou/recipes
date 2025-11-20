@@ -1583,12 +1583,14 @@ function renderCollectionsGrid() {
 
     // Add click listeners
     collectionsGrid.querySelectorAll('.collection-card').forEach(card => {
-        card.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 loadCollectionDetail(card.dataset.id);
             }
-        });
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchstart', handler, { passive: false });
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1642,12 +1644,14 @@ function renderMenusGrid() {
 
     // Add click listeners
     menusGrid.querySelectorAll('.collection-card').forEach(card => {
-        card.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 loadMenuDetail(card.dataset.id);
             }
-        });
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchstart', handler, { passive: false });
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1697,10 +1701,12 @@ function renderCollectionsGridHome() {
     }
     
     collectionsGridHome.querySelectorAll('.collection-card:not(.collection-card-view-all)').forEach(card => {
-        card.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             loadCollectionDetail(card.dataset.id);
-        });
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchstart', handler, { passive: false });
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1748,10 +1754,12 @@ function renderMenusGridHome() {
     }
     
     menusGridHome.querySelectorAll('.collection-card:not(.collection-card-view-all)').forEach(card => {
-        card.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             loadMenuDetail(card.dataset.id);
-        });
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchstart', handler, { passive: false });
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -2588,10 +2596,12 @@ function renderProfileRecipesGrid() {
     
     // Add click handlers
     grid.querySelectorAll('.collection-card').forEach(card => {
-        card.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             loadRecipe(card.dataset.id);
-        });
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchstart', handler, { passive: false });
     });
 }
 
@@ -2645,10 +2655,12 @@ function renderProfileCollectionsGrid() {
     
     // Add click handlers
     grid.querySelectorAll('.collection-card').forEach(card => {
-        card.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             loadCollectionDetail(card.dataset.id);
-        });
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchstart', handler, { passive: false });
     });
 }
 
@@ -2699,10 +2711,12 @@ function renderProfileMenusGrid() {
     
     // Add click handlers
     grid.querySelectorAll('.collection-card').forEach(card => {
-        card.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             loadMenuDetail(card.dataset.id);
-        });
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchstart', handler, { passive: false });
     });
 }
 
