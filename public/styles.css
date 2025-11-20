@@ -2592,6 +2592,10 @@ input:checked + .toggle-slider:before {
     margin-top: 24px;
 }
 
+.settings-btn-danger {
+    margin-top: 12px;
+}
+
 @media (max-width: 768px) {
     .settings-header {
         padding: 20px;

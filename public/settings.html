@@ -49,11 +49,9 @@
                 </div>
 
                 <div class="settings-item">
-                    <label class="settings-label" for="emailInput">Email Address</label>
-                    <input type="email" id="emailInput" class="settings-input" placeholder="your@email.com">
-                    <button id="updateEmailBtn" class="settings-btn settings-btn-secondary">Update Email</button>
-                    <div id="emailError" class="error-message"></div>
-                    <div id="emailSuccess" class="success-message"></div>
+                    <label class="settings-label">Email Address</label>
+                    <div class="settings-value" id="displayEmail">Loading...</div>
+                    <p class="settings-help">Email address cannot be changed</p>
                 </div>
 
                 <div class="settings-item">
@@ -200,73 +198,16 @@
                 
                 // Update UI with user data
                 document.getElementById('displayUsername').textContent = `@${data.username}`;
-                document.getElementById('emailInput').value = currentUser.email || '';
+                document.getElementById('displayEmail').textContent = currentUser.email || 'No email';
                 document.getElementById('searchableToggle').checked = data.isSearchable !== false;
                 
             } catch (error) {
                 console.error('Error loading settings:', error);
-                showError('emailError', 'Failed to load settings. Please refresh the page.');
-            }
-        }
-        
-        // Update email address
-        document.getElementById('updateEmailBtn').addEventListener('click', async () => {
-            const newEmail = document.getElementById('emailInput').value.trim();
-            const updateBtn = document.getElementById('updateEmailBtn');
-            
-            if (!newEmail) {
-                showError('emailError', 'Please enter an email address');
-                return;
-            }
-            
-            if (newEmail === currentUser.email) {
-                showError('emailError', 'This is already your current email');
-                return;
-            }
-            
-            try {
-                updateBtn.disabled = true;
-                updateBtn.textContent = 'Updating...';
-                clearMessages('emailError', 'emailSuccess');
-                
-                await currentUser.updateEmail(newEmail);
-                await updateUserEmailOnServer(newEmail);
-                
-                showSuccess('emailSuccess', 'Email updated successfully');
-                updateBtn.disabled = false;
-                updateBtn.textContent = 'Update Email';
-                
-            } catch (error) {
-                console.error('Error updating email:', error);
-                let errorMessage = error.message;
-                
-                if (error.code === 'auth/requires-recent-login') {
-                    errorMessage = 'For security, please sign out and sign in again before changing your email.';
-                } else if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'This email is already in use by another account.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'Invalid email address.';
-                }
-                
-                showError('emailError', errorMessage);
-                updateBtn.disabled = false;
-                updateBtn.textContent = 'Update Email';
-            }
-        });
-        
-        // Update email on server
-        async function updateUserEmailOnServer(email) {
-            const response = await fetch('/api/user/settings', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${await currentUser.getIdToken()}`
-                },
-                body: JSON.stringify({ email })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to update email on server');
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message';
+                errorMsg.style.display = 'block';
+                errorMsg.textContent = 'Failed to load settings. Please refresh the page.';
+                document.querySelector('.settings-content').prepend(errorMsg);
             }
         }
         
