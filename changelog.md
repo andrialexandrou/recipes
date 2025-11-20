@@ -4,6 +4,44 @@ All notable changes to the Sous recipe manager.
 
 ## 2025-11-19
 
+### Quick Wins & UI Polish
+
+**Empty Feed State:**
+- Added clean empty state for activity feed with emoji, heading, and description
+- "Explore Users" CTA button navigates to search page
+- Mobile-responsive padding (reduced on narrow screens)
+- Removed sample activity cards for cleaner experience
+
+**Page Load Optimization:**
+- Fixed visual jitter on page load
+- All views now start hidden instead of showing profile by default
+- Single render pass eliminates profile skeleton → sidebar → feed flash
+- `loadFromURL()` determines correct view based on URL
+
+**Profile Follow Button:**
+- Implemented follow/unfollow toggle on user profiles
+- Button state managed via CSS class (`.following`) matching search results pattern
+- Server endpoint updated to return `uid` field needed for follow functionality
+- Follower count updates immediately after toggle
+- Button hidden on own profile or when logged out
+
+**Profile UI Cleanup:**
+- Removed + icon buttons from all three profile tabs (Recipes, Collections, Menus)
+- Cleaner layout with more vertical space for content
+- Users can still create content from navbar menu
+
+**Files Modified:**
+- `public/index.html` - homeView starts hidden, removed + buttons, empty feed state
+- `public/styles.css` - Mobile padding for feed empty, profile adjustments
+- `public/app.js` - loadAllData() cleanup, follow button logic with extensive logging
+- `server.js` - GET /api/:username/user now returns uid and isStaff fields
+
+**Documentation:**
+- `agents.md` - Added sections 21-24 for quick wins
+- `FEATURES.md` - New file with all feature documentation
+- `TESTING.md` - New file with test scenarios
+- `README.md` - Updated with better project overview
+
 ### User Account Settings Page
 
 **Comprehensive settings interface for account management and privacy control:**

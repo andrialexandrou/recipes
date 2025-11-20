@@ -1,14 +1,23 @@
-# Sous - Recipe Manager
+# Sous - Development Guidelines
 
-**⚠️ This file should be updated regularly as new functionality is developed**
+**⚠️ This file should be updated when architecture or development patterns change**
 
 ## Project Overview
 
-Sous is a personal recipe management application with a focus on simplicity, elegance, and user experience. The app allows users to create, organize, and share recipes using Markdown, with support for collections, menus, and image uploads.
+Sous is a personal recipe management application with a focus on simplicity, elegance, and user experience. The app allows users to create, organize, and share recipes using Markdown, with support for collections, menus, and social features.
 
-## Style & Tone
+## Documentation Structure
 
-### Design Philosophy
+- **[FEATURES.md](FEATURES.md)** - Detailed documentation of all features
+- **[TESTING.md](TESTING.md)** - Manual testing scenarios and smoke tests
+- **[changelog.md](changelog.md)** - Version history and implementation details
+- **[backlog.md](backlog.md)** - Planned features and improvements
+- **[README.md](README.md)** - Project overview and setup instructions
+- **This file** - Architecture patterns and guidelines for AI agents
+
+## Design Philosophy
+
+### Visual Design
 
 - **Minimalist & Clean** - No clutter, focus on content
 - **Elegant Typography** - Georgia/Garamond serif fonts, careful spacing
@@ -16,894 +25,54 @@ Sous is a personal recipe management application with a focus on simplicity, ele
 - **Subtle Interactions** - Gentle hover states, smooth transitions
 - **Mobile-First** - Responsive design that works beautifully on all devices
 
-### UI/UX Principles
+### UX Principles
 
 - **No Unnecessary Buttons** - Hide chrome when not needed
-- **Keyboard-First** - Support shortcuts for power users
 - **Smart Defaults** - Infer intent rather than asking
 - **Progressive Enhancement** - Features appear when needed
 - **Graceful Degradation** - Work without Firebase if needed
-- **All URLs Must Be Links** - Every URL in the app must be a proper `<a>` tag for copy/paste functionality and accessibility
+- **All URLs Must Be Links** - Every URL in the app must be a proper `<a>` tag for copy/paste and accessibility
 
-### Code Style
+### Code Philosophy
 
 - **Vanilla JavaScript** - No framework overhead
 - **Server-Side Rendering** - Express serves HTML, client enhances
 - **Firebase Backend** - Firestore for data, Storage for images
 - **Memory Fallback** - Works locally if Firebase unavailable
 
-## Core Features
-
-### 1. Recipe Management
-
-**Status: ✅ Complete**
-
-- Create/edit/delete recipes using Markdown
-- WYSIWYG toolbar with EasyMDE for markdown editing
-- Auto-save on edit
-- Full preview with marked.js rendering
-- Metadata tracking (created, updated dates)
-- Slug-based URLs: `/{username}/recipe/alabama-white-sauce-ABC123`
-- Edit/view mode toggle
-- Share dropdown with copy link and copy content options
-- Toolbar buttons: bold, italic, strikethrough, headings, lists, links, images, preview, fullscreen
-
-**Key Files:**
-
-- `public/app.js` - Recipe CRUD operations, EasyMDE initialization, share functionality
-- `server.js` - `/api/:username/recipes` endpoints
-
-### 2. Collections System
-
-**Status: ✅ Complete**
-
-- Group recipes into collections
-- Add/remove recipes from collections
-- Pre-populated collections (Freezer Friendly, Healthy Treats, etc.)
-- Collection detail view with recipe cards
-- Copy link functionality for collections (list view and detail view)
-- Metadata shows which collections contain each recipe (as clickable anchor tags)
-- Edit collection name/description without affecting recipe list (server uses partial updates)
-
-**Key Files:**
-
-- `public/app.js` - Collection rendering and management
-- `server.js` - `/api/:username/collections` endpoints with partial update support
-
-### 3. Menus Feature
-
-**Status: ✅ Complete**
-
-- Create curated menus with Markdown content
-- WYSIWYG toolbar with EasyMDE for markdown editing
-- Optional description field
-- Reference recipes within menus
-- Edit/view mode toggle
-- Share dropdown with copy link and copy content options
-- Metadata tracking
-
-**Key Files:**
-
-- `public/app.js` - Menu CRUD operations, EasyMDE initialization, share functionality
-- `server.js` - `/api/:username/menus` endpoints
-
-### 4. Image Upload (Paste-to-Upload)
-
-**Status: ✅ Complete**
-
-**Philosophy:** No upload buttons or modals - just paste images directly into the Markdown editor.
-
-- Detect paste events with images
-- Client-side compression (max 1200px width, 80% quality, JPEG)
-- Upload to Firebase Storage at `photos/{username}/{photoId}.jpg`
-- Fallback to base64 if Storage unavailable
-- Automatic markdown insertion: `![image.png](https://storage.googleapis.com/...)`
-- Delete photos when no longer referenced
-
-**Technical Details:**
-
-- Uses `ClipboardEvent.clipboardData.items`
-- Canvas API for compression
-- Multer for server-side handling (5MB limit)
-- Express JSON limit: 10MB for base64 fallback
-
-**Key Files:**
-
-- `public/app.js` - `handleImagePaste()`, `compressImage()`
-- `server.js` - `/api/:username/photos` endpoints
-
-### 5. Share Functionality
-
-**Status: ✅ Complete**
-
-**Philosophy:** Unified sharing experience with options for both linking and content copying.
-
-**Features:**
-
-- Share dropdown replaces single copy link button
-- Available on recipe and menu detail views
-- Owner mode: Share button alongside Edit, Add to Collection, Delete buttons
-- Non-owner mode: Share button only (read-only access)
-- Outside-click detection auto-closes dropdown
-
-**Share Options:**
-
-1. **Copy Link** - Copies URL to clipboard for easy sharing
-2. **Copy Content As:**
-   - **Original** - Raw markdown source with title (for editing elsewhere)
-   - **Plain Text** - Rendered text without formatting (strips HTML)
-   - **Rich Text** - Rendered HTML with title as h1 (for rich paste destinations)
-
-**UI/UX:**
-
-- Share button uses fa-arrow-up-from-bracket icon
-- Dropdown positioned below button (left-aligned to button)
-- Opens upward (northeast) when metadata section reflows to bottom on narrow screens
-- Divider and label separate copy link from content options
-- Format-specific icons: fa-markdown, fa-align-left, fa-html5
-- Dropdown auto-closes on item selection for immediate feedback
-- Copy Link shows brief "Copied!" confirmation
-- Smooth transitions and hover states
-
-**Technical Details:**
-
-- `copyRecipeContent(format)` - Handles recipe copying (closes dropdown after copy)
-- `copyMenuContent(format)` - Handles menu copying (closes dropdown after copy)
-- `copyRecipeLink(event)` - Copies recipe URL (closes dropdown after copy)
-- `copyMenuLink(event, menuId)` - Copies menu URL (closes dropdown after copy)
-- `toggleShareDropdown(event)` - Toggle for recipe dropdown
-- `toggleMenuShareDropdown(event)` - Toggle for menu dropdown
-- Markdown→HTML conversion using marked.js
-- HTML→plaintext using temp div with textContent extraction
-- Responsive positioning: opens upward on mobile and when sidebar pushes metadata to bottom
-
-**Key Files:**
-
-- `public/app.js` - Share functions (lines 2086-2279), toggle functions
-- `public/styles.css` - Share dropdown styles (lines 1651-1708)
-- `public/index.html` - Menu actions container
-
-### 6. Authentication System
-
-**Status: ✅ Complete**
-
-**Firebase Authentication with Email/Password + Google Sign-In**
-
-**Features:**
-
-- Email/password signup and login
-- Google OAuth authentication
-- Dedicated `/login` and `/signup` routes (no modals)
-- Username collection during signup
-- Automatic Firestore user document creation
-- Firebase Auth UID-based data ownership
-- **Public content viewing** - Logged-out users can view any user's content via username URLs
-
-**Signup Flow:**
-
-1. User provides username, email, password (or uses Google)
-2. Firebase Auth account created
-3. Username availability checked in Firestore
-4. User document created in `users` collection with `{username, email, createdAt}`
-5. Automatic sign-in and redirect to home
-
-**Login Flow:**
-
-1. User signs in with email/password or Google
-2. App fetches user document from Firestore by UID
-3. Sets `API.currentUser` with username, email, uid
-4. Loads user's data via userId-based queries
-
-**Public Viewing (Logged-Out):**
-
-1. User visits `/{username}/recipe/...` or similar while logged out
-2. Auth system checks for username-prefixed URL before redirecting
-3. Sets `API.viewingUser` from URL, allows content viewing
-4. `loadAllData()` loads content using `viewingUser` even when `currentUser` is null
-5. Shows "Sign In" button in navbar instead of menu dropdown
-6. All edit/delete/create controls hidden automatically
-7. Gravatar fetched via server API `/api/:username/user` endpoint
-8. 404 page shown for non-existent users with hidden sidebar
-
-**Staff Users:**
-
-- User documents can have `isStaff: true` field
-- Staff users see Debug Info menu item
-- Set manually in Firestore Console: `users/{uid}` → add `isStaff` boolean field
-- Console logs show 🛠️ Staff indicator for staff users
-
-**Deployment Notes:**
-
-- Production domain must be added to Firebase Console → Authentication → Settings → Authorized domains
-- Required for Google OAuth to work on deployed app
-- Add both preview and production Vercel URLs
-
-**Key Files:**
-
-- `public/login.html` - Login page with email/password and Google options
-- `public/signup.html` - Signup page with username collection
-- `public/app.js` - Auth state handling, `onAuthStateChanged`, `isStaff` check
-
-### 7. Multi-User Architecture with UserId
-
-**Status: ✅ Complete**
-
-**Philosophy:** Each user has their own isolated data namespace. All data is owned by Firebase Auth UID (userId), not username. URLs use human-readable usernames, but queries use immutable userIds.
-
-**Sidebar Architecture:**
-
-- **Sidebar Always Shows Authenticated User's Content** - The sidebar recipe list always displays YOUR recipes, regardless of whose profile you're viewing in the main content area
-- **Separate Data Contexts**:
-  - `State.authenticatedUserRecipes` - Always contains logged-in user's recipes (for sidebar)
-  - `State.viewingUserRecipes` - Contains profile owner's recipes (for main content)
-- **Navigation Behavior** - Clicking a recipe in the sidebar switches context back to your profile if you're viewing someone else's
-- **Sidebar Header** - Shows authenticated user's avatar, username, and follow stats (following/followers count)
-
-**Data Isolation:**
-
-- All Firestore documents include both `username` (display) and `userId` (ownership)
-- Server queries by `userId` for security
-- Firebase Storage paths: `photos/{username}/{photoId}.jpg`
-- URL structure: `/{username}/recipes`, `/{username}/collections`, `/{username}/menus`
-
-**Server Architecture:**
-
-- `validateUsername` middleware: Resolves username from URL → userId from Firestore
-- `buildUserQuery` helper: Queries by userId if available, falls back to username
-- All POST endpoints: Add `userId` to new documents
-- All PUT/DELETE endpoints: Verify `userId` matches before allowing operations
-
-**UI Indicators:**
-
-- Sidebar shows authenticated user (Gravatar + @username + follow stats)
-- Navbar dropdown shows current logged-in user
-- URLs clearly show whose catalog is being viewed
-
-**Permission-Based UI:**
-
-- `updateEditControls()` function checks ownership: `API.viewingUser === API.currentUser?.username`
-- Hides edit/delete buttons when viewing other users' content
-- Hides "New Recipe", "New Collection", "New Menu" buttons when not viewing own content
-- Hides "Add to Collection" button when viewing other users' recipes
-- Hides Debug Info menu item for non-staff users
-- Collection/menu grid cards: Edit/delete buttons only shown for owner
-- Collection detail view: Edit/delete header buttons + remove recipe buttons only for owner
-- Creates clear read-only vs. editable state distinction
-
-**Key Files:**
-
-- `server.js` - `validateUsername` middleware, `buildUserQuery` helper, user-scoped queries
-- `public/app.js` - `API.currentUser`, `API.viewingUser`, `updateEditControls()`, dual recipe contexts
-- `public/index.html` - Sidebar structure with authenticated user display
-
-### 8. Gravatar Integration
-
-**Status: ✅ Complete**
-
-- MD5 hashing with SparkMD5
-- High-res images (128px) scaled down for sharp display
-- User avatars in navbar dropdown and sidebar
-- Default to mystery person if no Gravatar
-
-**Key Files:**
-
-- `public/app.js` - `getGravatarUrl()`, `md5()`
-- `public/index.html` - SparkMD5 CDN
-
-### 9. Navigation & UI
-
-**Status: ✅ Complete**
-
-**Navbar (34.5px height):**
-
-- Hamburger toggle for sidebar (mobile)
-- "Sous" brand/home button
-- Menu dropdown (☰) on right with:
-  - User profile (Gravatar + @username)
-  - Activity Feed
-  - Collections
-  - Menus
-  - New Recipe (always visible when logged in)
-  - Debug Info (staff only)
-
-**Navigation Logic:**
-
-- "New Recipe" always visible when logged in, creates recipe in current user's account
-- Collections/Menus navigate to current user's content when accessed from dropdown
-- Sidebar shows current user's recipes unless explicitly viewing another user's profile URL
-
-**Sidebar:**
-
-- **Hidden when not logged in** - Sidebar only visible for authenticated users
-- Viewing user indicator (Gravatar + @username) - clickable link to user's home page
-- Search/filter recipes
-- Recipe list with live filtering
-- Collapsible on mobile
-
-**Breadcrumbs:**
-
-- **All views have breadcrumbs with username navigation** - Provides consistent wayfinding across the app
-- Pattern: `@username > Section > Item`
-- Breadcrumb examples:
-  - Collections list: `@username > Collections`
-  - Collection detail: `@username > Collections > Collection Name`
-  - Menus list: `@username > Menus`
-  - Menu detail: `@username > Menus > Menu Name`
-  - Recipe (sidebar): `@username > Recipe Title`
-  - Recipe (from collection): `@username > Collections > Collection Name > Recipe Title`
-- Clicking `@username` navigates back to user's home view
-- All breadcrumb links use `preventDefault()` for SPA navigation
-
-**Views:**
-
-- Home (collections + menus grid)
-- Collections list (with breadcrumb)
-- Collection detail (with breadcrumb)
-- Menus list (with breadcrumb)
-- Menu detail (with breadcrumb)
-- Recipe detail (with breadcrumb)
-
-**Key Files:**
-
-- `public/index.html` - DOM structure, breadcrumb elements
-- `public/styles.css` - All styling
-- `public/app.js` - View switching, navigation, breadcrumb rendering
-
-### 10. Keyboard Shortcuts
-
-**Status: ❌ Removed**
-
-**Reason:** Keyboard shortcuts interfered with normal browser behavior (particularly Cmd+S for save page). All functionality remains accessible through UI buttons and menus.
-
-**Previously Supported Shortcuts:**
-
-- `N` - New recipe
-- `/` - Focus search
-- `E` - Edit current recipe
-- `Cmd/Ctrl + S` - Save recipe (conflicted with browser's save)
-- `Esc` - Cancel edit / Close dialogs
-- `?` - Show shortcuts modal
-
-**Key Files:**
-
-- `public/app.js` - Keyboard event handlers (now commented out)
-- `public/index.html` - Shortcuts modal and menu item (now commented out)
-
-### 11. Activity Feed & Follow System
-
-**Status: ✅ Complete**
-
-**Philosophy:** Enable social discovery and content sharing through follows and an activity feed showing recipes, collections, and menus created by followed users.
-
-**Features:**
-
-- Follow/unfollow users with atomic updates
-- Real-time activity feed using fan-out architecture
-- Activity types: recipe_created, collection_created, menu_created
-- Personal feed with ultra-fast queries (no user limit)
-- Following/followers counts on user profiles
-- Activity feed navigation from navbar
-- **Smart activity publishing** - recipes only appear in feeds when they have meaningful titles (not "Untitled")
-- **Automatic cleanup** - activities removed from all followers' feeds when content is deleted or user is unfollowed
-- **Cached gravatar hashes** - computed once at login and reused throughout session to eliminate flickering
-
-**Data Model:**
-
-- `users` - Extended with `following[]` (UIDs), `followers[]` (UIDs), counts, `isSearchable` (boolean, default true)
-- `activities` - Master activity records
-- `feeds/{userId}/activities` - Personal feed subcollections (fanned out)
-- `recipes` - Extended with `activityPublished` flag to prevent duplicate feed entries
-
-**Activity Publishing Logic:**
-
-- **Recipe Creation (POST)**: Creates recipe but does NOT publish activity
-- **Recipe Update (PUT)**: Publishes activity on first save with meaningful title:
-  - Title is not empty
-  - Title is not "Untitled"
-  - Recipe hasn't been published yet (`activityPublished: false`)
-- **Recipe Deletion (DELETE)**: Removes activity from all followers' feeds and main activities collection
-
-**Architecture Highlights:**
-
-- **Fan-Out on Write**: When user creates content, activity is written to all followers' personal feeds
-- **Fast Reads**: O(1) query per feed, no joins or batching needed
-- **Scalable**: Works for unlimited followed users
-- **Trade-off**: More writes (1 post = N writes for N followers), but optimal read performance
-- **Activity Cleanup**: Queries activities by userId/type/entityId, then deletes from all followers' feeds using actual Firestore document IDs
-
-**Performance Optimizations:**
-
-- Gravatar hashes computed client-side at login using SparkMD5
-- Cached in `API.currentUser.gravatarHash` for entire session
-- No repeated network requests for avatar data
-- Eliminates avatar flickering on navigation
-
-**Key Files:**
-
-- `server.js` - Follow/unfollow endpoints, fan-out helper, feed API, activity cleanup functions
-- `public/app.js` - Feed rendering, follow UI, activity navigation, cached avatar logic
-- `public/index.html` - Feed view, feed navbar button
-- `public/styles.css` - Feed styling, activity cards
-
-**Helper Scripts:**
-
-- `scripts/clear-feed.js` - Clear specific user's feed
-- `scripts/reset-follows.js` - Reset all follow data, activities, and feeds
-
-**Documentation:**
-
-- 📚 [Activity Feed & Follow System Architecture](docs/architecture/activity-feed-and-follows.md) - Detailed architecture, data flow, and scaling considerations
-
-### 12. User Search & Discovery
-
-**Status: ✅ Complete**
-
-**Philosophy:** Enable users to discover and follow other users through a clean, searchable directory.
-
-**Features:**
-
-- Dedicated search page at `/search` route
-- Shows all searchable users by default (sorted by follower count)
-- Real-time search filtering as you type (300ms debounce)
-- Privacy control via `isSearchable` flag (default true)
-- Follow/unfollow directly from search results
-- Current user excluded from results
-- Mobile-responsive design with compact layouts
-
-**UI Details:**
-
-- Clean list view with avatars, usernames, and stats
-- Follow buttons: Dark CTA for unfolowed users, subtle outline for followed users
-- Fixed-width buttons (90px desktop, 80px tablet, 72px mobile) for consistency
-- Compact padding on mobile (minimal chrome)
-- Smart navigation - clicking user goes to their profile, button triggers follow
-
-**Technical Implementation:**
-
-- Server endpoint: `GET /api/users/search?q={query}`
-- Returns top 50 users matching query (or all if no query)
-- Includes UID, username, gravatarHash, follower/following counts
-- Client checks `API.currentUser.following` array (stores UIDs) for button state
-- Local state updates immediately on follow/unfollow for responsive UI
-
-**Key Files:**
-
-- `public/app.js` - `showSearchView()`, `loadAllSearchableUsers()`, `renderSearchResults()`
-- `public/index.html` - Search page view at `#searchView`
-- `public/styles.css` - Search page styling with mobile responsiveness
-- `server.js` - `/api/users/search` endpoint with filtering and sorting
-
-**Migration Script:**
-
-- `scripts/enable-search-for-all-users.js` - Sets `isSearchable: true` for all existing users
-
-### 13. User Profile Page
-
-**Status: ✅ Complete**
-
-**Philosophy:** Provide a comprehensive user profile view that showcases a user's content in an organized, browsable format.
-
-**Features:**
-
-- Hero section with circular avatar (128px), username, and stats
-- Five stat metrics: Recipes count, Collections count, Menus count, Following count, Followers count
-- Follow/Unfollow button (hidden for own profile)
-- Tabbed content navigation: Recipes, Collections, Menus
-- Grid layout for all content types with responsive design
-- Server-side sorting by recency (newest first)
-- Edit/delete controls only visible on own profile
-
-**Tab Content:**
-
-- **Recipes Tab**: Grid of recipe cards with title and "X time ago" date
-- **Collections Tab**: Grid of collection cards with title, description, recipe count, and edit/delete buttons (owner only)
-- **Menus Tab**: Grid of menu cards with title, description, "X time ago" date, and edit/delete buttons (owner only)
-
-**Technical Implementation:**
-
-- Default view when navigating to `/{username}` route
-- Three separate grid rendering functions for each tab
-- Tab switching triggers re-render of active tab content
-- CSS `.active` class controls tab and panel visibility
-- Profile data fetched from `/api/${username}/user` endpoint
-- Follow button uses `toggleFollowFromProfile()` function
-
-**Data Sorting:**
-
-- Recipes: `updatedAt` descending (most recently edited first)
-- Collections: `createdAt` descending (newest first)
-- Menus: `updatedAt` descending (most recently edited first)
-- Requires Firestore composite indexes:
-  - `recipes`: `userId` + `updatedAt` (descending)
-  - `collections`: `userId` + `createdAt` (descending)
-  - `menus`: `userId` + `updatedAt` (descending)
-
-**Key Files:**
-
-- `public/app.js` - `renderProfilePage()`, `switchProfileTab()`, three grid render functions
-- `public/index.html` - Profile hero, tabs, and tab panels in `#homeView`
-- `public/styles.css` - Profile-specific styles (`.profile-*` classes)
-- `server.js` - `.orderBy()` clauses added to all GET endpoints
-
-### 14. User Account Settings
-
-**Status: ✅ Complete**
-
-**Philosophy:** Give users full control over their account settings, privacy preferences, and security options through a clean, accessible settings interface.
-
-**Features:**
-
-- Dedicated settings page at `/settings` route (requires authentication)
-- Account information display (username, email)
-- Email address updates with Firebase Auth integration
-- Password change functionality with current password verification
-- Search visibility toggle (control appearance in user search)
-- Account deletion with password confirmation
-- Modal-based workflows for sensitive actions (password change, account deletion)
-- Responsive design for mobile and desktop
-- Back button to return to main app
-
-**Security Features:**
-
-- Firebase ID token verification for all settings endpoints
-- Re-authentication required for password changes
-- Password confirmation required for account deletion
-- Server-side validation and error handling
-- Proper error messages for auth failures
-
-**Settings Sections:**
-
-1. **Account Information**
-   - Display username (read-only)
-   - Update email address
-   - Change password (modal workflow)
-
-2. **Privacy**
-   - Toggle search visibility (isSearchable field)
-   - Immediate feedback on toggle changes
-   - Auto-save with success confirmation
-
-3. **Danger Zone**
-   - Account deletion with confirmation modal
-   - Password verification required
-   - Comprehensive data deletion (recipes, collections, menus, photos, activities, feeds, follows)
-   - Removes user from all followers/following relationships
-
-**Technical Implementation:**
-
-- Server endpoints at `/api/user/settings` (GET, PUT) and `/api/user/delete` (DELETE)
-- Firebase Admin SDK for authentication verification
-- Partial updates support (only updates provided fields)
-- Client-side password validation (length, matching)
-- Success/error messaging with auto-clear timeouts
-- Modal click-outside-to-close functionality
-
-**Data Deletion Process:**
-
-When user deletes account, the following data is removed:
-- All recipes (by userId)
-- All collections (by userId)
-- All menus (by userId)
-- All photos from Firebase Storage (`photos/{username}/`)
-- All photo metadata from Firestore
-- All activities created by user
-- User's personal feed (feeds/{userId}/activities)
-- User removed from all followers' following arrays
-- User removed from all followed users' followers arrays
-- User document from Firestore
-- Firebase Auth account (handled client-side after server confirmation)
-
-**Key Files:**
-
-- `public/settings.html` - Settings page with all UI and client-side logic
-- `public/styles.css` - Settings-specific styles (`.settings-*` classes)
-- `public/index.html` - Settings link in navbar dropdown menu
-- `server.js` - Three settings endpoints with authentication
-
-### 15. Firebase Integration
-
-**Status: ✅ Complete**
-
-**Firestore Collections:**
-
-- `users` - {username, email, following[] (UIDs), followers[] (UIDs), followingCount, followersCount, isSearchable (boolean), createdAt, isStaff (optional boolean), gravatarHash (computed server-side)}
-- `recipes` - {id, title, content, username, userId, createdAt, updatedAt, activityPublished (boolean)}
-- `collections` - {id, name, description, username, userId, recipeIds[], createdAt}
-- `menus` - {id, name, description, content, username, userId, recipeIds[], createdAt, updatedAt}
-- `photos` - {id, filename, url, username, uploadedAt, size, mimetype}
-- `activities` - {userId, username, type, entityId, entityTitle, entitySlug, createdAt}
-- `feeds/{userId}/activities` - Personal feed subcollections (fanned out from activities)
-
-**Firebase Storage:**
-
-- Bucket: `recipe-manager-4c340.firebasestorage.app`
-- Path structure: `photos/{username}/{photoId}.jpg`
-- Public access for all photos
-
-**Admin SDK:**
-
-- Server-side only (security)
-- Service account key in environment variable
-- Graceful fallback to memory storage if unavailable
-
-**Environment Variables:**
+## Technical Architecture
+
+### Tech Stack
+
+**Frontend:**
+- Vanilla JavaScript (no framework)
+- marked.js for Markdown rendering
+- EasyMDE for WYSIWYG editing
+- SparkMD5 for Gravatar hashing
+- Font Awesome icons
+
+**Backend:**
+- Node.js + Express web server
+- Firebase Admin SDK (Firestore + Storage)
+- Multer for file upload handling
+- dotenv for environment configuration
+
+**Deployment:**
+- Vercel for hosting (frontend + API)
+- Firebase for backend services
+
+### File Structure
 
 ```
-FIREBASE_PROJECT_ID=recipe-manager-4c340
-FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
-```
-
-**Key Files:**
-
-- `server.js` - Firebase Admin initialization
-- `.env` - Environment configuration
-
-### 15. URL Routing
-
-**Status: ✅ Complete**
-
-**Client-Side SPA Routing:**
-
-- `/{username}` - User profile page (home view)
-- `/{username}/collections` - Collections list
-- `/{username}/collection/{slug}-{id}` - Collection detail
-- `/{username}/menus` - Menus list
-- `/{username}/menu/{slug}-{id}` - Menu detail  
-- `/{username}/recipe/{slug}-{id}` - Recipe detail
-- `/search` - User search and discovery (requires login)
-
-**Server-Side:**
-
-- All routes return `index.html` for SPA
-- API routes under `/api/:username/*`
-- Static assets served from `/public`
-
-**Key Files:**
-
-- `server.js` - Catch-all route for SPA
-- `public/app.js` - `loadFromURL()`, `updateURL()`
-
-### 16. Browser History & Page Titles
-
-**Status: ✅ Complete**
-
-**Philosophy:** Browser history should be meaningful and show actual page titles, not just the site name. This improves the back button experience and makes history navigation intuitive.
-
-**Implementation:**
-
-- Every navigation point sets `document.title` with a descriptive title
-- All `history.pushState()` calls include the title as the second parameter
-- Title format: `{Page Name} - @{username} - Sous`
-
-**Title Patterns:**
-
-- **Home view**: `@username - Sous`
-- **Recipe view**: `Recipe Title - @username - Sous`
-- **Collection view**: `Collection Name - @username - Sous`
-- **Collection list**: `Collections - @username - Sous`
-- **Menu view**: `Menu Name - @username - Sous`
-- **Menu list**: `Menus - @username - Sous`
-- **Activity feed**: `Activity Feed - Sous`
-- **Search page**: `Search Users - Sous`
-
-**Coverage:**
-
-All navigation points include meaningful titles:
-- Home button and viewing user link
-- Recipe, collection, and menu detail views
-- Collections and menus list views (from both showView and dropdown menus)
-- Activity feed (from home button and dropdown menu)
-- Search page navigation
-- Profile navigation from search results
-
-**Key Files:**
-
-- `public/app.js` - `updateURL()` function, all navigation event handlers
-
-### 17. Navigation & Scroll Behavior
-
-**Status: ✅ Complete**
-
-**Philosophy:** Navigation should feel instant and predictable. When users click to view content, the page should scroll to the top naturally without fighting against browser behavior.
-
-**Implementation:**
-
-- **History API Configuration**: Set `history.scrollRestoration = 'manual'` globally to prevent browser from auto-restoring scroll position
-- **Focus-Based Scrolling**: When loading recipes, temporarily set `tabindex="-1"` on title element, call `focus()`, then remove tabindex
-- **Browser-Native**: Leverages browser's built-in focus scrolling behavior instead of manual `window.scrollTo()` calls
-- **No Interference**: Works with browser's natural scroll behavior rather than fighting against it
-
-**Why This Approach:**
-
-- Previous attempts with `window.scrollTo(0, 0)` failed because browser was restoring scroll position after manual scroll
-- Focus-based scrolling uses browser's native accessibility feature that always scrolls focused elements into view
-- Setting `history.scrollRestoration = 'manual'` tells browser not to fight our scroll intentions
-
-**Key Files:**
-
-- `public/app.js` - Line 1: `history.scrollRestoration = 'manual'`, `loadRecipe()` focus implementation
-
-### 18. Profile Page Redesign
-
-**Status: ✅ Complete**
-
-**Philosophy:** Modern social media profile layout inspired by Instagram and LTK. Clean, horizontal layout with circular avatar, inline stats, and subtle interaction design.
-
-**Features:**
-
-- **Horizontal Layout**: Avatar on left, info section on right with flexbox
-- **Circular Avatar**: 150px diameter with `border-radius: 50%`
-- **Inline Stats**: "354 followers" format instead of stacked numbers
-- **Bio Display**: User bio shown below stats with line breaks preserved
-- **Subtle Follow Button**: Small, understated design (100px max-width, 6px border radius)
-- **Simplified Metrics**: Removed recipe/collection/menu counts, kept only Following/Followers
-- **Skeleton Loading**: Shimmer animation for avatar and text elements during load
-- **Avatar Load Detection**: Skeleton removed only after image fully loads using `onload` handler
-
-**Layout Details:**
-
-- Profile hero uses `flex-direction: row` with 32px gap
-- Avatar container has `min-height: 150px` to prevent collapse during load
-- Info section is left-aligned with `align-items: flex-start`
-- Stats displayed horizontally with 20px gap between items
-- Each stat uses inline layout: value + label in a row with 8px gap
-- Bio uses `white-space: pre-wrap` to preserve user formatting
-
-**Bio Feature:**
-
-- Added to user settings page with 160 character limit
-- Real-time character counter
-- Auto-save on button click
-- Stored in Firestore user documents
-- Hidden on profile when empty
-- Uses `<textarea>` with `settings-textarea` class
-
-**Key Files:**
-
-- `public/index.html` - Profile hero structure, avatar and info containers
-- `public/styles.css` - Profile styles (`.profile-*` classes), skeleton animations
-- `public/app.js` - `renderProfilePage()` with avatar onload handler and bio display logic
-- `public/settings.html` - Bio textarea with character counter
-- `server.js` - Bio field in user endpoints (GET/PUT `/api/user/settings`, GET `/api/:username/user`)
-
-### 19. Skeleton Loading States
-
-**Status: ✅ Complete**
-
-**Philosophy:** Show content structure immediately while data loads. Skeleton UI should be subtle, elegant, and feel like a natural part of the loading experience.
-
-**Implementation:**
-
-- **CSS-Only Animations**: No JavaScript required, pure CSS shimmer effect
-- **Pseudo-Element Technique**: Use `::after` pseudo-elements for shimmer overlays
-- **Shimmer Animation**: Gentle horizontal sweep using linear gradient and keyframe animation
-- **Intelligent Removal**: JavaScript removes skeleton classes only after actual content loads
-- **Avatar-Specific**: Avatar skeleton uses `onload` handler to remove class only when image fully loads
-
-**Skeleton Components:**
-
-- **Avatar Skeleton** (`.skeleton-avatar`):
-  - Background color matches skeleton shimmer
-  - `position: relative` to contain pseudo-element
-  - `::after` pseudo-element creates shimmer overlay
-  - Removed by `onload` event on avatar image
-
-- **Text Skeleton** (`.skeleton-text`):
-  - Background shimmer on text elements
-  - Multiple skeleton-text divs stack to show structure
-  - Removed when actual data renders
-
-**CSS Pattern:**
-
-```css
-.skeleton-avatar {
-  background: #e8e5e0;
-  position: relative;
-}
-
-.skeleton-avatar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.4), 
-    transparent
-  );
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-```
-
-**Usage Pattern:**
-
-1. HTML includes skeleton classes by default: `<div class="profile-avatar skeleton-avatar">`
-2. JavaScript renders content and removes skeleton classes: `avatarImg.classList.remove('skeleton-avatar')`
-3. For images, use `onload` handler to remove skeleton only after image loads
-
-**Why This Approach:**
-
-- Shimmer visible immediately, no wait for JavaScript
-- Works even if image fails to load (skeleton visible until timeout)
-- `::after` pseudo-element shows on top of image element regardless of load state
-- Fixed `min-height` prevents layout shift during load
-
-**Key Files:**
-
-- `public/styles.css` - `.skeleton-avatar`, `.skeleton-text`, shimmer keyframes
-- `public/index.html` - Elements with skeleton classes
-- `public/app.js` - Skeleton class removal in `renderProfilePage()`
-
-### 20. Authentication UX Improvements
-
-**Status: ✅ Complete**
-
-**Philosophy:** UI elements should only appear when relevant. Logged-out users shouldn't see controls they can't use.
-
-**Sidebar & Toggle Visibility:**
-
-- **Default Hidden**: Sidebar and toggle button start with `hidden` class in HTML
-- **Show on Auth**: JavaScript removes `hidden` class only after user authentication confirmed
-- **Progressive Enhancement**: Works even if JavaScript fails - just stays hidden
-- **No Flash**: Prevents FOUC (flash of unstyled content) on page load
-
-**Implementation:**
-
-- HTML: `<div class="sidebar hidden">` and `<button class="navbar-toggle-btn hidden">`
-- `API.initializeUsers()`: Removes `hidden` class after auth completes
-- `updateEditControls()`: Adds/removes `hidden` class based on login state
-
-**Why This Approach:**
-
-- Starting hidden prevents brief flash of sidebar before auth state known
-- CSS `.hidden { display: none !important; }` ensures element truly invisible
-- JavaScript only shows elements when user actually logged in
-- Cleaner experience for public viewers (no sidebar toggle button shown)
-
-**Key Files:**
-
-- `public/index.html` - Sidebar and toggle with `hidden` class by default
-- `public/app.js` - `API.initializeUsers()`, `updateEditControls()` toggle logic
-- `public/styles.css` - `.hidden` class definition
-
-## Technical Stack
-
-### Frontend
-
-- **No Framework** - Vanilla JavaScript
-- **marked.js** - Markdown rendering
-- **EasyMDE** - WYSIWYG markdown editor with toolbar
-- **SparkMD5** - MD5 hashing for Gravatars
-- **Font Awesome** - Icons
-- **Google Fonts** - Cinzel (headings)
-
-### Backend
-
-- **Node.js + Express** - Web server
-- **Firebase Admin SDK** - Database & storage
-- **Multer** - File upload handling
-- **dotenv** - Environment configuration
-
-### Deployment
-
-- **Vercel** - Frontend & API hosting
-- **Firebase** - Backend services (Firestore, Storage)
-
-## File Structure
-
-```mermaid
 ├── server.js              # Express server, API endpoints
 ├── package.json           # Dependencies
 ├── .env                   # Environment variables (gitignored)
 ├── vercel.json           # Vercel deployment config
-├── agents.md             # This file - keep updated!
+├── agents.md             # This file
+├── FEATURES.md           # Feature documentation
+├── TESTING.md            # Test scenarios
+├── changelog.md          # Version history
+├── backlog.md            # Future features
 └── public/
     ├── index.html        # SPA shell
     ├── login.html        # Login page
@@ -915,24 +84,180 @@ All navigation points include meaningful titles:
     └── favicon-dev.png   # Development favicon
 ```
 
-**⚠️ Important: HTML Header Sync**
+### Data Model
 
-The standalone HTML pages (`index.html`, `login.html`, `signup.html`, `settings.html`) share common `<head>` elements that should be kept in sync when making changes:
+**Firestore Collections:**
 
-- **PWA Manifest tags** - For progressive web app support
-- **Apple mobile web app tags** - For iOS home screen installation
-- **Favicon logic** - Dev/prod environment switching
-- **Font preconnects** - For optimized loading
-- **CSS/JS library versions** - Keep consistent across pages
+- `users` - User profiles with auth data, follow relationships, settings
+- `recipes` - Recipe documents with markdown content
+- `collections` - Collection documents with recipe references
+- `menus` - Menu documents with markdown content
+- `photos` - Photo metadata for uploaded images
+- `activities` - Master activity records
+- `feeds/{userId}/activities` - Personal feed subcollections (fan-out architecture)
 
-When updating meta tags, PWA configuration, or adding new common headers, update all HTML pages to maintain consistency. Consider creating a sync script if this becomes frequent.
+**Key Principles:**
+
+- All documents include both `username` (display) and `userId` (Firebase Auth UID for ownership)
+- Server queries by `userId` for security
+- URLs use human-readable usernames
+- Data isolation enforced at query level
+
+### State Management
+
+**State Module** - Centralized state in `State` object:
+
+```javascript
+const State = {
+  recipes: [],
+  collections: [],
+  menus: [],
+  currentRecipeId: null,
+  currentCollectionId: null,
+  currentMenuId: null,
+  currentView: 'home',
+  isEditMode: false,
+  isMenuEditMode: false,
+  users: {},
+  authenticatedUserRecipes: [],  // Sidebar always shows YOUR recipes
+  viewingUserRecipes: []          // Main content shows profile owner's recipes
+};
+```
+
+**API State:**
+
+```javascript
+const API = {
+  currentUser: null,      // Logged-in user (from Firebase Auth)
+  viewingUser: null,      // Whose catalog we're viewing (from URL)
+  authInitialized: false  // Auth setup complete
+};
+```
+
+**DOM Module** - All DOM elements organized in `DOM` object to reduce global scope pollution
+
+### Authentication & Authorization
+
+**Firebase Auth:**
+- Email/password + Google OAuth
+- UID-based data ownership
+- Public content viewing for logged-out users
+- Staff user flag (`isStaff: true`) for special features
+
+**Permission Pattern:**
+
+```javascript
+function updateEditControls() {
+  const isOwner = API.viewingUser === API.currentUser?.username;
+  // Show/hide edit controls based on ownership
+}
+```
+
+### Multi-User Architecture
+
+**Key Concepts:**
+
+- **Sidebar Always Shows Authenticated User's Content** - regardless of whose profile you're viewing
+- **Separate Data Contexts**:
+  - `State.authenticatedUserRecipes` - For sidebar
+  - `State.viewingUserRecipes` - For main content
+- **Permission-Based UI** - Edit controls only shown for owner
+- **Server Middleware** - `validateUsername` resolves username → userId
+
+### URL Strategy & Navigation
+
+**SPA Routing:**
+
+- URLs are source of truth for navigation
+- `history.pushState()` updates URL without reload
+- `popstate` listener handles back/forward
+- `loadFromURL()` on page load reads current URL
+- Every navigation sets `document.title` for meaningful browser history
+
+**URL Patterns:**
+
+- `/{username}` - User profile
+- `/{username}/recipe/{slug}-{id}` - Recipe detail
+- `/{username}/collection/{slug}-{id}` - Collection detail
+- `/{username}/menu/{slug}-{id}` - Menu detail
+- `/search` - User search and discovery
+
+**Scroll Behavior:**
+
+- `history.scrollRestoration = 'manual'` prevents browser auto-restore
+- Focus-based scrolling for recipes (browser-native behavior)
+- No manual `window.scrollTo()` calls
+
+### Activity Feed Architecture
+
+**Fan-Out on Write Pattern:**
+
+When a user creates content:
+1. Activity record created in `activities` collection
+2. Activity copied to each follower's personal feed: `feeds/{userId}/activities`
+3. Fast reads: O(1) query per feed, no joins
+4. Trade-off: More writes, but optimal read performance
+
+**Smart Publishing:**
+
+- Recipes only published when title is meaningful (not "Untitled")
+- Activities auto-removed when content deleted or user unfollowed
+
+### Image Upload System
+
+**Paste-to-Upload Philosophy:**
+
+No upload buttons or modals - just paste images directly into the editor.
+
+**Flow:**
+
+1. Detect paste events with images
+2. Client-side compression (max 1200px, 80% quality, JPEG)
+3. Upload to Firebase Storage: `photos/{username}/{photoId}.jpg`
+4. Fallback to base64 if Storage unavailable
+5. Automatic markdown insertion
+
+### Design Patterns
+
+**Data Flow:**
+
+1. Client calls `API.*` methods
+2. API methods fetch from `/api/:username/*`
+3. Server validates username, queries Firestore by userId
+4. Returns filtered data to client
+5. Client renders in DOM
+
+**Error Handling:**
+
+- Try Firebase first, fall back to memory if failed
+- Once Firebase fails, disable for entire session
+- Show user-friendly errors, log details to console
+- Graceful degradation - always functional
+
+**Progressive Enhancement:**
+
+- Start elements hidden in HTML (`.hidden` class)
+- Show with JavaScript after auth/data load
+- Prevents FOUC (flash of unstyled content)
+- Works even if JavaScript fails
+
+### Testing Strategy
+
+Manual testing only (no automated tests yet). See [TESTING.md](TESTING.md) for scenarios.
+
+**Quick Smoke Test:**
+
+1. Load app, create recipe, paste image, save
+2. Add to collection, navigate views
+3. Test mobile viewport
+4. Verify Firebase connected
 
 ## Development Workflow
 
 ### Local Development
 
 ```bash
-npm run dev  # Starts server on port 3000 (or 3001 if 3000 occupied)
+npm run dev  # Starts server on port 3000 (or 3001 if occupied)
 ```
 
 ### Environment Setup
@@ -941,263 +266,25 @@ npm run dev  # Starts server on port 3000 (or 3001 if 3000 occupied)
 2. Install dependencies: `npm install`
 3. Run migration if existing data: `POST /api/migrate-to-users`
 
-### Manual Testing Scenarios
+### Important HTML Header Sync
 
-These scenarios should be tested when making changes to ensure core functionality remains intact:
+The standalone HTML pages (`index.html`, `login.html`, `signup.html`, `settings.html`) share common `<head>` elements that should be kept in sync:
 
-#### First-Time User Experience
+- PWA Manifest tags
+- Apple mobile web app tags
+- Favicon logic (dev/prod switching)
+- Font preconnects
+- CSS/JS library versions
 
-- [ ] **Onboarding Banner** - Sign up as new user, verify Welcome banner displays with CTA buttons
-- [ ] **Skeleton Loading** - On page load, verify skeleton UI displays before content loads
-- [ ] **Skeleton Transition** - Verify smooth transition from skeleton to actual content
-- [ ] **Add First Recipe** - Click "Add your first recipe" button, verify creates new recipe
-- [ ] **Create Menu from Banner** - Click "Create a menu" button, verify menu creation flow
+When updating meta tags or PWA configuration, update all HTML pages.
 
-#### Recipe Management
-
-- [ ] **Create Recipe** - Press `N` or use navbar menu → New Recipe, enter title and content, save
-- [ ] **Edit Recipe** - Open recipe, press `E` or click Edit button, modify content, save with `Cmd/Ctrl+S`
-- [ ] **Delete Recipe** - Open recipe in edit mode, click Delete, confirm deletion
-- [ ] **Markdown Rendering** - Add headings, lists, bold, italic, links - verify preview renders correctly
-- [ ] **Copy Link** - Click copy link button, verify URL copied to clipboard and shows confirmation
-- [ ] **Recipe Metadata** - Check collections indicator shows correct count and list
-
-#### Collections System
-
-- [ ] **View Collections** - Navigate to Collections list, verify all collections display
-- [ ] **Collection Detail** - Click into a collection, verify recipes display as cards with images
-- [ ] **Add to Collection** - From recipe metadata, click +Add to Collection, select collection, verify added
-- [ ] **Remove from Collection** - Click ×Remove on collection badge, verify removed
-- [ ] **Empty Collection** - View collection with no recipes, verify empty state message
-
-#### Menus
-
-- [ ] **Create Menu** - Navigate to Menus, create new menu with name/description/content
-- [ ] **Edit Menu** - Open menu, click Edit, modify content, save
-- [ ] **Delete Menu** - Delete menu, confirm deletion works
-- [ ] **Menu Preview** - Toggle between edit and preview modes, verify Markdown renders
-
-#### Image Upload
-
-- [ ] **Paste Image** - Copy image to clipboard, paste into recipe editor (Cmd/Ctrl+V)
-- [ ] **Image Compression** - Paste large image, verify it compresses (check network tab for file size)
-- [ ] **Image Display** - Save recipe with image, verify image displays in preview
-- [ ] **Multiple Images** - Paste multiple images into one recipe
-- [ ] **Firebase Storage** - Check Debug modal to verify images uploaded to Firebase Storage
-- [ ] **Fallback Mode** - Disable Firebase (rename .env), paste image, verify base64 fallback works
-
-#### Authentication System
-
-- [ ] **Email/Password Signup** - Go to `/signup`, create account with username/email/password
-- [ ] **Email/Password Login** - Go to `/login`, sign in with credentials
-- [ ] **Google Sign-In (New User)** - Click "Continue with Google", enter username when prompted
-- [ ] **Google Sign-In (Returning User)** - Sign in with Google, verify auto-login without username prompt
-- [ ] **Auth Persistence** - Refresh page while logged in, verify stays logged in
-- [ ] **Logout** - Click logout from navbar menu, verify redirects to `/login`
-- [ ] **Protected Routes** - Try accessing `/` while logged out, verify redirects to `/login`
-
-#### Multi-User Architecture & Data Isolation
-
-- [ ] **User Isolation** - Create recipe as user A, sign in as user B, verify can't see user A's recipes
-- [ ] **Current User Display** - Open navbar menu dropdown, verify Gravatar and @username shown
-- [ ] **Viewing User Display** - Check sidebar, verify correct user's Gravatar and @username shown
-- [ ] **UserId Queries** - Check console for `✅ Resolved username → userId: ...` messages
-- [ ] **URL Updates** - Navigate between views, verify URLs update with correct username prefix
-- [ ] **Browser Navigation** - Use back/forward buttons, verify views load correctly from URL
-- [ ] **Create Recipe** - Verify new recipe has `userId` field in Firestore
-- [ ] **Data Ownership** - Try editing another user's recipe via direct URL, verify fails
-
-#### Permission-Based UI (Read-Only Mode)
-
-- [ ] **Own Content** - Navigate to your own content, verify all edit/delete/create buttons visible
-- [ ] **Other User's Content** - Navigate to `/{otherUser}/recipe/...`, verify edit/delete buttons hidden
-- [ ] **New Recipe Hidden** - When viewing another user's catalog, verify "New Recipe" menu item hidden
-- [ ] **Add to Collection Hidden** - On another user's recipe, verify "Add to Collection" button hidden
-- [ ] **Create Buttons Hidden** - On another user's home/collections/menus views, verify "New Collection" and "New Menu" buttons hidden
-- [ ] **Collections List** - View another user's collections list, verify no edit/delete buttons on cards
-- [ ] **Collection Detail** - View another user's collection detail, verify no edit/delete buttons in header or on recipes
-- [ ] **Menus List** - View another user's menus list, verify no edit/delete buttons on cards
-- [ ] **Switch Back** - Navigate back to your own content, verify edit controls reappear
-- [ ] **Sidebar Username Link** - Click username/avatar in sidebar, verify navigates to user's home page
-- [ ] **Console Logging** - Check for `🔒 Edit controls shown/hidden` messages in console
-
-#### Staff Features
-
-- [ ] **Debug Menu (Staff)** - As staff user (`isStaff: true`), verify Debug Info menu item visible
-- [ ] **Debug Menu (Non-Staff)** - As regular user, verify Debug Info menu item hidden
-- [ ] **Staff Console Log** - Check for 🛠️ Staff indicator in console when staff user logs in
-
-#### Profile Page & Bio
-
-- [ ] **Profile Layout** - Navigate to user profile, verify horizontal layout with circular avatar (150px)
-- [ ] **Profile Stats** - Verify inline follower/following counts display correctly ("354 followers" format)
-- [ ] **Bio Display** - If user has bio, verify it displays below stats with line breaks preserved
-- [ ] **Empty Bio** - View profile without bio, verify bio section is hidden
-- [ ] **Follow Button** - Verify follow button is subtle and small (100px max-width, 6px border radius)
-- [ ] **Own Profile** - Navigate to your own profile, verify follow button is hidden
-- [ ] **Skeleton Loading** - Refresh profile page, verify skeleton shimmer displays during avatar load
-- [ ] **Avatar Load** - Verify skeleton disappears only after avatar image fully loads
-- [ ] **Bio Settings** - Go to `/settings`, verify bio textarea with character counter (160 max)
-- [ ] **Bio Save** - Edit bio, click save, verify success message and bio updates
-- [ ] **Bio Character Count** - Type in bio field, verify real-time character counter updates
-
-#### Navigation & Scrolling
-
-- [ ] **Scroll to Top** - Click recipe from profile, verify page scrolls to top of recipe
-- [ ] **History Navigation** - Use browser back button, verify scroll position resets appropriately
-- [ ] **No Flash** - Navigate between pages, verify smooth scroll without fighting browser behavior
-- [ ] **Focus Behavior** - Check that recipe title receives focus briefly (for accessibility)
-
-#### Sidebar & Toggle Visibility
-
-- [ ] **Logged Out** - While logged out, verify sidebar and toggle button are completely hidden
-- [ ] **No Flash** - Refresh page while logged out, verify no flash of sidebar before hiding
-- [ ] **Login Transition** - Log in, verify sidebar and toggle appear smoothly
-- [ ] **Logout Transition** - Log out, verify sidebar and toggle hide immediately
-
-#### Skeleton Loading States
-
-- [ ] **Avatar Skeleton** - Load profile page, verify circular skeleton with shimmer animation
-- [ ] **Text Skeleton** - Verify username and stats show skeleton shimmer before data loads
-- [ ] **Smooth Transition** - Watch skeleton transition to actual content, verify no layout shift
-- [ ] **Image Failure** - Block image loading (DevTools), verify skeleton remains until timeout
-
-#### Gravatar Integration
-
-- [ ] **Debug Menu (Staff)** - As staff user (`isStaff: true`), verify Debug Info menu item visible
-- [ ] **Debug Menu (Non-Staff)** - As regular user, verify Debug Info menu item hidden
-- [ ] **Staff Console Log** - Check for 🛠️ Staff indicator in console when staff user logs in
-
-#### Gravatar Integration
-
-- [ ] **User Avatars** - Verify avatars appear in navbar dropdown and sidebar
-- [ ] **Fallback Images** - Check that identicon default appears for users without Gravatar
-- [ ] **High-Res Display** - Inspect avatars on high-DPI screens, verify they're sharp (128px source scaled down)
-
-#### Navigation & UI
-
-- [ ] **Sidebar Toggle** - On mobile/narrow viewport, verify hamburger menu toggles sidebar
-- [ ] **Navbar Dropdown** - Click ☰ menu button, verify dropdown opens with all items
-- [ ] **Home View** - Navigate to `/{username}`, verify collections and menus grid displays
-- [ ] **Search/Filter** - Type in search box, verify recipe list filters in real-time
-- [ ] **Empty States** - View user with no recipes/collections/menus, verify helpful empty messages
-- [ ] **Mobile Responsive** - Test on mobile viewport, verify layout adapts properly
-
-#### Keyboard Shortcuts
-
-**Removed** - Keyboard shortcuts have been disabled as they interfered with normal browser behavior. All functionality accessible through UI.
-
-#### Firebase Integration
-
-- [ ] **Online Mode** - With Firebase configured, verify all operations work
-- [ ] **Offline Fallback** - Rename .env file, restart server, verify memory storage works
-- [ ] **Debug Modal** - Open Debug Info from navbar menu, verify shows Firebase status, recipe/collection/menu counts
-- [ ] **Data Persistence** - Create recipe with Firebase, refresh page, verify data persists
-- [ ] **Memory Mode Limit** - In memory mode, refresh page, verify data is lost (expected behavior)
-
-#### URL Routing & Deep Links
-
-- [ ] **Direct Recipe Link** - Open `/{username}/recipe/{slug}-{id}` directly, verify loads correctly
-- [ ] **Direct Collection Link** - Open `/{username}/collection/{slug}-{id}` directly
-- [ ] **Direct Menu Link** - Open `/{username}/menu/{slug}-{id}` directly
-- [ ] **404 Handling** - Try invalid recipe ID, verify graceful error
-- [ ] **Shareable URLs** - Copy URL, open in incognito/different browser, verify works
-
-#### Error Handling & Edge Cases
-
-- [ ] **Empty Recipe Title** - Create recipe with no title, verify defaults to "Untitled"
-- [ ] **Empty Menu Name** - Try to create menu with no name, verify validation error and focus
-- [ ] **Very Long Content** - Create recipe with 10,000+ characters, verify saves and renders
-- [ ] **Special Characters** - Use emoji, unicode, special chars in titles/content
-- [ ] **Concurrent Edits** - Open same recipe in two tabs, edit in both, verify last-save wins
-- [ ] **Network Failure** - Disconnect internet while saving, verify error message shows
-- [ ] **Invalid Markdown** - Use malformed Markdown, verify it still renders (gracefully degrades)
-
-#### Performance & UX
-
-- [ ] **Initial Load** - Clear cache, reload app, verify loads in under 2 seconds
-- [ ] **Navigation Speed** - Click through multiple views rapidly, verify smooth transitions
-- [ ] **Large Recipe List** - With 50+ recipes, verify sidebar scrolls smoothly and search is fast
-- [ ] **Image Loading** - Scroll through collection with many images, verify lazy loading/smooth experience
-
-### Quick Smoke Test Checklist
-
-For rapid verification after deployments:
-
-1. ✅ Load app at `/{username}`
-2. ✅ Create new recipe with `N`
-3. ✅ Paste an image into recipe
-4. ✅ Save recipe with `Cmd+S`
-5. ✅ View recipe in preview mode
-6. ✅ Add recipe to a collection
-7. ✅ Navigate to collections view
-8. ✅ Open navbar menu dropdown
-9. ✅ Check Debug Info shows Firebase connected
-10. ✅ Test on mobile viewport
-
-## Design Patterns
-
-### Data Flow
-
-1. Client calls `API.*` methods
-2. API methods fetch from `/api/:username/*` with current/viewing user
-3. Server validates username, queries Firestore with `where('username', '==', username)`
-4. Returns filtered data to client
-5. Client renders in DOM
-
-### Error Handling
-
-- Try Firebase first, fall back to memory if failed
-- Once Firebase fails, disable for entire session
-- Show user-friendly errors, log details to console
-- Graceful degradation - always functional
-
-### State Management
-
-The application uses a modular state management approach:
-
-**State Module** - Centralized state in `State` object:
-
-- `recipes`, `collections`, `menus` - Content arrays
-- `currentRecipeId`, `currentCollectionId`, `currentMenuId` - Active item tracking
-- `currentView` - Current view name
-- `isEditMode`, `isMenuEditMode` - Edit state flags
-- `users` - Cached user data
-
-**DOM Module** - All DOM elements organized in `DOM` object:
-
-- Sidebar, navbar, view sections
-- Collections, menus, recipes elements
-- Buttons, inputs, and controls
-- Centralized element access reduces global scope pollution
-
-**Helper Modules**:
-
-- `SkeletonUI` - Reusable skeleton loading state functions
-- `CONSTANTS` - Magic numbers and strings in one place
-- JSDoc comments for type hints and documentation
-
-**API State**:
-
-- `API.currentUser` - Logged in user (from Firebase Auth)
-- `API.viewingUser` - Whose catalog we're viewing (changes per URL)
-- `API.authInitialized` - Auth setup completion flag
-
-### URL Strategy
-
-- URLs are source of truth for navigation
-- `history.pushState()` updates URL without reload
-- `popstate` listener handles back/forward
-- `loadFromURL()` on page load reads current URL
-- Every navigation sets `document.title` for meaningful browser history
-
-## Notes for AI Agents
+## Guidelines for AI Agents
 
 When working on this codebase:
 
 1. **Maintain the minimalist aesthetic** - Don't add visual clutter
 2. **Keep memory fallback working** - Not everyone has Firebase
-3. **Update this file** when adding new features
+3. **Update documentation** when adding features or changing architecture
 4. **Test multi-user isolation** when touching data layer
 5. **Use em-dashes (—) not hyphens** in UI copy
 6. **Avoid modals** - prefer inline actions when possible
@@ -1205,18 +292,41 @@ When working on this codebase:
 8. **Keep URLs semantic and clean** - they're shareable
 9. **Mobile-first** - test responsive behavior
 10. **No keyboard shortcuts** - they interfere with browser behavior; use UI controls instead
-11. **Set document.title on navigation** - browser history should show page names, not just "Sous"
-12. **All URLs must be `<a>` tags** - every URL in the app must be a proper anchor tag for copy/paste and accessibility
-13. **Start hidden, show with JS** - UI elements that require auth should start with `hidden` class to prevent flash
-14. **Skeleton loading with CSS** - Use `::after` pseudo-elements for shimmer effects, works without JavaScript
-15. **Focus for scroll** - Use `element.focus()` for scroll-to-top behavior instead of fighting browser with `window.scrollTo()`
-16. **Avatar load detection** - Always use `onload` handlers when removing skeleton from images to prevent premature removal
+11. **Set document.title on navigation** - browser history should show page names
+12. **All URLs must be `<a>` tags** - every URL must be a proper anchor tag
+13. **Start hidden, show with JS** - UI elements requiring auth start with `hidden` class
+14. **Skeleton loading with CSS** - Use `::after` pseudo-elements for shimmer effects
+15. **Focus for scroll** - Use `element.focus()` instead of `window.scrollTo()`
+16. **Avatar load detection** - Always use `onload` handlers when removing skeleton from images
 
-## Related Documentation
+## Feature Status
 
-- **changelog.md** - Historical record of all changes and when they were implemented
-- **backlog.md** - Future features and improvements planned
+See [FEATURES.md](FEATURES.md) for detailed status of all features. Quick summary:
+
+**✅ Complete:**
+- Recipe management with Markdown
+- Collections and menus
+- Image upload (paste-to-upload)
+- Share functionality
+- Authentication (email/password + Google)
+- Multi-user architecture
+- User profiles with bio
+- User search and discovery
+- Activity feed and follows
+- Account settings
+- Skeleton loading states
+
+**❌ Removed:**
+- Keyboard shortcuts (interfered with browser behavior)
+
+## Technical Debt
+
+- No automated tests yet
+- No TypeScript (pure JavaScript)
+- No build process (ships raw files)
+- Memory storage fallback loses data on restart
+- No offline support for Firebase mode
 
 ---
 
-*Keep this document updated as the project evolves. It's your roadmap and context for current functionality.*
+*Keep this document updated when architecture patterns or development guidelines change.*
