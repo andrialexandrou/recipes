@@ -2123,22 +2123,26 @@ app.delete('/api/users/:targetUserId/follow', async (req, res) => {
     }
 });
 
-// Get following or followers list for a user
-app.get('/api/users/:username/:type(following|followers)', validateUsername, async (req, res) => {
+// Get both following and followers lists for a user in a single request
+app.get('/api/users/:username/connections', validateUsername, async (req, res) => {
     const { userId } = req; // From validateUsername middleware
-    const { type } = req.params; // 'following' or 'followers'
     
     try {
         if (useFirebase && db && !firebaseFailureDetected) {
             const userDoc = await db.collection('users').doc(userId).get();
-            const userIds = userDoc.data()?.[type] || [];
+            const userData = userDoc.data();
+            const followingIds = userData?.following || [];
+            const followerIds = userData?.followers || [];
             
-            if (userIds.length === 0) {
-                return res.json({ users: [] });
+            // Combine all unique user IDs
+            const allUserIds = [...new Set([...followingIds, ...followerIds])];
+            
+            if (allUserIds.length === 0) {
+                return res.json({ following: [], followers: [] });
             }
             
-            // Fetch user details for all users in the list
-            const usersPromises = userIds.map(async (targetUserId) => {
+            // Fetch user details for all users in one batch
+            const usersPromises = allUserIds.map(async (targetUserId) => {
                 const doc = await db.collection('users').doc(targetUserId).get();
                 if (doc.exists) {
                     const data = doc.data();
@@ -2154,13 +2158,24 @@ app.get('/api/users/:username/:type(following|followers)', validateUsername, asy
                 return null;
             });
             
-            const users = (await Promise.all(usersPromises)).filter(u => u !== null);
-            res.json({ users });
+            const allUsers = (await Promise.all(usersPromises)).filter(u => u !== null);
+            
+            // Create lookup map for quick access
+            const userMap = {};
+            allUsers.forEach(user => {
+                userMap[user.userId] = user;
+            });
+            
+            // Build following and followers arrays
+            const following = followingIds.map(id => userMap[id]).filter(u => u);
+            const followers = followerIds.map(id => userMap[id]).filter(u => u);
+            
+            res.json({ following, followers });
         } else {
             res.status(503).json({ error: 'Firebase not available' });
         }
     } catch (error) {
-        console.error(`Error fetching ${type} list:`, error);
+        console.error('Error fetching connections:', error);
         res.status(500).json({ error: error.message });
     }
 });

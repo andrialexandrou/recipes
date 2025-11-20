@@ -2929,14 +2929,14 @@ async function loadFollowList(type, username, listElement) {
     console.log(`📋 Loading ${type} list for ${username}`);
     
     try {
-        // Fetch list from server
-        const endpoint = `/api/users/${username}/${type}`;
+        // Fetch both lists from server in one request
+        const endpoint = `/api/users/${username}/connections`;
         
         const response = await fetch(endpoint);
         if (!response.ok) throw new Error('Failed to fetch users');
         
         const data = await response.json();
-        const users = data.users || [];
+        const users = data[type] || []; // Get 'following' or 'followers' from response
         
         if (users.length === 0) {
             DOM.followModalEmpty.classList.remove('hidden');
