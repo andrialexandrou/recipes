@@ -3249,15 +3249,7 @@ async function loadAllData() {
         
         renderRecipeList();
         updateUserDisplay();
-        loadFromURL();
-        
-        // Only default to home view if no specific view is set
-        if (!currentRecipeId && !currentCollectionId && !currentMenuId && currentView !== 'feed') {
-            console.log('🏠 No specific view set, defaulting to home');
-            showHomeView();
-        } else {
-            console.log('✅ Specific view already set:', currentView || 'recipe/collection/menu');
-        }
+        loadFromURL(); // This will show the appropriate view based on URL
     } catch (error) {
         console.error('💥 Critical error loading data:', error);
         
