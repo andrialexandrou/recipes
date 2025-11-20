@@ -700,6 +700,179 @@ All navigation points include meaningful titles:
 
 - `public/app.js` - `updateURL()` function, all navigation event handlers
 
+### 17. Navigation & Scroll Behavior
+
+**Status: ✅ Complete**
+
+**Philosophy:** Navigation should feel instant and predictable. When users click to view content, the page should scroll to the top naturally without fighting against browser behavior.
+
+**Implementation:**
+
+- **History API Configuration**: Set `history.scrollRestoration = 'manual'` globally to prevent browser from auto-restoring scroll position
+- **Focus-Based Scrolling**: When loading recipes, temporarily set `tabindex="-1"` on title element, call `focus()`, then remove tabindex
+- **Browser-Native**: Leverages browser's built-in focus scrolling behavior instead of manual `window.scrollTo()` calls
+- **No Interference**: Works with browser's natural scroll behavior rather than fighting against it
+
+**Why This Approach:**
+
+- Previous attempts with `window.scrollTo(0, 0)` failed because browser was restoring scroll position after manual scroll
+- Focus-based scrolling uses browser's native accessibility feature that always scrolls focused elements into view
+- Setting `history.scrollRestoration = 'manual'` tells browser not to fight our scroll intentions
+
+**Key Files:**
+
+- `public/app.js` - Line 1: `history.scrollRestoration = 'manual'`, `loadRecipe()` focus implementation
+
+### 18. Profile Page Redesign
+
+**Status: ✅ Complete**
+
+**Philosophy:** Modern social media profile layout inspired by Instagram and LTK. Clean, horizontal layout with circular avatar, inline stats, and subtle interaction design.
+
+**Features:**
+
+- **Horizontal Layout**: Avatar on left, info section on right with flexbox
+- **Circular Avatar**: 150px diameter with `border-radius: 50%`
+- **Inline Stats**: "354 followers" format instead of stacked numbers
+- **Bio Display**: User bio shown below stats with line breaks preserved
+- **Subtle Follow Button**: Small, understated design (100px max-width, 6px border radius)
+- **Simplified Metrics**: Removed recipe/collection/menu counts, kept only Following/Followers
+- **Skeleton Loading**: Shimmer animation for avatar and text elements during load
+- **Avatar Load Detection**: Skeleton removed only after image fully loads using `onload` handler
+
+**Layout Details:**
+
+- Profile hero uses `flex-direction: row` with 32px gap
+- Avatar container has `min-height: 150px` to prevent collapse during load
+- Info section is left-aligned with `align-items: flex-start`
+- Stats displayed horizontally with 20px gap between items
+- Each stat uses inline layout: value + label in a row with 8px gap
+- Bio uses `white-space: pre-wrap` to preserve user formatting
+
+**Bio Feature:**
+
+- Added to user settings page with 160 character limit
+- Real-time character counter
+- Auto-save on button click
+- Stored in Firestore user documents
+- Hidden on profile when empty
+- Uses `<textarea>` with `settings-textarea` class
+
+**Key Files:**
+
+- `public/index.html` - Profile hero structure, avatar and info containers
+- `public/styles.css` - Profile styles (`.profile-*` classes), skeleton animations
+- `public/app.js` - `renderProfilePage()` with avatar onload handler and bio display logic
+- `public/settings.html` - Bio textarea with character counter
+- `server.js` - Bio field in user endpoints (GET/PUT `/api/user/settings`, GET `/api/:username/user`)
+
+### 19. Skeleton Loading States
+
+**Status: ✅ Complete**
+
+**Philosophy:** Show content structure immediately while data loads. Skeleton UI should be subtle, elegant, and feel like a natural part of the loading experience.
+
+**Implementation:**
+
+- **CSS-Only Animations**: No JavaScript required, pure CSS shimmer effect
+- **Pseudo-Element Technique**: Use `::after` pseudo-elements for shimmer overlays
+- **Shimmer Animation**: Gentle horizontal sweep using linear gradient and keyframe animation
+- **Intelligent Removal**: JavaScript removes skeleton classes only after actual content loads
+- **Avatar-Specific**: Avatar skeleton uses `onload` handler to remove class only when image fully loads
+
+**Skeleton Components:**
+
+- **Avatar Skeleton** (`.skeleton-avatar`):
+  - Background color matches skeleton shimmer
+  - `position: relative` to contain pseudo-element
+  - `::after` pseudo-element creates shimmer overlay
+  - Removed by `onload` event on avatar image
+
+- **Text Skeleton** (`.skeleton-text`):
+  - Background shimmer on text elements
+  - Multiple skeleton-text divs stack to show structure
+  - Removed when actual data renders
+
+**CSS Pattern:**
+
+```css
+.skeleton-avatar {
+  background: #e8e5e0;
+  position: relative;
+}
+
+.skeleton-avatar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.4), 
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+```
+
+**Usage Pattern:**
+
+1. HTML includes skeleton classes by default: `<div class="profile-avatar skeleton-avatar">`
+2. JavaScript renders content and removes skeleton classes: `avatarImg.classList.remove('skeleton-avatar')`
+3. For images, use `onload` handler to remove skeleton only after image loads
+
+**Why This Approach:**
+
+- Shimmer visible immediately, no wait for JavaScript
+- Works even if image fails to load (skeleton visible until timeout)
+- `::after` pseudo-element shows on top of image element regardless of load state
+- Fixed `min-height` prevents layout shift during load
+
+**Key Files:**
+
+- `public/styles.css` - `.skeleton-avatar`, `.skeleton-text`, shimmer keyframes
+- `public/index.html` - Elements with skeleton classes
+- `public/app.js` - Skeleton class removal in `renderProfilePage()`
+
+### 20. Authentication UX Improvements
+
+**Status: ✅ Complete**
+
+**Philosophy:** UI elements should only appear when relevant. Logged-out users shouldn't see controls they can't use.
+
+**Sidebar & Toggle Visibility:**
+
+- **Default Hidden**: Sidebar and toggle button start with `hidden` class in HTML
+- **Show on Auth**: JavaScript removes `hidden` class only after user authentication confirmed
+- **Progressive Enhancement**: Works even if JavaScript fails - just stays hidden
+- **No Flash**: Prevents FOUC (flash of unstyled content) on page load
+
+**Implementation:**
+
+- HTML: `<div class="sidebar hidden">` and `<button class="navbar-toggle-btn hidden">`
+- `API.initializeUsers()`: Removes `hidden` class after auth completes
+- `updateEditControls()`: Adds/removes `hidden` class based on login state
+
+**Why This Approach:**
+
+- Starting hidden prevents brief flash of sidebar before auth state known
+- CSS `.hidden { display: none !important; }` ensures element truly invisible
+- JavaScript only shows elements when user actually logged in
+- Cleaner experience for public viewers (no sidebar toggle button shown)
+
+**Key Files:**
+
+- `public/index.html` - Sidebar and toggle with `hidden` class by default
+- `public/app.js` - `API.initializeUsers()`, `updateEditControls()` toggle logic
+- `public/styles.css` - `.hidden` class definition
+
 ## Technical Stack
 
 ### Frontend
@@ -854,6 +1027,47 @@ These scenarios should be tested when making changes to ensure core functionalit
 - [ ] **Debug Menu (Non-Staff)** - As regular user, verify Debug Info menu item hidden
 - [ ] **Staff Console Log** - Check for 🛠️ Staff indicator in console when staff user logs in
 
+#### Profile Page & Bio
+
+- [ ] **Profile Layout** - Navigate to user profile, verify horizontal layout with circular avatar (150px)
+- [ ] **Profile Stats** - Verify inline follower/following counts display correctly ("354 followers" format)
+- [ ] **Bio Display** - If user has bio, verify it displays below stats with line breaks preserved
+- [ ] **Empty Bio** - View profile without bio, verify bio section is hidden
+- [ ] **Follow Button** - Verify follow button is subtle and small (100px max-width, 6px border radius)
+- [ ] **Own Profile** - Navigate to your own profile, verify follow button is hidden
+- [ ] **Skeleton Loading** - Refresh profile page, verify skeleton shimmer displays during avatar load
+- [ ] **Avatar Load** - Verify skeleton disappears only after avatar image fully loads
+- [ ] **Bio Settings** - Go to `/settings`, verify bio textarea with character counter (160 max)
+- [ ] **Bio Save** - Edit bio, click save, verify success message and bio updates
+- [ ] **Bio Character Count** - Type in bio field, verify real-time character counter updates
+
+#### Navigation & Scrolling
+
+- [ ] **Scroll to Top** - Click recipe from profile, verify page scrolls to top of recipe
+- [ ] **History Navigation** - Use browser back button, verify scroll position resets appropriately
+- [ ] **No Flash** - Navigate between pages, verify smooth scroll without fighting browser behavior
+- [ ] **Focus Behavior** - Check that recipe title receives focus briefly (for accessibility)
+
+#### Sidebar & Toggle Visibility
+
+- [ ] **Logged Out** - While logged out, verify sidebar and toggle button are completely hidden
+- [ ] **No Flash** - Refresh page while logged out, verify no flash of sidebar before hiding
+- [ ] **Login Transition** - Log in, verify sidebar and toggle appear smoothly
+- [ ] **Logout Transition** - Log out, verify sidebar and toggle hide immediately
+
+#### Skeleton Loading States
+
+- [ ] **Avatar Skeleton** - Load profile page, verify circular skeleton with shimmer animation
+- [ ] **Text Skeleton** - Verify username and stats show skeleton shimmer before data loads
+- [ ] **Smooth Transition** - Watch skeleton transition to actual content, verify no layout shift
+- [ ] **Image Failure** - Block image loading (DevTools), verify skeleton remains until timeout
+
+#### Gravatar Integration
+
+- [ ] **Debug Menu (Staff)** - As staff user (`isStaff: true`), verify Debug Info menu item visible
+- [ ] **Debug Menu (Non-Staff)** - As regular user, verify Debug Info menu item hidden
+- [ ] **Staff Console Log** - Check for 🛠️ Staff indicator in console when staff user logs in
+
 #### Gravatar Integration
 
 - [ ] **User Avatars** - Verify avatars appear in navbar dropdown and sidebar
@@ -993,6 +1207,10 @@ When working on this codebase:
 10. **No keyboard shortcuts** - they interfere with browser behavior; use UI controls instead
 11. **Set document.title on navigation** - browser history should show page names, not just "Sous"
 12. **All URLs must be `<a>` tags** - every URL in the app must be a proper anchor tag for copy/paste and accessibility
+13. **Start hidden, show with JS** - UI elements that require auth should start with `hidden` class to prevent flash
+14. **Skeleton loading with CSS** - Use `::after` pseudo-elements for shimmer effects, works without JavaScript
+15. **Focus for scroll** - Use `element.focus()` for scroll-to-top behavior instead of fighting browser with `window.scrollTo()`
+16. **Avatar load detection** - Always use `onload` handlers when removing skeleton from images to prevent premature removal
 
 ## Related Documentation
 

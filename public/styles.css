@@ -1142,13 +1142,12 @@ body {
 }
 
 /* Profile Page */
+/* Profile hero - horizontal layout like Instagram */
 .profile-hero {
-    padding: 48px 0 40px;
+    padding: 32px 40px;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 24px;
+    gap: 32px;
+    align-items: flex-start;
     border-bottom: 1px solid #e5e0d8;
     margin-bottom: 32px;
 }
@@ -1158,9 +1157,9 @@ body {
 }
 
 .profile-avatar {
-    width: 144px;
-    height: 144px;
-    min-height: 144px;
+    width: 150px;
+    height: 150px;
+    min-height: 150px;
     border-radius: 50%;
     object-fit: cover;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1168,50 +1167,40 @@ body {
 }
 
 .profile-info {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 16px;
+    gap: 20px;
+    max-width: 600px;
 }
 
 .profile-username {
     font-family: 'Cinzel', Georgia, serif;
-    font-size: 32px;
+    font-size: 28px;
     color: #3a3a3a;
     margin: 0;
     font-weight: 600;
 }
 
-.profile-bio {
-    font-size: 15px;
-    color: #666;
-    text-align: center;
-    max-width: 500px;
-    margin: 0;
-    line-height: 1.5;
-}
-
 .profile-stats {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 24px;
+    gap: 20px;
 }
 
 .profile-stat {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
 }
 
 .profile-stat-link {
     cursor: pointer;
     transition: opacity 0.15s ease;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
 }
 
 .profile-stat-link:hover {
@@ -1219,33 +1208,39 @@ body {
 }
 
 .profile-stat-value {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
     color: #3a3a3a;
     font-family: 'Georgia', serif;
-    line-height: 1;
 }
 
 .profile-stat-label {
-    font-size: 13px;
-    color: #8a7d6f;
+    font-size: 16px;
+    color: #3a3a3a;
     font-weight: 400;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+}
+
+.profile-bio {
+    font-size: 15px;
+    color: #3a3a3a;
+    margin: 0;
+    line-height: 1.5;
+    white-space: pre-wrap;
 }
 
 .profile-follow-btn {
-    padding: 10px 32px;
+    padding: 8px 24px;
     background: #6b5d52;
     color: #fff;
     border: none;
-    border-radius: 24px;
-    font-size: 15px;
+    border-radius: 6px;
+    font-size: 14px;
     font-family: 'Georgia', serif;
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: all 0.15s ease;
     font-weight: 500;
-    margin-top: 4px;
+    max-width: 100px;
+    width: 100%;
 }
 
 .profile-follow-btn:hover {
@@ -1255,11 +1250,12 @@ body {
 .profile-follow-btn.following {
     background: transparent;
     color: #6b5d52;
-    border: 1px solid #6b5d52;
+    border: 1px solid #ddd;
 }
 
 .profile-follow-btn.following:hover {
     background: #f9f7f4;
+    border-color: #ccc;
 }
 
 /* Profile Tabs */
@@ -2079,6 +2075,27 @@ body {
     
     .navbar-brand h1 {
         font-size: 13px;
+    }
+    
+    /* Profile hero - keep horizontal but smaller on mobile */
+    .profile-hero {
+        padding: 24px 16px;
+        gap: 20px;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        min-height: 100px;
+    }
+    
+    .profile-username {
+        font-size: 22px;
+    }
+    
+    .profile-stats {
+        gap: 12px;
+        flex-wrap: wrap;
     }
     
     .collections-header {
