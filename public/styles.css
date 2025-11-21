@@ -1329,6 +1329,10 @@ body {
 
 /* Profile Page */
 /* Profile hero - horizontal layout like Instagram */
+.profile-top-bar {
+    float: right;
+}
+
 .profile-hero {
     padding: 32px 40px;
     display: flex;
@@ -1409,13 +1413,15 @@ body {
     z-index: 1;
 }
 
-/* Show triangle only when sidebar is collapsed, hide when open */
-.sidebar:not(.collapsed) ~ .desktop-sidebar-toggle {
-    display: none;
-}
+/* Show triangle only when sidebar is collapsed, hide when open (desktop only) */
+@media (min-width: 769px) {
+    .sidebar:not(.collapsed) ~ .desktop-sidebar-toggle {
+        display: none;
+    }
 
-.sidebar.collapsed ~ .desktop-sidebar-toggle {
-    display: block;
+    .sidebar.collapsed ~ .desktop-sidebar-toggle {
+        display: block;
+    }
 }
 
 /* Inner sidebar toggle - matches outer triangle but points left */
@@ -1473,33 +1479,29 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 8px;
     max-width: 600px;
 }
 
 .profile-header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    margin-bottom: 10px;
 }
 
 .profile-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     position: relative;
 }
 
 .profile-action-btn {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
+    border: none;
     background: transparent;
-    border: 1px solid var(--sage-border);
-    border-radius: 50%;
     cursor: pointer;
-    font-size: 16px;
-    color: var(--text-secondary);
+    font-size: 14px;
+    color: var(--warm-brown);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1507,8 +1509,6 @@ body {
 }
 
 .profile-action-btn:hover {
-    background: var(--sage-base);
-    border-color: var(--deep-coral);
     color: var(--deep-coral);
 }
 
@@ -1520,7 +1520,7 @@ body {
 .profile-username {
     font-family: 'Cinzel', Georgia, serif;
     font-size: 28px;
-    color: var(--text-primary);
+    color: var(--deep-coral);
     margin: 0;
     font-weight: 600;
 }
@@ -1553,19 +1553,19 @@ body {
 .profile-stat-value {
     font-size: 16px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-tertiary);
     font-family: 'Georgia', serif;
 }
 
 .profile-stat-label {
     font-size: 16px;
-    color: var(--text-primary);
+    color: var(--text-tertiary);
     font-weight: 400;
 }
 
 .profile-bio {
     font-size: 15px;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     margin: 0;
     line-height: 1.5;
     white-space: pre-wrap;
@@ -1646,7 +1646,6 @@ body {
 .profile-actions {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 24px;
 }
 
 .recipes-grid {
@@ -2387,12 +2386,16 @@ body {
         display: none;
     }
     
+    .navbar-toggle-btn {
+        display: none;
+    }
+    
     .mobile-sidebar-toggle {
         display: flex;
     }
     
     .content-area {
-        padding: 20px 16px 100px 16px;
+        padding: 20px 8px 100px 16px;
     }
     
     .recipe-header {
@@ -2413,7 +2416,11 @@ body {
     }
     
     .navbar {
+        display: flex;
         padding: 0 12px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
     
     .navbar-brand h1 {
@@ -2422,7 +2429,7 @@ body {
     
     /* Profile hero - keep horizontal but smaller on mobile */
     .profile-hero {
-        padding: 24px 16px;
+        padding: 0px 16px 24px 16px;
         gap: 20px;
     }
     
@@ -3718,5 +3725,78 @@ input:checked + .toggle-slider:before {
     
     .auth-title {
         font-size: 28px;
+    }
+}
+
+/* Mobile Bottom Navigation */
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--white);
+    border-top: 1px solid var(--sage-border);
+    z-index: 300;
+    padding: 0 8px;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    color: var(--warm-brown);
+    text-decoration: none;
+    font-size: 11px;
+    transition: color 0.2s;
+    flex: 1;
+    min-width: 0;
+}
+
+.bottom-nav-item:hover,
+.bottom-nav-item:focus {
+    color: var(--deep-coral);
+    outline: none;
+}
+
+.bottom-nav-item.active {
+    color: var(--deep-coral);
+}
+
+.bottom-nav-item i {
+    font-size: 20px;
+}
+
+.bottom-nav-item span {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .mobile-bottom-nav {
+        display: flex;
+    }
+
+    .desktop-sidebar-toggle {
+        display: none;
+    }
+    
+    /* Add padding to content to account for bottom nav */
+    .main-content {
+        padding-bottom: 0;
+    }
+    
+    /* Content area should fill space between navbar and bottom nav */
+    .content-area {
+        height: calc(100vh - 64px);
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+        padding-bottom: 24px;
     }
 }

@@ -68,9 +68,9 @@ function getAvatarHtml(username, gravatarHash, size = 40) {
     
     if (gravatarHash) {
         // Try Gravatar first, fall back to initials if image fails
-        const gravatarUrl = `https://www.gravatar.com/avatar/${gravatarHash}?s=${size}&d=404`;
-        return `<img src="${gravatarUrl}" class="${imgClass}" alt="${username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="${fallbackClass}" style="display:none;">${initial}</div>`;
+        // Use d=identicon instead of d=404 to avoid 404 errors in console
+        const gravatarUrl = `https://www.gravatar.com/avatar/${gravatarHash}?s=${size}&d=identicon`;
+        return `<img src="${gravatarUrl}" class="${imgClass}" alt="${username}">`;
     } else {
         // No Gravatar hash, use initials
         return `<div class="${fallbackClass}">${initial}</div>`;
@@ -516,12 +516,21 @@ const DOM = {
     navCollectionsBtn: document.getElementById('navCollectionsBtn'),
     
     // Profile action buttons
+    profileTopBar: document.getElementById('profileTopBar'),
     profileActions: document.getElementById('profileActions'),
     profileSearchBtn: document.getElementById('profileSearchBtn'),
     profileSettingsBtn: document.getElementById('profileSettingsBtn'),
     profileMenuBtn: document.getElementById('profileMenuBtn'),
     desktopSidebarToggle: document.getElementById('desktopSidebarToggle'),
     mobileSidebarToggle: document.getElementById('mobileSidebarToggle'),
+    
+    // Mobile bottom navigation
+    mobileBottomNav: document.getElementById('mobileBottomNav'),
+    bottomNavFeed: document.getElementById('bottomNavFeed'),
+    bottomNavSearch: document.getElementById('bottomNavSearch'),
+    bottomNavNew: document.getElementById('bottomNavNew'),
+    bottomNavCollections: document.getElementById('bottomNavCollections'),
+    bottomNavProfile: document.getElementById('bottomNavProfile'),
     
     // Navbar dropdown
     dropdownCollections: document.getElementById('dropdownCollections'),
@@ -941,12 +950,6 @@ async function handleImagePaste(e, textarea) {
     return false;
 }
 
-// Sidebar toggle
-sidebarToggle.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    // Save state to localStorage
-    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-});
 
 // Auto-collapse sidebar on narrow screens
 // Auto-collapse sidebar on narrow screens
@@ -971,6 +974,12 @@ window.addEventListener('resize', handleResize);
 // Close sidebar when clicking outside on narrow screens
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const filterInput = document.getElementById('filterInput');
+        
+        if (!sidebar || !sidebarToggle || !filterInput) return;
+        
         const isClickInsideSidebar = sidebar.contains(e.target);
         const isToggleButton = sidebarToggle.contains(e.target);
         const isSearchInput = filterInput.contains(e.target);
@@ -981,17 +990,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Navigation
-homeBtn.addEventListener('click', () => {
-    // For logged-in users, home button goes to feed
-    if (API.currentUser) {
-        document.title = 'Activity Feed - Sous';
-        history.pushState({ type: 'feed' }, 'Activity Feed - Sous', '/');
-        showFeedView();
-    } else {
-        showHomeView();
-    }
-});
 
 // Viewing user link (sidebar) - navigate to their home page
 const authenticatedUserLink = document.getElementById('authenticatedUser');
@@ -1026,12 +1024,14 @@ function updateEditControls() {
         homeViewHidden: homeView?.classList.contains('hidden')
     });
     
-    if (DOM.profileActions) {
+    if (DOM.profileTopBar && DOM.profileActions) {
         if (isLoggedIn && isOwner && isOnHomePage) {
             console.log('✅ Showing profile actions');
+            DOM.profileTopBar.classList.remove('hidden');
             DOM.profileActions.classList.remove('hidden');
         } else {
             console.log('❌ Hiding profile actions');
+            DOM.profileTopBar.classList.add('hidden');
             DOM.profileActions.classList.add('hidden');
         }
     }
@@ -1062,6 +1062,9 @@ function updateEditControls() {
             DOM.desktopSidebarToggle.classList.add('hidden');
         }
     }
+    
+    // Mobile bottom navigation: show when logged in
+    updateMobileBottomNav();
     
     // Navbar: show menu button and search if logged in, sign in button if logged out
     const navMenuBtn = document.getElementById('navMenuBtn');
@@ -1293,9 +1296,13 @@ function switchToView(viewName) {
     
     switch(viewName) {
         case 'collections':
+            if (!collectionsView) {
+                console.error('collectionsView element not found');
+                return;
+            }
             collectionsView.classList.remove('hidden');
             collectionsView.classList.add('active');
-            homeBtn.classList.add('active');
+            if (homeBtn) homeBtn.classList.add('active');
             renderCollectionsGrid();
             
             // Render breadcrumb
@@ -1321,11 +1328,19 @@ function switchToView(viewName) {
             history.pushState({ type: 'collections' }, `Collections - @${username} - Sous`, `/${username}/collections`);
             break;
         case 'collection-detail':
+            if (!collectionDetailView) {
+                console.error('collectionDetailView element not found');
+                return;
+            }
             collectionDetailView.classList.remove('hidden');
             collectionDetailView.classList.add('active');
-            homeBtn.classList.add('active');
+            if (homeBtn) homeBtn.classList.add('active');
             break;
         case 'menus':
+            if (!menusView) {
+                console.error('menusView element not found');
+                return;
+            }
             menusView.classList.remove('hidden');
             menusView.classList.add('active');
             renderMenusGrid();
@@ -1353,10 +1368,18 @@ function switchToView(viewName) {
             history.pushState({ type: 'menus' }, `Menus - @${username} - Sous`, `/${username}/menus`);
             break;
         case 'menu-detail':
+            if (!menuDetailView) {
+                console.error('menuDetailView element not found');
+                return;
+            }
             menuDetailView.classList.remove('hidden');
             menuDetailView.classList.add('active');
             break;
         case 'recipe-detail':
+            if (!recipeDetailView) {
+                console.error('recipeDetailView element not found');
+                return;
+            }
             recipeDetailView.classList.remove('hidden');
             recipeDetailView.classList.add('active');
             break;
@@ -3645,14 +3668,24 @@ async function loadAllData() {
             return;
         }
         
-        // Show Firebase error banner
-        const errorBanner = document.getElementById('firebaseErrorBanner');
-        if (errorBanner) {
-            errorBanner.classList.remove('hidden');
-        }
+        // Only show Firebase error banner for actual network/Firebase errors
+        // Don't show it for DOM errors (like null references)
+        const isNetworkError = error.message && (
+            error.message.includes('fetch') || 
+            error.message.includes('NetworkError') ||
+            error.message.includes('Firebase') ||
+            error.message.includes('CORS') ||
+            error.message.includes('Failed to load') ||
+            error.name === 'NetworkError'
+        );
         
-        // Still show a modal for critical failures
-        if (error.message && (error.message.includes('fetch') || error.message.includes('NetworkError'))) {
+        if (isNetworkError) {
+            const errorBanner = document.getElementById('firebaseErrorBanner');
+            if (errorBanner) {
+                errorBanner.classList.remove('hidden');
+            }
+            
+            // Still show a modal for critical network failures
             alert('Failed to connect to server. Please check your connection and try refreshing the page.');
         }
     }
@@ -4475,11 +4508,6 @@ if (newCollectionBtnHome) newCollectionBtnHome.addEventListener('click', createN
 if (newMenuBtn) newMenuBtn.addEventListener('click', createNewMenu);
 if (newMenuBtnHome) newMenuBtnHome.addEventListener('click', createNewMenu);
 
-// Navbar dropdown handlers
-navMenuBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    navbarDropdown.classList.toggle('hidden');
-});
 
 dropdownCollections.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
@@ -4582,6 +4610,11 @@ dropdownLogout.addEventListener('click', () => {
 document.addEventListener('click', (e) => {
     const navMenuBtnWrapper = document.getElementById('navMenuBtnWrapper');
     const profileMenuBtn = document.getElementById('profileMenuBtn');
+    const navbarDropdown = document.getElementById('navbarDropdown');
+    const navMenuBtn = document.getElementById('navMenuBtn');
+    
+    if (!navbarDropdown || !navMenuBtn) return;
+    
     if (!navbarDropdown.contains(e.target) && 
         !navMenuBtn.contains(e.target) && 
         !(navMenuBtnWrapper && navMenuBtnWrapper.contains(e.target)) &&
@@ -4845,6 +4878,113 @@ searchUsersInput?.addEventListener('input', (e) => {
         }
     }, 300); // 300ms debounce
 });
+
+// Mobile Bottom Navigation
+if (DOM.bottomNavFeed) {
+    DOM.bottomNavFeed.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (API.currentUser) {
+            const username = API.currentUser.username;
+            document.title = `Feed - Sous`;
+            window.history.pushState({ type: 'feed' }, '', '/feed');
+            showFeedView();
+            updateBottomNavActive('feed');
+        }
+    });
+}
+
+if (DOM.bottomNavSearch) {
+    DOM.bottomNavSearch.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.title = `Search - Sous`;
+        window.history.pushState({ type: 'search' }, '', '/search');
+        showSearchView();
+        updateBottomNavActive('search');
+    });
+}
+
+if (DOM.bottomNavNew) {
+    DOM.bottomNavNew.addEventListener('click', (e) => {
+        e.preventDefault();
+        // If viewing someone else's profile, switch to own profile before creating
+        if (API.currentUser && API.viewingUser !== API.currentUser.username) {
+            API.viewingUser = API.currentUser.username;
+            loadAllData().then(() => createNewRecipe());
+        } else {
+            createNewRecipe();
+        }
+        updateBottomNavActive('');
+    });
+}
+
+if (DOM.bottomNavCollections) {
+    DOM.bottomNavCollections.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (API.currentUser) {
+            const username = API.currentUser.username;
+            document.title = `Collections - @${username} - Sous`;
+            window.history.pushState({ type: 'collections', username }, '', `/${username}/collections`);
+            API.viewingUser = username;
+            loadAllData().then(() => {
+                switchToView('collections');
+                updateBottomNavActive('collections');
+            });
+        }
+    });
+}
+
+if (DOM.bottomNavProfile) {
+    DOM.bottomNavProfile.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (API.currentUser) {
+            const username = API.currentUser.username;
+            document.title = `@${username} - Sous`;
+            window.history.pushState({ type: 'home', username }, '', `/${username}`);
+            API.viewingUser = username;
+            // Reload data for the authenticated user
+            loadAllData().then(() => {
+                showHomeView();
+                updateBottomNavActive('profile');
+            });
+        }
+    });
+}
+
+function updateBottomNavActive(view) {
+    if (!DOM.mobileBottomNav) return;
+    
+    // Remove active class from all items
+    document.querySelectorAll('.bottom-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Add active class to current view
+    switch(view) {
+        case 'feed':
+            DOM.bottomNavFeed?.classList.add('active');
+            break;
+        case 'search':
+            DOM.bottomNavSearch?.classList.add('active');
+            break;
+        case 'collections':
+            DOM.bottomNavCollections?.classList.add('active');
+            break;
+        case 'profile':
+            DOM.bottomNavProfile?.classList.add('active');
+            break;
+    }
+}
+
+// Show/hide mobile bottom nav based on auth state
+function updateMobileBottomNav() {
+    if (DOM.mobileBottomNav) {
+        if (API.currentUser) {
+            DOM.mobileBottomNav.classList.remove('hidden');
+        } else {
+            DOM.mobileBottomNav.classList.add('hidden');
+        }
+    }
+}
 
 // Shortcuts modal functionality - DISABLED (keyboard shortcuts removed)
 /*

@@ -34,6 +34,7 @@ Future features and improvements for Sous.
 
 ## 🐛 Bugs
 
+- **Sidebar Toggle Not Working on Mobile** - The desktop sidebar toggle (triangle in top-left) appears in narrow browser viewport but doesn't function properly. May be Chrome responsive mode vs. actual mobile device issue. Need to test on real mobile devices and fix toggle behavior, or implement mobile-specific bottom navigation instead.
 - **Menu Detail Page Action Buttons Styling** - The edit/share/delete buttons on menu detail pages don't look good. Need to improve button layout, spacing, and visual hierarchy to match the rest of the app's design.
 - **Collection Detail Page Header Styling** - The header and subheader styles on collection detail pages are not as polished and don't match the styling used on menu and recipe detail pages. Need to standardize the typography, spacing, and visual hierarchy across all detail views.
 - **Sidebar Username Click on Mobile** - When clicking on the username in the sidebar to navigate to the user profile page, the sidebar should automatically close on mobile view. Currently it stays open, requiring users to manually close it.
@@ -46,6 +47,7 @@ Future features and improvements for Sous.
 
 ## Medium Effort
 
+- **Mobile Bottom Navigation Bar** - Add fixed bottom navigation bar for mobile (similar to Instagram/Twitter mobile apps) with quick access to: Home/Feed, Search, New Recipe (+), Collections, Profile. This provides easier thumb-reach navigation on mobile devices and eliminates sidebar toggle issues. Should only appear on mobile viewport (max-width: 768px).
 - **Pull-to-Refresh for iOS Home Screen App** - Enable native iOS pull-to-refresh gesture when app is installed on iPhone home screen. Current fixed layout with `overflow: hidden` on body prevents native gesture. Options: (1) Restructure layout to make body scrollable instead of internal containers, or (2) Implement custom pull-to-refresh that works with current scrollable containers. Trade-off: Layout restructure (enables native iOS feature) vs. custom implementation (keeps current design intact).
 - **Collection Activity Feed** - Add new activity type `recipe_added_to_collection` to show when users add recipes to their collections. This gives more visibility to curation activity and helps followers discover recipes through collections.
 - **Dynamic Open Graph Tags for Shared Links** - Make Open Graph metadata contextual based on what's being shared. When someone shares a link to a recipe, collection, menu, or user profile, the social media preview card should reflect that specific content—recipe title/description, collection name, menu details, or user profile info—instead of generic "Sous, recipes worth sharing" text. Server-side rendering or meta tag injection needed to ensure crawlers see the right data.

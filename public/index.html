@@ -89,25 +89,6 @@
     </button>
 
     <div class="main-content">
-        <nav class="navbar" id="navbar">
-            <div class="navbar-brand">
-                <button class="navbar-toggle-btn hidden" id="sidebarToggle" aria-label="Toggle sidebar">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <button class="navbar-home-btn" id="homeBtn" data-view="collections" aria-label="Go to home">
-                    <h1>Sous</h1>
-                </button>
-            </div>
-                        <div class="navbar-nav">
-                <button class="nav-btn" id="navSearchBtn" aria-label="Search users" style="display: none;">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </button>
-                                <div id="navMenuBtnWrapper">
-                                    <img id="navMenuBtn" class="nav-avatar-btn" aria-label="Menu" aria-expanded="false" alt="Menu" />
-                                </div>
-                <a href="/login" class="nav-btn" id="navSignInBtn" aria-label="Sign In">Sign In</a>
-            </div>
-        </nav>
         
         <!-- Firebase Error Banner -->
         <div id="firebaseErrorBanner" class="firebase-error-banner hidden">
@@ -125,6 +106,54 @@
         
         <div class="content-area">
             <div id="homeView" class="view-section hidden">
+                <!-- Profile Top Bar -->
+                <div class="profile-top-bar hidden" id="profileTopBar">
+                    <div class="profile-actions" id="profileActions">
+                        <button class="profile-action-btn" id="profileSearchBtn" aria-label="Search users" title="Search users">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                        <button class="profile-action-btn" id="profileSettingsBtn" aria-label="Settings" title="Settings">
+                            <i class="fa-solid fa-gear"></i>
+                        </button>
+                        <button class="profile-action-btn" id="profileMenuBtn" aria-label="Menu" title="Menu">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                        
+                        <!-- Dropdown menu -->
+                        <div class="navbar-dropdown hidden" id="navbarDropdown">
+                            <div class="navbar-dropdown-divider"></div>
+                            <button class="navbar-dropdown-item" id="dropdownFeed">
+                                <i class="fa-solid fa-newspaper"></i>
+                                <span>Activity Feed</span>
+                            </button>
+                            <button class="navbar-dropdown-item" id="dropdownCollections">
+                                <i class="fa-solid fa-folder"></i>
+                                <span>Collections</span>
+                            </button>
+                            <button class="navbar-dropdown-item" id="dropdownMenus">
+                                <i class="fa-solid fa-utensils"></i>
+                                <span>Menus</span>
+                            </button>
+                            <button class="navbar-dropdown-item" id="dropdownNewRecipe">
+                                <i class="fa-solid fa-plus"></i><span>New Recipe</span>
+                            </button>
+                            <button class="navbar-dropdown-item" id="dropdownDebug">
+                                <i class="fa-solid fa-bug"></i><span>Debug Info</span>
+                            </button>
+                            <div class="navbar-dropdown-divider"></div>
+                            <a href="/changelog.html" class="navbar-dropdown-item">
+                                <i class="fa-solid fa-square-rss"></i>
+                                <span>What's New</span>
+                            </a>
+                            <div class="navbar-dropdown-divider"></div>
+                            <button class="navbar-dropdown-item" id="dropdownLogout">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Profile Hero Section -->
                 <div class="profile-hero">
                     <div class="profile-avatar-container">
@@ -133,50 +162,6 @@
                     <div class="profile-info">
                         <div class="profile-header-top">
                             <h1 class="profile-username skeleton-text" id="profileUsername"></h1>
-                            <div class="profile-actions hidden" id="profileActions">
-                                <button class="profile-action-btn" id="profileSearchBtn" aria-label="Search users" title="Search users">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                </button>
-                                <button class="profile-action-btn" id="profileSettingsBtn" aria-label="Settings" title="Settings">
-                                    <i class="fa-solid fa-gear"></i>
-                                </button>
-                                <button class="profile-action-btn" id="profileMenuBtn" aria-label="Menu" title="Menu">
-                                    <i class="fa-solid fa-bars"></i>
-                                </button>
-                                
-                                <!-- Dropdown menu -->
-                                <div class="navbar-dropdown hidden" id="navbarDropdown">
-                                    <div class="navbar-dropdown-divider"></div>
-                                    <button class="navbar-dropdown-item" id="dropdownFeed">
-                                        <i class="fa-solid fa-newspaper"></i>
-                                        <span>Activity Feed</span>
-                                    </button>
-                                    <button class="navbar-dropdown-item" id="dropdownCollections">
-                                        <i class="fa-solid fa-folder"></i>
-                                        <span>Collections</span>
-                                    </button>
-                                    <button class="navbar-dropdown-item" id="dropdownMenus">
-                                        <i class="fa-solid fa-utensils"></i>
-                                        <span>Menus</span>
-                                    </button>
-                                    <button class="navbar-dropdown-item" id="dropdownNewRecipe">
-                                        <i class="fa-solid fa-plus"></i><span>New Recipe</span>
-                                    </button>
-                                    <button class="navbar-dropdown-item" id="dropdownDebug">
-                                        <i class="fa-solid fa-bug"></i><span>Debug Info</span>
-                                    </button>
-                                    <div class="navbar-dropdown-divider"></div>
-                                    <a href="/changelog.html" class="navbar-dropdown-item">
-                                        <i class="fa-solid fa-square-rss"></i>
-                                        <span>What's New</span>
-                                    </a>
-                                    <div class="navbar-dropdown-divider"></div>
-                                    <button class="navbar-dropdown-item" id="dropdownLogout">
-                                        <i class="fa-solid fa-right-from-bracket"></i>
-                                        <span>Sign Out</span>
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                         <div class="profile-stats">
                             <span class="profile-stat profile-stat-link" id="profileFollowingLink">
@@ -229,9 +214,6 @@
             </div>
             
             <div id="feedView" class="view-section hidden">
-                <div class="feed-header">
-                    <h2>Activity Feed</h2>
-                </div>
                 <div id="feedContainer" class="feed-container">
                     <!-- Feed items will be rendered here -->
                 </div>
@@ -469,6 +451,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+        <a href="#" class="bottom-nav-item" id="bottomNavFeed" aria-label="Feed">
+            <i class="fa-solid fa-newspaper"></i>
+            <span>Feed</span>
+        </a>
+        <a href="#" class="bottom-nav-item" id="bottomNavSearch" aria-label="Search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Search</span>
+        </a>
+        <a href="#" class="bottom-nav-item" id="bottomNavNew" aria-label="New Recipe">
+            <i class="fa-solid fa-plus"></i>
+            <span>New</span>
+        </a>
+        <a href="#" class="bottom-nav-item" id="bottomNavCollections" aria-label="Collections">
+            <i class="fa-solid fa-folder"></i>
+            <span>Collections</span>
+        </a>
+        <a href="#" class="bottom-nav-item" id="bottomNavProfile" aria-label="Profile">
+            <i class="fa-solid fa-circle-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
