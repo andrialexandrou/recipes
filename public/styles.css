@@ -61,6 +61,25 @@ body {
     margin-left: -280px;
 }
 
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 150;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
 .sidebar-logo {
     padding: 24px 20px 16px;
     text-align: center;
@@ -218,7 +237,7 @@ body {
 
 .title-display {
     flex: 1;
-    padding: 10px 12px;
+    padding: 10px 0px;
     font-size: 36px;
     font-family: 'Cinzel', serif;
     color: var(--text-primary);
@@ -470,7 +489,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--deep-coral);
+    background: #d0d4cd;
 }
 
 /* Collections view */
@@ -511,6 +530,12 @@ body {
 .sidebar-content {
     flex: 1;
     overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.sidebar-content::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
 .collections-list {
@@ -1391,6 +1416,43 @@ body {
 
 .sidebar.collapsed ~ .desktop-sidebar-toggle {
     display: block;
+}
+
+/* Inner sidebar toggle - matches outer triangle but points left */
+.inner-sidebar-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 10;
+    transition: opacity 0.2s;
+}
+
+.inner-sidebar-toggle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 12px solid var(--deep-coral);
+    transition: border-right-color 0.2s;
+}
+
+.inner-sidebar-toggle:hover::before {
+    border-right-color: var(--deep-coral-hover);
+}
+
+.sidebar.collapsed .inner-sidebar-toggle {
+    display: none;
 }
 
 .profile-avatar-container {
@@ -2316,17 +2378,13 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
-        position: absolute;
+        position: fixed;
         height: 100vh;
         z-index: 200;
     }
     
     .desktop-sidebar-toggle {
         display: none;
-    }
-
-    .sidebar.collapsed {
-        margin-left: -280px;
     }
     
     .mobile-sidebar-toggle {

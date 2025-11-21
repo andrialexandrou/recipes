@@ -1063,21 +1063,6 @@ function updateEditControls() {
         }
     }
     
-    // Update dropdown sidebar toggle button text based on sidebar state
-    const dropdownToggleSidebar = document.getElementById('dropdownToggleSidebar');
-    if (dropdownToggleSidebar && isLoggedIn) {
-        const sidebar = document.getElementById('sidebar');
-        const isCollapsed = sidebar?.classList.contains('collapsed');
-        const buttonText = dropdownToggleSidebar.querySelector('span');
-        const buttonIcon = dropdownToggleSidebar.querySelector('i');
-        if (buttonText) {
-            buttonText.textContent = isCollapsed ? 'Show Sidebar' : 'Hide Sidebar';
-        }
-        if (buttonIcon) {
-            buttonIcon.className = isCollapsed ? 'fa-solid fa-book' : 'fa-solid fa-book-open';
-        }
-    }
-    
     // Navbar: show menu button and search if logged in, sign in button if logged out
     const navMenuBtn = document.getElementById('navMenuBtn');
     const navMenuBtnWrapper = document.getElementById('navMenuBtnWrapper');
@@ -4522,20 +4507,6 @@ dropdownCollections.addEventListener('click', () => {
     }
 });
 
-const dropdownProfile = document.getElementById('dropdownProfile');
-dropdownProfile.addEventListener('click', () => {
-    navbarDropdown.classList.add('hidden');
-    if (API.currentUser) {
-        const username = API.currentUser.username;
-        document.title = `@${username} - Sous`;
-        window.history.pushState({ type: 'home', username }, `@${username} - Sous`, `/${username}`);
-        API.viewingUser = username;
-        loadAllData().then(() => {
-            renderProfilePage();
-        });
-    }
-});
-
 const dropdownFeed = document.getElementById('dropdownFeed');
 dropdownFeed.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
@@ -4599,35 +4570,6 @@ dropdownDebug.addEventListener('click', () => {
     showDebugModal();
 });
 
-const dropdownSettings = document.getElementById('dropdownSettings');
-dropdownSettings.addEventListener('click', () => {
-    navbarDropdown.classList.add('hidden');
-    window.location.href = '/settings';
-});
-
-const dropdownToggleSidebar = document.getElementById('dropdownToggleSidebar');
-if (dropdownToggleSidebar) {
-    dropdownToggleSidebar.addEventListener('click', () => {
-        navbarDropdown.classList.add('hidden');
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-            sidebar.classList.toggle('collapsed');
-            // Save state to localStorage
-            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-            // Update button text
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            const buttonText = dropdownToggleSidebar.querySelector('span');
-            const buttonIcon = dropdownToggleSidebar.querySelector('i');
-            if (buttonText) {
-                buttonText.textContent = isCollapsed ? 'Show Sidebar' : 'Hide Sidebar';
-            }
-            if (buttonIcon) {
-                buttonIcon.className = isCollapsed ? 'fa-solid fa-book' : 'fa-solid fa-book-open';
-            }
-        }
-    });
-}
-
 const dropdownLogout = document.getElementById('dropdownLogout');
 dropdownLogout.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
@@ -4689,6 +4631,20 @@ if (DOM.mobileSidebarToggle) {
 if (DOM.desktopSidebarToggle) {
     DOM.desktopSidebarToggle.addEventListener('click', () => {
         console.log('🖥️ Desktop sidebar toggle clicked');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('collapsed');
+            // Save state to localStorage
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+    });
+}
+
+// Inner sidebar toggle
+const innerSidebarToggle = document.getElementById('innerSidebarToggle');
+if (innerSidebarToggle) {
+    innerSidebarToggle.addEventListener('click', () => {
+        console.log('📐 Inner sidebar toggle clicked');
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
             sidebar.classList.toggle('collapsed');
