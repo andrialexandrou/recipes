@@ -34,6 +34,10 @@ Future features and improvements for Sous.
 
 ## 🐛 Bugs
 
+- **Menu Detail Page Action Buttons Styling** - The edit/share/delete buttons on menu detail pages don't look good. Need to improve button layout, spacing, and visual hierarchy to match the rest of the app's design.
+- **Collection Detail Page Header Styling** - The header and subheader styles on collection detail pages are not as polished and don't match the styling used on menu and recipe detail pages. Need to standardize the typography, spacing, and visual hierarchy across all detail views.
+- **Sidebar Username Click on Mobile** - When clicking on the username in the sidebar to navigate to the user profile page, the sidebar should automatically close on mobile view. Currently it stays open, requiring users to manually close it.
+- **Touch Sensitivity on Mobile** - Touch interactions are too sensitive on mobile, making it difficult to scroll. Small finger movements trigger clicks instead of scrolls. Need to adjust touch event thresholds or add slight delay to distinguish between tap and scroll gestures.
 - **Custom Domain Does Not Trigger PWA Behavior** - When adding to home screen from my-sous.com (custom domain), iOS does not treat it as a native web app like it does with the Vercel URL. The custom domain opens in Safari instead of standalone mode. Works correctly on Vercel domain. Attempted fixes: dynamic manifest.json endpoint, proper MIME types, iOS-specific meta tags, cache headers. Needs deeper investigation into domain configuration, SSL certificates, or iOS-specific caching behavior.
 
 ## Quick Wins (Small Effort)
@@ -67,6 +71,7 @@ Future features and improvements for Sous.
 
 ## Potential Features (Brainstorming)
 
+- **Bookmark & Clone Recipes** - Allow users to bookmark recipes from others' profiles for quick reference, and clone/fork recipes to their own collection to customize. Bookmarking creates a reference/link without duplicating content. Cloning creates a full copy they can edit, optionally maintaining attribution to the original author (e.g., "Adapted from @username's recipe").
 - **Shared Authorship / Collaborative Recipes** - Allow multiple users to co-author a recipe, collection, or menu. One person owns it, but they can add other users as editors who can make changes. This enables families to maintain shared recipe collections, cooking groups to collaborate on menus, etc. Implementation: Add `editors: [userId]` array field to recipes/collections/menus. Since nothing is currently private, focus on editor permissions (not viewer permissions). UI: Add "Share with Editor" button that searches for users and adds them. Show collaborator avatars on the document. Trade-off: Need to introduce basic permissions model (owner vs editor) but avoid complexity of full ACL system.
 - **Export Recipes as PDF Book** - Generate a formatted PDF book from selected recipes or entire catalog with professional layout, table of contents, and typography
 - **Recipe Notes/Modifications** - Add a notes field to track what you changed or tweaked in a recipe (e.g., "Used less salt", "Doubled the garlic", "Baked at 375° instead")
