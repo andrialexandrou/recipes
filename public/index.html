@@ -44,6 +44,9 @@
 </head>
 <body>
     <div class="sidebar hidden" id="sidebar">
+        <div class="sidebar-logo">
+            <h1>SOUS</h1>
+        </div>
         <div class="sidebar-header">
             <a href="#" id="authenticatedUser" class="viewing-user" title="Your recipes">
                 <div id="authenticatedUserAvatar" class="user-avatar skeleton-avatar"></div>
@@ -75,6 +78,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Desktop sidebar toggle button -->
+    <button class="desktop-sidebar-toggle hidden" id="desktopSidebarToggle" aria-label="Toggle sidebar">
+        <i class="fa-solid fa-bars"></i>
+    </button>
 
     <div class="main-content">
         <nav class="navbar" id="navbar">
@@ -111,53 +119,6 @@
             </button>
         </div>
         
-        <!-- Navbar Menu Dropdown -->
-        <div class="navbar-dropdown hidden" id="navbarDropdown">
-            <button class="navbar-dropdown-item" id="dropdownProfile">
-                <i class="fa-solid fa-circle-user"></i>
-                <span>Profile</span>
-            </button>
-            <button class="navbar-dropdown-item" id="dropdownSettings">
-                <i class="fa-solid fa-gear"></i>
-                <span>Settings</span>
-            </button>
-            <div class="navbar-dropdown-divider"></div>
-            <button class="navbar-dropdown-item" id="dropdownFeed">
-                <i class="fa-solid fa-newspaper"></i>
-                <span>Activity Feed</span>
-            </button>
-            <button class="navbar-dropdown-item" id="dropdownCollections">
-                <i class="fa-solid fa-folder"></i>
-                <span>Collections</span>
-            </button>
-            <button class="navbar-dropdown-item" id="dropdownMenus">
-                <i class="fa-solid fa-utensils"></i>
-                <span>Menus</span>
-            </button>
-            <button class="navbar-dropdown-item" id="dropdownNewRecipe">
-                <i class="fa-solid fa-plus"></i><span>New Recipe</span>
-            </button>
-            <!-- <div class="navbar-dropdown-divider"></div> -->
-            <!-- Keyboard shortcuts disabled - interfered with browser behavior -->
-            <!-- <button class="navbar-dropdown-item" id="dropdownShortcuts">
-                <i class="fa-solid fa-keyboard"></i>
-                <span>Keyboard Shortcuts</span>
-            </button> -->
-            <button class="navbar-dropdown-item" id="dropdownDebug">
-                <i class="fa-solid fa-bug"></i><span>Debug Info</span>
-            </button>
-            <div class="navbar-dropdown-divider"></div>
-            <a href="/changelog.html" class="navbar-dropdown-item">
-                <i class="fa-solid fa-square-rss"></i>
-                <span>What's New</span>
-            </a>
-            <div class="navbar-dropdown-divider"></div>
-            <button class="navbar-dropdown-item" id="dropdownLogout">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                <span>Sign Out</span>
-            </button>
-        </div>
-        
         <div class="content-area">
             <div id="homeView" class="view-section hidden">
                 <!-- Profile Hero Section -->
@@ -166,7 +127,66 @@
                         <img id="profileAvatar" class="profile-avatar skeleton-avatar" src="" alt="User avatar">
                     </div>
                     <div class="profile-info">
-                        <h1 class="profile-username skeleton-text" id="profileUsername"></h1>
+                        <div class="profile-header-top">
+                            <h1 class="profile-username skeleton-text" id="profileUsername"></h1>
+                            <div class="profile-actions hidden" id="profileActions">
+                                <button class="profile-action-btn" id="profileSearchBtn" aria-label="Search users" title="Search users">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </button>
+                                <button class="profile-action-btn" id="profileSettingsBtn" aria-label="Settings" title="Settings">
+                                    <i class="fa-solid fa-gear"></i>
+                                </button>
+                                <button class="profile-action-btn" id="profileMenuBtn" aria-label="Menu" title="Menu">
+                                    <i class="fa-solid fa-bars"></i>
+                                </button>
+                                
+                                <!-- Dropdown menu -->
+                                <div class="navbar-dropdown hidden" id="navbarDropdown">
+                                    <button class="navbar-dropdown-item" id="dropdownToggleSidebar">
+                                        <i class="fa-solid fa-book-open"></i>
+                                        <span>Hide Sidebar</span>
+                                    </button>
+                                    <div class="navbar-dropdown-divider"></div>
+                                    <button class="navbar-dropdown-item" id="dropdownProfile">
+                                        <i class="fa-solid fa-circle-user"></i>
+                                        <span>Profile</span>
+                                    </button>
+                                    <button class="navbar-dropdown-item" id="dropdownSettings">
+                                        <i class="fa-solid fa-gear"></i>
+                                        <span>Settings</span>
+                                    </button>
+                                    <div class="navbar-dropdown-divider"></div>
+                                    <button class="navbar-dropdown-item" id="dropdownFeed">
+                                        <i class="fa-solid fa-newspaper"></i>
+                                        <span>Activity Feed</span>
+                                    </button>
+                                    <button class="navbar-dropdown-item" id="dropdownCollections">
+                                        <i class="fa-solid fa-folder"></i>
+                                        <span>Collections</span>
+                                    </button>
+                                    <button class="navbar-dropdown-item" id="dropdownMenus">
+                                        <i class="fa-solid fa-utensils"></i>
+                                        <span>Menus</span>
+                                    </button>
+                                    <button class="navbar-dropdown-item" id="dropdownNewRecipe">
+                                        <i class="fa-solid fa-plus"></i><span>New Recipe</span>
+                                    </button>
+                                    <button class="navbar-dropdown-item" id="dropdownDebug">
+                                        <i class="fa-solid fa-bug"></i><span>Debug Info</span>
+                                    </button>
+                                    <div class="navbar-dropdown-divider"></div>
+                                    <a href="/changelog.html" class="navbar-dropdown-item">
+                                        <i class="fa-solid fa-square-rss"></i>
+                                        <span>What's New</span>
+                                    </a>
+                                    <div class="navbar-dropdown-divider"></div>
+                                    <button class="navbar-dropdown-item" id="dropdownLogout">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="profile-stats">
                             <span class="profile-stat profile-stat-link" id="profileFollowingLink">
                                 <span class="profile-stat-value skeleton-text" id="profileFollowingCount">0</span>

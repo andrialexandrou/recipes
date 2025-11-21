@@ -282,6 +282,12 @@
                 document.getElementById('displayEmail').textContent = currentUser.email || 'No email';
                 document.getElementById('searchableToggle').checked = data.isSearchable !== false;
                 
+                // Update back button to go to user's profile
+                const backBtn = document.querySelector('.settings-back-btn');
+                if (backBtn) {
+                    backBtn.href = `/${data.username}`;
+                }
+                
                 // Load bio
                 const bioTextarea = document.getElementById('bioTextarea');
                 if (bioTextarea) {

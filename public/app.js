@@ -515,6 +515,14 @@ const DOM = {
     navbarDropdown: document.getElementById('navbarDropdown'),
     navCollectionsBtn: document.getElementById('navCollectionsBtn'),
     
+    // Profile action buttons
+    profileActions: document.getElementById('profileActions'),
+    profileSearchBtn: document.getElementById('profileSearchBtn'),
+    profileSettingsBtn: document.getElementById('profileSettingsBtn'),
+    profileMenuBtn: document.getElementById('profileMenuBtn'),
+    desktopSidebarToggle: document.getElementById('desktopSidebarToggle'),
+    mobileSidebarToggle: document.getElementById('mobileSidebarToggle'),
+    
     // Navbar dropdown
     dropdownCollections: document.getElementById('dropdownCollections'),
     dropdownMenus: document.getElementById('dropdownMenus'),
@@ -1005,12 +1013,68 @@ function updateEditControls() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     const isLoggedIn = !!API.currentUser;
     
+    // Profile actions: show only on home view when viewing own profile
+    const homeView = document.getElementById('homeView');
+    const isOnHomePage = homeView && !homeView.classList.contains('hidden');
+    
+    console.log('🔍 updateEditControls:', {
+        isOnHomePage,
+        isOwner,
+        isLoggedIn,
+        viewingUser: API.viewingUser,
+        currentUser: API.currentUser?.username,
+        homeViewHidden: homeView?.classList.contains('hidden')
+    });
+    
+    if (DOM.profileActions) {
+        if (isLoggedIn && isOwner && isOnHomePage) {
+            console.log('✅ Showing profile actions');
+            DOM.profileActions.classList.remove('hidden');
+        } else {
+            console.log('❌ Hiding profile actions');
+            DOM.profileActions.classList.add('hidden');
+        }
+    }
+    
+    // Mobile sidebar toggle: show on home page when logged in
+    if (DOM.mobileSidebarToggle) {
+        if (isLoggedIn && isOnHomePage) {
+            DOM.mobileSidebarToggle.classList.remove('hidden');
+        } else {
+            DOM.mobileSidebarToggle.classList.add('hidden');
+        }
+    }
+    
     // Sidebar toggle: show when logged in, hide when logged out
     if (sidebarToggle) {
         if (isLoggedIn) {
             sidebarToggle.classList.remove('hidden');
         } else {
             sidebarToggle.classList.add('hidden');
+        }
+    }
+    
+    // Desktop sidebar toggle: show when logged in
+    if (DOM.desktopSidebarToggle) {
+        if (isLoggedIn) {
+            DOM.desktopSidebarToggle.classList.remove('hidden');
+        } else {
+            DOM.desktopSidebarToggle.classList.add('hidden');
+        }
+    }
+    
+    // Update dropdown sidebar toggle button text based on sidebar state
+    const dropdownToggleSidebar = document.getElementById('dropdownToggleSidebar');
+    if (dropdownToggleSidebar && isLoggedIn) {
+        const sidebar = document.getElementById('sidebar');
+        const isCollapsed = sidebar?.classList.contains('collapsed');
+        const buttonText = dropdownToggleSidebar.querySelector('span');
+        const buttonIcon = dropdownToggleSidebar.querySelector('i');
+        if (buttonText) {
+            buttonText.textContent = isCollapsed ? 'Show Sidebar' : 'Hide Sidebar';
+        }
+        if (buttonIcon) {
+            buttonIcon.className = isCollapsed ? 'fa-solid fa-book' : 'fa-solid fa-book-open';
         }
     }
     
@@ -1221,6 +1285,13 @@ async function fetchUsers() {
 // Navigation system
 function switchToView(viewName) {
     const username = API.viewingUser || API.currentUser?.username;
+    
+    // Clear sidebar active states when navigating away from recipe detail
+    if (viewName !== 'recipe-detail') {
+        document.querySelectorAll('.recipe-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
     
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
@@ -2481,6 +2552,11 @@ function showHomeView() {
     console.log('👀 Current viewing user:', API.viewingUser);
     console.log('🔐 Current logged-in user:', API.currentUser?.username);
     
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
     // Show sidebar only if user is authenticated (in case it was hidden by 404 view)
     const sidebar = document.getElementById('sidebar');
     if (sidebar && API.currentUser) {
@@ -2511,6 +2587,9 @@ function showHomeView() {
 // Render profile page
 async function renderProfilePage() {
     console.log('📄 Rendering profile page for:', API.viewingUser);
+    
+    // Update profile action buttons visibility
+    updateEditControls();
     
     // Get user data
     let userData = null;
@@ -3044,6 +3123,11 @@ function escapeHtml(text) {
 }
 
 function showNotFoundView() {
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
         view.classList.add('hidden');
@@ -3075,6 +3159,11 @@ function showNotFoundView() {
 
 function showFeedView() {
     console.log('📰 showFeedView called');
+    
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
     
     // Show sidebar only if user is authenticated (in case it was hidden by 404 view)
     const sidebar = document.getElementById('sidebar');
@@ -3109,6 +3198,11 @@ function showFeedView() {
 
 async function showSearchView() {
     console.log('🔍 showSearchView called');
+    
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
     
     // Hide sidebar for search page
     const sidebar = document.getElementById('sidebar');
@@ -4511,6 +4605,29 @@ dropdownSettings.addEventListener('click', () => {
     window.location.href = '/settings';
 });
 
+const dropdownToggleSidebar = document.getElementById('dropdownToggleSidebar');
+if (dropdownToggleSidebar) {
+    dropdownToggleSidebar.addEventListener('click', () => {
+        navbarDropdown.classList.add('hidden');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('collapsed');
+            // Save state to localStorage
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            // Update button text
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            const buttonText = dropdownToggleSidebar.querySelector('span');
+            const buttonIcon = dropdownToggleSidebar.querySelector('i');
+            if (buttonText) {
+                buttonText.textContent = isCollapsed ? 'Show Sidebar' : 'Hide Sidebar';
+            }
+            if (buttonIcon) {
+                buttonIcon.className = isCollapsed ? 'fa-solid fa-book' : 'fa-solid fa-book-open';
+            }
+        }
+    });
+}
+
 const dropdownLogout = document.getElementById('dropdownLogout');
 dropdownLogout.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
@@ -4522,12 +4639,64 @@ dropdownLogout.addEventListener('click', () => {
 // Close dropdown when clicking outside
 document.addEventListener('click', (e) => {
     const navMenuBtnWrapper = document.getElementById('navMenuBtnWrapper');
+    const profileMenuBtn = document.getElementById('profileMenuBtn');
     if (!navbarDropdown.contains(e.target) && 
         !navMenuBtn.contains(e.target) && 
-        !(navMenuBtnWrapper && navMenuBtnWrapper.contains(e.target))) {
+        !(navMenuBtnWrapper && navMenuBtnWrapper.contains(e.target)) &&
+        !(profileMenuBtn && profileMenuBtn.contains(e.target))) {
         navbarDropdown.classList.add('hidden');
     }
 });
+
+// Profile action buttons
+if (DOM.profileSearchBtn) {
+    DOM.profileSearchBtn.addEventListener('click', () => {
+        console.log('🔍 Profile search button clicked');
+        showSearchView();
+    });
+}
+
+if (DOM.profileSettingsBtn) {
+    DOM.profileSettingsBtn.addEventListener('click', () => {
+        console.log('⚙️ Profile settings button clicked');
+        window.location.href = '/settings';
+    });
+}
+
+if (DOM.profileMenuBtn) {
+    DOM.profileMenuBtn.addEventListener('click', (e) => {
+        console.log('☰ Profile menu button clicked');
+        e.stopPropagation();
+        const dropdown = document.getElementById('navbarDropdown');
+        if (dropdown) {
+            dropdown.classList.toggle('hidden');
+        }
+    });
+}
+
+// Mobile sidebar toggle
+if (DOM.mobileSidebarToggle) {
+    DOM.mobileSidebarToggle.addEventListener('click', () => {
+        console.log('📱 Mobile sidebar toggle clicked');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('collapsed');
+        }
+    });
+}
+
+// Desktop sidebar toggle
+if (DOM.desktopSidebarToggle) {
+    DOM.desktopSidebarToggle.addEventListener('click', () => {
+        console.log('🖥️ Desktop sidebar toggle clicked');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('collapsed');
+            // Save state to localStorage
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+    });
+}
 
 // Add paste handlers for image upload
 markdownTextarea.addEventListener('paste', (e) => handleImagePaste(e, markdownTextarea));
