@@ -26,6 +26,44 @@ const CONSTANTS = {
 // =============================================================================
 
 /**
+ * Centralized navigation utility for managing URL changes and browser history
+ * This ensures all soft navigations are consistent and properly update the browser
+ * 
+ * NAVIGATION ARCHITECTURE:
+ * - navigate() is the low-level primitive that ONLY updates history and title
+ * - High-level view functions (showHomeView, loadRecipe, etc.) handle BOTH:
+ *   1. DOM updates (showing/hiding views, rendering content)
+ *   2. Calling navigate() to update URL (controlled by updateHistory parameter)
+ * 
+ * PATTERN: Always call high-level view functions, never call navigate() directly
+ * unless you're implementing a new view function. Each view function should:
+ * - Accept updateHistory parameter (default true)
+ * - Update DOM first
+ * - Call navigate() last if updateHistory is true
+ * 
+ * @param {Object} options - Navigation options
+ * @param {string} options.url - The URL path to navigate to
+ * @param {string} options.title - The page title
+ * @param {Object} options.state - The state object for pushState
+ * @param {boolean} options.replace - Use replaceState instead of pushState (default: false)
+ */
+function navigate(options) {
+    const { url, title, state = {}, replace = false } = options;
+    
+    // Update document title
+    document.title = title;
+    
+    // Update browser history
+    if (replace) {
+        window.history.replaceState(state, title, url);
+    } else {
+        window.history.pushState(state, title, url);
+    }
+    
+    console.log(`🧭 Navigated to: ${url} (${title})`);
+}
+
+/**
  * Shows the Firebase error banner
  */
 function showFirebaseErrorBanner() {
@@ -999,7 +1037,11 @@ if (authenticatedUserLink) {
         // Navigate to authenticated user's home page
         if (API.currentUser) {
             API.viewingUser = API.currentUser.username;
-            history.pushState(null, '', `/${API.currentUser.username}`);
+            navigate({
+                url: `/${API.currentUser.username}`,
+                title: `@${API.currentUser.username} - Sous`,
+                state: null
+            });
             // Reload data to switch context back to own profile
             loadAllData().then(() => showHomeView());
         }
@@ -1271,15 +1313,14 @@ async function fetchUsers() {
 }
 
 // Navigation system
-function switchToView(viewName) {
+// Show collections list view
+function showCollectionsView(updateHistory = true) {
     const username = API.viewingUser || API.currentUser?.username;
     
-    // Clear sidebar active states when navigating away from recipe detail
-    if (viewName !== 'recipe-detail') {
-        document.querySelectorAll('.recipe-item').forEach(item => {
-            item.classList.remove('active');
-        });
-    }
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
     
     // Hide all views
     document.querySelectorAll('.view-section').forEach(view => {
@@ -1292,98 +1333,165 @@ function switchToView(viewName) {
         btn.classList.remove('active');
     });
     
-    currentView = viewName;
-    
-    switch(viewName) {
-        case 'collections':
-            if (!collectionsView) {
-                console.error('collectionsView element not found');
-                return;
-            }
-            collectionsView.classList.remove('hidden');
-            collectionsView.classList.add('active');
-            if (homeBtn) homeBtn.classList.add('active');
-            renderCollectionsGrid();
-            
-            // Render breadcrumb
-            const collectionsViewBreadcrumb = DOM.collectionsViewBreadcrumb;
-            if (collectionsViewBreadcrumb) {
-                collectionsViewBreadcrumb.innerHTML = `
-                    <a href="/${username}" class="breadcrumb-link">@${username}</a>
-                    <span class="breadcrumb-separator">></span>
-                    <span class="breadcrumb-current">Collections</span>
-                `;
-                collectionsViewBreadcrumb.classList.remove('hidden');
-                
-                // Add click handler to username link
-                const breadcrumbLink = collectionsViewBreadcrumb.querySelector('.breadcrumb-link');
-                breadcrumbLink?.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showHomeView();
-                });
-            }
-            
-            updateEditControls(); // Show/hide create button
-            document.title = `Collections - @${username} - Sous`;
-            history.pushState({ type: 'collections' }, `Collections - @${username} - Sous`, `/${username}/collections`);
-            break;
-        case 'collection-detail':
-            if (!collectionDetailView) {
-                console.error('collectionDetailView element not found');
-                return;
-            }
-            collectionDetailView.classList.remove('hidden');
-            collectionDetailView.classList.add('active');
-            if (homeBtn) homeBtn.classList.add('active');
-            break;
-        case 'menus':
-            if (!menusView) {
-                console.error('menusView element not found');
-                return;
-            }
-            menusView.classList.remove('hidden');
-            menusView.classList.add('active');
-            renderMenusGrid();
-            
-            // Render breadcrumb
-            const menusViewBreadcrumb = DOM.menusViewBreadcrumb;
-            if (menusViewBreadcrumb) {
-                menusViewBreadcrumb.innerHTML = `
-                    <a href="/${username}" class="breadcrumb-link">@${username}</a>
-                    <span class="breadcrumb-separator">></span>
-                    <span class="breadcrumb-current">Menus</span>
-                `;
-                menusViewBreadcrumb.classList.remove('hidden');
-                
-                // Add click handler to username link
-                const breadcrumbLink = menusViewBreadcrumb.querySelector('.breadcrumb-link');
-                breadcrumbLink?.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showHomeView();
-                });
-            }
-            
-            updateEditControls(); // Show/hide create button
-            document.title = `Menus - @${username} - Sous`;
-            history.pushState({ type: 'menus' }, `Menus - @${username} - Sous`, `/${username}/menus`);
-            break;
-        case 'menu-detail':
-            if (!menuDetailView) {
-                console.error('menuDetailView element not found');
-                return;
-            }
-            menuDetailView.classList.remove('hidden');
-            menuDetailView.classList.add('active');
-            break;
-        case 'recipe-detail':
-            if (!recipeDetailView) {
-                console.error('recipeDetailView element not found');
-                return;
-            }
-            recipeDetailView.classList.remove('hidden');
-            recipeDetailView.classList.add('active');
-            break;
+    if (!collectionsView) {
+        console.error('collectionsView element not found');
+        return;
     }
+    collectionsView.classList.remove('hidden');
+    collectionsView.classList.add('active');
+    if (homeBtn) homeBtn.classList.add('active');
+    
+    currentView = 'collections';
+    renderCollectionsGrid();
+    
+    // Render breadcrumb
+    const collectionsViewBreadcrumb = DOM.collectionsViewBreadcrumb;
+    if (collectionsViewBreadcrumb) {
+        collectionsViewBreadcrumb.innerHTML = `
+            <a href="/${username}" class="breadcrumb-link">@${username}</a>
+            <span class="breadcrumb-separator">></span>
+            <span class="breadcrumb-current">Collections</span>
+        `;
+        collectionsViewBreadcrumb.classList.remove('hidden');
+        
+        // Add click handler to username link
+        const breadcrumbLink = collectionsViewBreadcrumb.querySelector('.breadcrumb-link');
+        breadcrumbLink?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showHomeView();
+        });
+    }
+    
+    updateEditControls();
+    
+    if (updateHistory) {
+        navigate({
+            url: `/${username}/collections`,
+            title: `Collections - @${username} - Sous`,
+            state: { type: 'collections', username }
+        });
+    }
+}
+
+// Show menus list view
+function showMenusView(updateHistory = true) {
+    const username = API.viewingUser || API.currentUser?.username;
+    
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    // Update navbar
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    if (!menusView) {
+        console.error('menusView element not found');
+        return;
+    }
+    menusView.classList.remove('hidden');
+    menusView.classList.add('active');
+    
+    currentView = 'menus';
+    renderMenusGrid();
+    
+    // Render breadcrumb
+    const menusViewBreadcrumb = DOM.menusViewBreadcrumb;
+    if (menusViewBreadcrumb) {
+        menusViewBreadcrumb.innerHTML = `
+            <a href="/${username}" class="breadcrumb-link">@${username}</a>
+            <span class="breadcrumb-separator">></span>
+            <span class="breadcrumb-current">Menus</span>
+        `;
+        menusViewBreadcrumb.classList.remove('hidden');
+        
+        // Add click handler to username link
+        const breadcrumbLink = menusViewBreadcrumb.querySelector('.breadcrumb-link');
+        breadcrumbLink?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showHomeView();
+        });
+    }
+    
+    updateEditControls();
+    
+    if (updateHistory) {
+        navigate({
+            url: `/${username}/menus`,
+            title: `Menus - @${username} - Sous`,
+            state: { type: 'menus', username }
+        });
+    }
+}
+
+// Helper to show collection detail view (just DOM, no navigation)
+function showCollectionDetailView() {
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    if (!collectionDetailView) {
+        console.error('collectionDetailView element not found');
+        return;
+    }
+    collectionDetailView.classList.remove('hidden');
+    collectionDetailView.classList.add('active');
+    if (homeBtn) homeBtn.classList.add('active');
+    currentView = 'collection-detail';
+}
+
+// Helper to show menu detail view (just DOM, no navigation)
+function showMenuDetailView() {
+    // Clear sidebar active states
+    document.querySelectorAll('.recipe-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    if (!menuDetailView) {
+        console.error('menuDetailView element not found');
+        return;
+    }
+    menuDetailView.classList.remove('hidden');
+    menuDetailView.classList.add('active');
+    currentView = 'menu-detail';
+}
+
+// Helper to show recipe detail view (just DOM, no navigation)
+function showRecipeDetailView() {
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    
+    if (!recipeDetailView) {
+        console.error('recipeDetailView element not found');
+        return;
+    }
+    recipeDetailView.classList.remove('hidden');
+    recipeDetailView.classList.add('active');
+    currentView = 'recipe-detail';
 }
 
 // URL routing
@@ -1400,8 +1508,11 @@ function updateURL(type, id) {
     const username = API.viewingUser || API.currentUser?.username;
     
     if (!id) {
-        document.title = `@${username} - Sous`;
-        history.pushState(null, `@${username} - Sous`, `/${username}`);
+        navigate({
+            url: `/${username}`,
+            title: `@${username} - Sous`,
+            state: null
+        });
         return;
     }
     
@@ -1410,20 +1521,31 @@ function updateURL(type, id) {
         if (!recipe) return;
         const slug = recipe.title ? slugify(recipe.title) : 'untitled';
         const title = `${recipe.title || 'Untitled'} - @${username} - Sous`;
-        document.title = title;
-        history.pushState({ type: 'recipe', id }, title, `/${username}/recipe/${slug}-${id}`);
+        navigate({
+            url: `/${username}/recipe/${slug}-${id}`,
+            title,
+            state: { type: 'recipe', id }
+        });
     } else if (type === 'collection') {
         const collection = collections.find(c => c.id === id);
         if (!collection) return;
         const slug = slugify(collection.name);
-        document.title = `${collection.name} - @${username} - Sous`;
-        history.pushState({ type: 'collection', id }, `${collection.name} - @${username} - Sous`, `/${username}/collection/${slug}-${id}`);
+        const title = `${collection.name} - @${username} - Sous`;
+        navigate({
+            url: `/${username}/collection/${slug}-${id}`,
+            title,
+            state: { type: 'collection', id }
+        });
     } else if (type === 'menu') {
         const menu = menus.find(m => m.id === id);
         if (!menu) return;
         const slug = slugify(menu.name);
-        document.title = `${menu.name} - @${username} - Sous`;
-        history.pushState({ type: 'menu', id }, `${menu.name} - @${username} - Sous`, `/${username}/menu/${slug}-${id}`);
+        const title = `${menu.name} - @${username} - Sous`;
+        navigate({
+            url: `/${username}/menu/${slug}-${id}`,
+            title,
+            state: { type: 'menu', id }
+        });
     }
 }
 
@@ -1513,10 +1635,10 @@ function loadFromURL() {
         }
     } else if (collectionsPageMatch) {
         console.log('📚 Collections page match');
-        switchToView('collections');
+        showCollectionsView(false);
     } else if (menusPageMatch) {
         console.log('🍽️ Menus page match');
-        switchToView('menus');
+        showMenusView(false);
     } else {
         // Default to home view for username-only URLs
         console.log('🏠 Defaulting to home view');
@@ -1668,10 +1790,10 @@ function loadFromURL() {
         }
     } else if (collectionsPageMatch) {
         console.log('📚 Collections page match');
-        switchToView('collections');
+        showCollectionsView(false);
     } else if (menusPageMatch) {
         console.log('🍽️ Menus page match');
-        switchToView('menus');
+        showMenusView(false);
     } else {
         // Default to home view for username-only URLs
         console.log('🏠 Defaulting to home view');
@@ -1686,20 +1808,20 @@ window.addEventListener('popstate', (e) => {
         } else if (e.state.type === 'collection') {
             loadCollectionDetail(e.state.id, false);
         } else if (e.state.type === 'collections') {
-            switchToView('collections');
+            showCollectionsView(false);
         } else if (e.state.type === 'menu') {
             loadMenuDetail(e.state.id, false);
         } else if (e.state.type === 'menus') {
-            switchToView('menus');
+            showMenusView(false);
         } else if (e.state.type === 'feed') {
             showFeedView();
         }
     } else {
         const path = window.location.pathname;
         if (path === '/collections') {
-            switchToView('collections');
+            showCollectionsView(false);
         } else if (path === '/menus') {
-            switchToView('menus');
+            showMenusView(false);
         } else {
             showHomeView();
         }
@@ -1755,7 +1877,15 @@ function renderCollectionsGrid() {
         const handler = (e) => {
             e.preventDefault();
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
-                loadCollectionDetail(card.dataset.id);
+                const collectionId = card.dataset.id;
+                const collection = collections.find(c => c.id === collectionId);
+                const slug = slugify(collection?.name || 'untitled');
+                navigate({
+                    url: `/${API.viewingUser}/collection/${slug}-${collectionId}`,
+                    title: collection?.name || 'Collection',
+                    state: { type: 'collection', id: collectionId }
+                });
+                loadCollectionDetail(collectionId);
             }
         };
         card.addEventListener('click', handler);
@@ -1816,7 +1946,15 @@ function renderMenusGrid() {
         const handler = (e) => {
             e.preventDefault();
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
-                loadMenuDetail(card.dataset.id);
+                const menuId = card.dataset.id;
+                const menu = menus.find(m => m.id === menuId);
+                const slug = slugify(menu?.name || 'untitled');
+                navigate({
+                    url: `/${API.viewingUser}/menu/${slug}-${menuId}`,
+                    title: menu?.name || 'Menu',
+                    state: { type: 'menu', id: menuId }
+                });
+                loadMenuDetail(menuId);
             }
         };
         card.addEventListener('click', handler);
@@ -1860,7 +1998,7 @@ function renderCollectionsGridHome() {
     
     if (collections.length > 4) {
         collectionsGridHome.innerHTML += `
-            <div class="collection-card collection-card-compact collection-card-view-all" onclick="switchToView('collections')" tabindex="0">
+            <div class="collection-card collection-card-compact collection-card-view-all" onclick="showCollectionsView()" tabindex="0">
                 <div class="view-all-content">
                     <i class="fa-solid fa-arrow-right"></i>
                     <span>View all ${collections.length} collections</span>
@@ -1913,7 +2051,7 @@ function renderMenusGridHome() {
     
     if (menus.length > 4) {
         menusGridHome.innerHTML += `
-            <div class="collection-card collection-card-compact collection-card-view-all" onclick="switchToView('menus')" tabindex="0">
+            <div class="collection-card collection-card-compact collection-card-view-all" onclick="showMenusView()" tabindex="0">
                 <div class="view-all-content">
                     <i class="fa-solid fa-arrow-right"></i>
                     <span>View all ${menus.length} menus</span>
@@ -2005,13 +2143,21 @@ function renderRecipeList(filter = '') {
                 if (API.currentUser && API.viewingUser !== API.currentUser.username) {
                     API.viewingUser = API.currentUser.username;
                     // Update URL and reload data, then load from URL
-                    history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                    navigate({
+                        url,
+                        title: recipe?.title || 'Untitled',
+                        state: { type: 'recipe', id: recipeId }
+                    });
                     loadAllData().then(() => {
                         loadFromURL();
                     });
                 } else {
                     // Same user, just navigate
-                    history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                    navigate({
+                        url,
+                        title: recipe?.title || 'Untitled',
+                        state: { type: 'recipe', id: recipeId }
+                    });
                     loadFromURL();
                 }
             }
@@ -2033,13 +2179,21 @@ function renderRecipeList(filter = '') {
                     if (API.currentUser && API.viewingUser !== API.currentUser.username) {
                         API.viewingUser = API.currentUser.username;
                         // Update URL and reload data, then load from URL
-                        history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                        navigate({
+                            url,
+                            title: recipe?.title || 'Untitled',
+                            state: { type: 'recipe', id: recipeId }
+                        });
                         loadAllData().then(() => {
                             loadFromURL();
                         });
                     } else {
                         // Same user, just navigate
-                        history.pushState({ type: 'recipe', id: recipeId }, '', url);
+                        navigate({
+                            url,
+                            title: recipe?.title || 'Untitled',
+                            state: { type: 'recipe', id: recipeId }
+                        });
                         loadFromURL();
                     }
                 }
@@ -2054,7 +2208,7 @@ function loadCollectionDetail(id, updateUrl = true) {
     if (!collection) return;
 
     currentCollectionId = id;
-    switchToView('collection-detail');
+    showCollectionDetailView();
     
     const isOwner = API.viewingUser === API.currentUser?.username;
     
@@ -2109,11 +2263,21 @@ function loadCollectionDetail(id, updateUrl = true) {
         const breadcrumbLinks = collectionHeader.querySelectorAll('.breadcrumb-link');
         breadcrumbLinks[0]?.addEventListener('click', (e) => {
             e.preventDefault();
+            navigate({
+                url: `/${API.viewingUser}`,
+                title: `@${API.viewingUser} - Sous`,
+                state: { type: 'home' }
+            });
             showHomeView();
         });
         breadcrumbLinks[1]?.addEventListener('click', (e) => {
             e.preventDefault();
-            switchToView('collections');
+            navigate({
+                url: `/${API.viewingUser}/collections`,
+                title: 'Collections',
+                state: { type: 'collections' }
+            });
+            showCollectionsView();
         });
     }
     
@@ -2166,7 +2330,7 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
     if (!recipe) return;
 
     currentRecipeId = id;
-    switchToView('recipe-detail');
+    showRecipeDetailView();
     
     // Close sidebar on narrow screens when recipe is clicked
     if (window.innerWidth <= 768) {
@@ -2197,14 +2361,26 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
         const breadcrumbLinks = breadcrumb.querySelectorAll('.breadcrumb-link');
         breadcrumbLinks[0]?.addEventListener('click', (e) => {
             e.preventDefault();
+            navigate({
+                url: `/${API.viewingUser}`,
+                title: `@${API.viewingUser} - Sous`,
+                state: { type: 'home' }
+            });
             showHomeView();
         });
         breadcrumbLinks[1]?.addEventListener('click', (e) => {
             e.preventDefault();
-            switchToView('collections');
+            showCollectionsView();
         });
         breadcrumbLinks[2]?.addEventListener('click', (e) => {
             e.preventDefault();
+            const collection = collections.find(c => c.id === currentCollectionId);
+            const slug = slugify(collection?.name || 'untitled');
+            navigate({
+                url: `/${API.viewingUser}/collection/${slug}-${currentCollectionId}`,
+                title: collection?.name || 'Collection',
+                state: { type: 'collection', id: currentCollectionId }
+            });
             loadCollectionDetail(currentCollectionId);
         });
     } else {
@@ -2220,6 +2396,11 @@ function loadRecipe(id, updateUrl = true, source = 'sidebar') {
         const breadcrumbLink = breadcrumb.querySelector('.breadcrumb-link');
         breadcrumbLink?.addEventListener('click', (e) => {
             e.preventDefault();
+            navigate({
+                url: `/${API.viewingUser}`,
+                title: `@${API.viewingUser} - Sous`,
+                state: { type: 'home' }
+            });
             showHomeView();
         });
     }
@@ -3069,8 +3250,11 @@ async function loadFollowList(type, username, listElement) {
                 e.preventDefault();
                 closeFollowModal();
                 const username = user.username;
-                document.title = `@${username} - Sous`;
-                window.history.pushState({ type: 'home', username }, `@${username} - Sous`, `/${username}`);
+                navigate({
+                    url: `/${username}`,
+                    title: `@${username} - Sous`,
+                    state: { type: 'home', username }
+                });
                 API.viewingUser = username;
                 loadAllData().then(() => {
                     renderProfilePage();
@@ -3199,9 +3383,15 @@ function showFeedView() {
     currentMenuId = null;
     currentView = 'feed';
     
+    // Update browser history
+    navigate({
+        url: '/',
+        title: 'Feed - Sous',
+        state: { type: 'feed' }
+    });
+    
     // Load and render feed
     loadFeed();
-    // Don't call updateURL - feed always stays at /
 }
 
 async function showSearchView() {
@@ -3235,6 +3425,13 @@ async function showSearchView() {
     currentCollectionId = null;
     currentMenuId = null;
     currentView = 'search';
+    
+    // Update browser history
+    navigate({
+        url: '/search',
+        title: 'Search - Sous',
+        state: { type: 'search' }
+    });
     
     // Clear search input and focus
     const searchUsersInput = document.getElementById('searchUsersInput');
@@ -3325,8 +3522,11 @@ async function renderSearchResults(users) {
             const username = item.dataset.username;
             // Navigate to user's profile
             API.viewingUser = username;
-            document.title = `@${username} - Sous`;
-            history.pushState({ type: 'home' }, `@${username} - Sous`, `/${username}`);
+            navigate({
+                url: `/${username}`,
+                title: `@${username} - Sous`,
+                state: { type: 'home' }
+            });
             loadAllData().then(() => {
                 showHomeView();
             });
@@ -3717,7 +3917,7 @@ async function createNewRecipe() {
         if (metadataCollections) metadataCollections.innerHTML = '<span class="metadata-empty">None</span>';
         if (metadataAuthor) metadataAuthor.textContent = '—';
         
-        switchToView('recipe-detail');
+        showRecipeDetailView();
         
         enterEditMode();
         titleInput.focus();
@@ -4284,7 +4484,7 @@ function loadMenuDetail(menuId, updateHistory = true) {
         updateURL('menu', menuId);
     }
     
-    switchToView('menu-detail');
+    showMenuDetailView();
     
     // Populate display elements
     menuTitleDisplay.textContent = menu.name;
@@ -4321,11 +4521,21 @@ function loadMenuDetail(menuId, updateHistory = true) {
         const breadcrumbLinks = menuBreadcrumb.querySelectorAll('.breadcrumb-link');
         breadcrumbLinks[0]?.addEventListener('click', (e) => {
             e.preventDefault();
+            navigate({
+                url: `/${API.viewingUser}`,
+                title: `@${API.viewingUser} - Sous`,
+                state: { type: 'home' }
+            });
             showHomeView();
         });
         breadcrumbLinks[1]?.addEventListener('click', (e) => {
             e.preventDefault();
-            switchToView('menus');
+            navigate({
+                url: `/${API.viewingUser}/menus`,
+                title: 'Menus',
+                state: { type: 'menus' }
+            });
+            showMenusView();
         });
     }
     
@@ -4518,29 +4728,20 @@ dropdownCollections.addEventListener('click', () => {
         const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
         const urlUsername = usernameMatch ? usernameMatch[1] : null;
         
-        // If URL doesn't have a username or it's not the current user, navigate to current user
-        if (!urlUsername || urlUsername === API.currentUser.username) {
-            // Stay with current viewing context
-            document.title = `Collections - @${API.currentUser.username} - Sous`;
-            history.pushState({ type: 'collections' }, `Collections - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/collections`);
-        } else {
-            // Viewing someone else - switch back to own collections
+        // If viewing someone else, switch back to own collections and reload data
+        if (urlUsername && urlUsername !== API.currentUser.username) {
             API.viewingUser = API.currentUser.username;
-            document.title = `Collections - @${API.currentUser.username} - Sous`;
-            history.pushState({ type: 'collections' }, `Collections - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/collections`);
-            // Reload data for current user
-            loadAllData();
+            loadAllData().then(() => showCollectionsView());
+        } else {
+            // Already viewing own profile, just show collections view
+            showCollectionsView();
         }
-        switchToView('collections');
     }
 });
 
 const dropdownFeed = document.getElementById('dropdownFeed');
 dropdownFeed.addEventListener('click', () => {
     navbarDropdown.classList.add('hidden');
-    // Navigate to root path
-    document.title = 'Activity Feed - Sous';
-    window.history.pushState({ type: 'feed' }, 'Activity Feed - Sous', '/');
     // Also update viewing user to current user when going to feed
     if (API.currentUser) {
         API.viewingUser = API.currentUser.username;
@@ -4557,20 +4758,14 @@ dropdownMenus.addEventListener('click', () => {
         const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
         const urlUsername = usernameMatch ? usernameMatch[1] : null;
         
-        // If URL doesn't have a username or it's not the current user, navigate to current user
-        if (!urlUsername || urlUsername === API.currentUser.username) {
-            // Stay with current viewing context
-            document.title = `Menus - @${API.currentUser.username} - Sous`;
-            history.pushState({ type: 'menus' }, `Menus - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/menus`);
-        } else {
-            // Viewing someone else - switch back to own menus
+        // If viewing someone else, switch back to own menus and reload data
+        if (urlUsername && urlUsername !== API.currentUser.username) {
             API.viewingUser = API.currentUser.username;
-            document.title = `Menus - @${API.currentUser.username} - Sous`;
-            history.pushState({ type: 'menus' }, `Menus - @${API.currentUser.username} - Sous`, `/${API.currentUser.username}/menus`);
-            // Reload data for current user
-            loadAllData();
+            loadAllData().then(() => showMenusView());
+        } else {
+            // Already viewing own profile, just show menus view
+            showMenusView();
         }
-        switchToView('menus');
     }
 });
 
@@ -4626,14 +4821,13 @@ document.addEventListener('click', (e) => {
 // Profile action buttons
 if (DOM.profileSearchBtn) {
     DOM.profileSearchBtn.addEventListener('click', () => {
-        console.log('🔍 Profile search button clicked');
         showSearchView();
     });
 }
 
 if (DOM.profileSettingsBtn) {
     DOM.profileSettingsBtn.addEventListener('click', () => {
-        console.log('⚙️ Profile settings button clicked');
+        // Settings is a separate page, not SPA navigation
         window.location.href = '/settings';
     });
 }
@@ -4826,8 +5020,6 @@ const navSearchBtn = document.getElementById('navSearchBtn');
 
 // Navigate to search page
 navSearchBtn?.addEventListener('click', () => {
-    document.title = 'Search Users - Sous';
-    history.pushState({ type: 'search' }, 'Search Users - Sous', '/search');
     showSearchView();
 });
 
@@ -4884,9 +5076,6 @@ if (DOM.bottomNavFeed) {
     DOM.bottomNavFeed.addEventListener('click', (e) => {
         e.preventDefault();
         if (API.currentUser) {
-            const username = API.currentUser.username;
-            document.title = `Feed - Sous`;
-            window.history.pushState({ type: 'feed' }, '', '/feed');
             showFeedView();
             updateBottomNavActive('feed');
         }
@@ -4896,8 +5085,6 @@ if (DOM.bottomNavFeed) {
 if (DOM.bottomNavSearch) {
     DOM.bottomNavSearch.addEventListener('click', (e) => {
         e.preventDefault();
-        document.title = `Search - Sous`;
-        window.history.pushState({ type: 'search' }, '', '/search');
         showSearchView();
         updateBottomNavActive('search');
     });
@@ -4922,11 +5109,14 @@ if (DOM.bottomNavCollections) {
         e.preventDefault();
         if (API.currentUser) {
             const username = API.currentUser.username;
-            document.title = `Collections - @${username} - Sous`;
-            window.history.pushState({ type: 'collections', username }, '', `/${username}/collections`);
             API.viewingUser = username;
+            navigate({
+                url: `/${username}/collections`,
+                title: `Collections - @${username} - Sous`,
+                state: { type: 'collections', username }
+            });
             loadAllData().then(() => {
-                switchToView('collections');
+                showCollectionsView();
                 updateBottomNavActive('collections');
             });
         }
@@ -4938,9 +5128,12 @@ if (DOM.bottomNavProfile) {
         e.preventDefault();
         if (API.currentUser) {
             const username = API.currentUser.username;
-            document.title = `@${username} - Sous`;
-            window.history.pushState({ type: 'home', username }, '', `/${username}`);
             API.viewingUser = username;
+            navigate({
+                url: `/${username}`,
+                title: `@${username} - Sous`,
+                state: { type: 'home', username }
+            });
             // Reload data for the authenticated user
             loadAllData().then(() => {
                 showHomeView();
