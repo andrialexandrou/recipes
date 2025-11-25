@@ -2356,7 +2356,9 @@ app.get('*', async (req, res) => {
                     .replace(/<meta property="og:description" content=".*?"[^>]*>/g, `<meta property="og:description" content="${ogDescription}">`)
                     .replace(/<meta property="og:url" content=".*?"[^>]*>/g, `<meta property="og:url" content="${recipeUrl}">`)
                     .replace(/<meta name="twitter:title" content=".*?"[^>]*>/g, `<meta name="twitter:title" content="${ogTitle}">`)
+                    .replace(/<meta property="twitter:title" content=".*?"[^>]*>/g, `<meta property="twitter:title" content="${ogTitle}">`)
                     .replace(/<meta name="twitter:description" content=".*?"[^>]*>/g, `<meta name="twitter:description" content="${ogDescription}">`)
+                    .replace(/<meta property="twitter:description" content=".*?"[^>]*>/g, `<meta property="twitter:description" content="${ogDescription}">`)
                     .replace(/<meta name="twitter:card" content=".*?"[^>]*>/g, 
                         `<meta name="twitter:card" content="${ogImage ? 'summary_large_image' : 'summary'}">`)
                     .replace(/<meta property="twitter:card" content=".*?"[^>]*>/g, 
