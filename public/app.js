@@ -811,7 +811,31 @@ function initializeRecipeEditor() {
             'bold', 'italic', 'strikethrough', '|',
             'heading-1', 'heading-2', 'heading-3', '|',
             'quote', 'unordered-list', 'ordered-list', '|',
-            'link', 'image', '|',
+            'link', {
+                name: 'image',
+                action: function(editor) {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = async function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            try {
+                                const compressed = await compressImage(file);
+                                const photoData = await API.uploadPhoto(compressed);
+                                const imageMarkdown = `![${file.name}](${photoData.url})`;
+                                editor.codemirror.replaceSelection(imageMarkdown);
+                            } catch (error) {
+                                console.error('❌ Failed to upload image:', error);
+                                alert('Failed to upload image. Please try again.');
+                            }
+                        }
+                    };
+                    input.click();
+                },
+                className: 'fa fa-image',
+                title: 'Insert Image'
+            }, '|',
             'preview', 'side-by-side', 'fullscreen', '|',
             'guide'
         ],
@@ -825,6 +849,11 @@ function initializeRecipeEditor() {
     // Sync changes back to the original textarea
     recipeEditor.codemirror.on('change', () => {
         markdownTextarea.value = recipeEditor.value();
+    });
+    
+    // Attach paste handler to CodeMirror for image upload
+    recipeEditor.codemirror.on('paste', (cm, e) => {
+        handleImagePaste(e, markdownTextarea);
     });
 }
 
@@ -842,7 +871,31 @@ function initializeMenuEditor() {
             'bold', 'italic', 'strikethrough', '|',
             'heading-1', 'heading-2', 'heading-3', '|',
             'quote', 'unordered-list', 'ordered-list', '|',
-            'link', 'image', '|',
+            'link', {
+                name: 'image',
+                action: function(editor) {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = async function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            try {
+                                const compressed = await compressImage(file);
+                                const photoData = await API.uploadPhoto(compressed);
+                                const imageMarkdown = `![${file.name}](${photoData.url})`;
+                                editor.codemirror.replaceSelection(imageMarkdown);
+                            } catch (error) {
+                                console.error('❌ Failed to upload image:', error);
+                                alert('Failed to upload image. Please try again.');
+                            }
+                        }
+                    };
+                    input.click();
+                },
+                className: 'fa fa-picture-o',
+                title: 'Insert Image'
+            }, '|',
             'preview', 'side-by-side', 'fullscreen', '|',
             'guide'
         ],
@@ -857,6 +910,11 @@ function initializeMenuEditor() {
     menuEditor.codemirror.on('change', () => {
         menuMarkdownTextarea.value = menuEditor.value();
     });
+    
+        // Attach paste handler to CodeMirror for image upload
+        menuEditor.codemirror.on('paste', (cm, e) => {
+            handleImagePaste(e, menuMarkdownTextarea);
+        });
 }
 
 // Metadata elements
@@ -952,11 +1010,21 @@ async function handleImagePaste(e, textarea) {
             console.log('📁 Image file:', file.name, file.type, file.size, 'bytes');
             
             // Show loading indicator at cursor position
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const before = textarea.value.substring(0, start);
-            const after = textarea.value.substring(end);
-            textarea.value = before + '![Uploading...](uploading)' + after;
+            const uploadingText = '![Uploading...](uploading)';
+            
+            // Insert directly into EasyMDE if active, otherwise use textarea
+            if (recipeEditor && textarea === markdownTextarea) {
+                recipeEditor.codemirror.replaceSelection(uploadingText);
+            } else if (menuEditor && textarea === menuMarkdownTextarea) {
+                menuEditor.codemirror.replaceSelection(uploadingText);
+            } else {
+                // Fallback for plain textarea
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const before = textarea.value.substring(0, start);
+                const after = textarea.value.substring(end);
+                textarea.value = before + uploadingText + after;
+            }
             
             try {
                 // Compress and upload
@@ -964,9 +1032,19 @@ async function handleImagePaste(e, textarea) {
                 const photoData = await API.uploadPhoto(compressed);
                 
                 // Replace placeholder with actual image markdown
-                const uploadingText = '![Uploading...](uploading)';
                 const imageMarkdown = `![${file.name}](${photoData.url})`;
-                textarea.value = textarea.value.replace(uploadingText, imageMarkdown);
+                
+                // Replace in EasyMDE if active, otherwise use textarea
+                if (recipeEditor && textarea === markdownTextarea) {
+                    const content = recipeEditor.value().replace(uploadingText, imageMarkdown);
+                    recipeEditor.value(content);
+                } else if (menuEditor && textarea === menuMarkdownTextarea) {
+                    const content = menuEditor.value().replace(uploadingText, imageMarkdown);
+                    menuEditor.value(content);
+                } else {
+                    // Fallback for plain textarea
+                    textarea.value = textarea.value.replace(uploadingText, imageMarkdown);
+                }
                 
                 // Trigger change event to update preview if needed
                 textarea.dispatchEvent(new Event('input'));
@@ -975,7 +1053,16 @@ async function handleImagePaste(e, textarea) {
             } catch (error) {
                 console.error('❌ Failed to upload pasted image:', error);
                 // Remove placeholder on error
-                textarea.value = textarea.value.replace('![Uploading...](uploading)', '');
+                if (recipeEditor && textarea === markdownTextarea) {
+                    const content = recipeEditor.value().replace(uploadingText, '');
+                    recipeEditor.value(content);
+                } else if (menuEditor && textarea === menuMarkdownTextarea) {
+                    const content = menuEditor.value().replace(uploadingText, '');
+                    menuEditor.value(content);
+                } else {
+                    // Fallback for plain textarea
+                    textarea.value = textarea.value.replace(uploadingText, '');
+                }
                 alert('Failed to upload image. Please try again.');
             }
             
