@@ -22,6 +22,39 @@ const CONSTANTS = {
 };
 
 // =============================================================================
+// PWA UTILITIES
+// =============================================================================
+
+// Detect if app was launched from home screen (PWA mode)
+function isPWA() {
+    return window.matchMedia && window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true ||
+           document.referrer.includes('android-app://');
+}
+
+// Handle PWA launch - ensure proper start state
+function handlePWALaunch() {
+    if (isPWA()) {
+        console.log('📱 PWA launch detected');
+        
+        // If launched from home screen to a deep link, redirect to home
+        const path = window.location.pathname;
+        const isDeepLink = path !== '/' && path !== '/login' && path !== '/signup';
+        
+        if (isDeepLink && !sessionStorage.getItem('pwa_deep_link_allowed')) {
+            console.log('🏠 Redirecting PWA deep link to home');
+            // Store the intended destination for after login
+            sessionStorage.setItem('pwa_intended_path', path);
+            window.location.replace('/');
+            return;
+        }
+    }
+}
+
+// Call PWA handler immediately
+handlePWALaunch();
+
+// =============================================================================
 // UTILITIES
 // =============================================================================
 
@@ -3807,6 +3840,16 @@ async function loadAllData() {
         renderRecipeList();
         updateUserDisplay();
         loadFromURL(); // This will show the appropriate view based on URL
+        
+        // Handle PWA intended path restoration
+        if (isPWA() && sessionStorage.getItem('pwa_intended_path')) {
+            const intendedPath = sessionStorage.getItem('pwa_intended_path');
+            sessionStorage.removeItem('pwa_intended_path');
+            sessionStorage.setItem('pwa_deep_link_allowed', 'true');
+            console.log('📱 Restoring PWA intended path:', intendedPath);
+            window.location.replace(intendedPath);
+            return;
+        }
     } catch (error) {
         console.error('💥 Critical error loading data:', error);
         

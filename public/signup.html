@@ -20,13 +20,19 @@
     <meta name="description" content="Create your Sous account to start saving recipes">
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+    <link rel="manifest" href="/manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Sous">
     <link rel="apple-touch-icon" href="/favicon.png">
     <link rel="apple-touch-startup-image" href="/favicon.png">
+    
+    <!-- Additional PWA meta tags for better Android support -->
+    <meta name="theme-color" content="#8b7355">
+    <meta name="msapplication-TileColor" content="#8b7355">
+    <meta name="msapplication-navbutton-color" content="#8b7355">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
     <link rel="icon" type="image/png" id="favicon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,6 +44,19 @@
         // Set favicon based on environment
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         document.getElementById('favicon').href = isLocal ? '/favicon-dev.png' : '/favicon.png';
+        
+        // Register service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
     </script>
 </head>
 <body>
