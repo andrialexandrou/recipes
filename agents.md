@@ -239,6 +239,12 @@ When a user creates content:
 - Recipes only published when title is meaningful (not "Untitled")
 - Activities auto-removed when content deleted or user unfollowed
 
+**Critical Bug Fix (Nov 2024):**
+
+Fixed major issue where activities weren't created for users with no followers at creation time. Previously, `fanOutActivity()` would exit early if no followers existed, preventing activity creation in main collection. This broke backfill when users gained followers later.
+
+**Solution:** Always create activity in main `activities` collection regardless of follower count. Only skip fan-out distribution if no followers exist. This ensures backfill function can find all historical activities when new follows occur.
+
 ### Image Upload System
 
 **Paste-to-Upload Philosophy:**
@@ -297,6 +303,33 @@ TouchUtils.addTouchHandler(element, handler)
 - Applied to all card interactions (recipes, collections, menus)
 - Prevents cards from opening when user intends to scroll
 - Maintains keyboard accessibility
+
+### Mobile UI Optimization
+
+**Twitter-Style Activity Feed Spacing:**
+
+Updated activity feed styling to match familiar mobile proportions for better readability and native feel:
+
+- **Vertical padding**: 16px between posts (optimized from 20px)
+- **Avatar-to-content gap**: 12px spacing for comfortable reading
+- **Typography**: Tighter 1.4 line height, larger mobile text (16px main, 15px preview, 14px timestamp)
+- **Content hierarchy**: 8px gap between main content and metadata
+- **Responsive scaling**: Automatically adjusts font sizes on mobile for better thumb-reach usability
+
+**iPhone Safe Area Support:**
+
+Enhanced bottom navigation to properly handle iPhone home indicator bar and notched devices:
+
+- **Dynamic height**: Uses `calc(64px + env(safe-area-inset-bottom))` for automatic device adaptation
+- **Smart padding**: `max(8px, env(safe-area-inset-bottom))` ensures minimum spacing while respecting device safe areas
+- **Content area coordination**: JavaScript adds `mobile-nav-visible` body class for conditional height adjustments
+- **Logged-out optimization**: Content area uses full viewport height when bottom navigation is hidden
+
+**Benefits:**
+- Native iOS app feel with proper safe area handling
+- Better content accessibility on modern iPhones (12+)
+- Conditional layout prevents wasted space for logged-out users
+- Twitter-familiar spacing patterns for intuitive mobile UX
 
 ### Design Patterns
 
