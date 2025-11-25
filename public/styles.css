@@ -3726,6 +3726,9 @@ input:checked + .toggle-slider:before {
     padding: 0 8px;
     justify-content: space-around;
     align-items: center;
+    /* Add safe area padding for iPhone home indicator */
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    height: calc(64px + env(safe-area-inset-bottom));
 }
 
 .bottom-nav-item {
@@ -3778,8 +3781,8 @@ input:checked + .toggle-slider:before {
     
     /* Content area should fill space between navbar and bottom nav */
     .content-area {
-        height: calc(100vh - 64px);
-        max-height: calc(100vh - 64px);
+        height: calc(100vh - 64px - env(safe-area-inset-bottom));
+        max-height: calc(100vh - 64px - env(safe-area-inset-bottom));
         overflow-y: auto;
         padding-bottom: 24px;
     }
