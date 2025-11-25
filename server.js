@@ -2295,105 +2295,90 @@ app.get('*', async (req, res) => {
         return res.status(404).send('File not found');
     }
     
-    // Check if this is a social media crawler requesting a recipe
-    const userAgent = req.get('User-Agent') || '';
-    const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot/i.test(userAgent);
+    // Check if this is a recipe URL that needs dynamic OG tags
     const recipeMatch = req.path.match(/^\/([^\/]+)\/recipe\/(.+)-([a-zA-Z0-9]+)$/);
     
-    if (isCrawler && recipeMatch && useFirebase && db && !firebaseFailureDetected) {
+    if (recipeMatch && useFirebase && db && !firebaseFailureDetected) {
         try {
             const [, username, , recipeId] = recipeMatch;
-            console.log(`🔍 Social crawler detected: ${userAgent.split(' ')[0]} requesting recipe ${recipeId}`);
-            
             // Get recipe and author data
             const [recipeDoc, usersSnapshot] = await Promise.all([
                 db.collection('recipes').doc(recipeId).get(),
                 db.collection('users').where('username', '==', username).limit(1).get()
             ]);
             
-            if (!recipeDoc.exists || usersSnapshot.empty) {
-                console.log(`❌ Recipe ${recipeId} or user ${username} not found for OG tags`);
-                return res.sendFile(path.join(__dirname, 'public', 'index.html'));
-            }
-            
-            const recipe = recipeDoc.data();
-            const author = usersSnapshot.docs[0].data();
-            
-            // Extract preview text from recipe content (no image = more text)
-            let contentPreview = extractPreview(recipe.content || '', 300); // Longer preview without image
-            
-            // Remove recipe title from description if it starts with the title
-            const recipeTitle = recipe.title || 'Recipe';
-            if (contentPreview.toLowerCase().startsWith(recipeTitle.toLowerCase())) {
-                contentPreview = contentPreview.substring(recipeTitle.length).trim();
-            }
-            
-            // Build OG title with author
-            const ogTitle = `${recipeTitle} by ${author.username} - Sous`;
-            const ogDescription = contentPreview || 'A recipe shared on Sous';
-            
-            // Find first image in recipe content (if any)
-            const imageMatch = recipe.content?.match(/!\[.*?\]\((.*?)\)/);
-            let ogImage = null;
-            if (imageMatch && imageMatch[1]) {
-                // Make sure image URL is absolute
-                const imageUrl = imageMatch[1];
-                if (imageUrl.startsWith('http')) {
-                    ogImage = imageUrl;
-                } else if (imageUrl.startsWith('/')) {
-                    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-                    const host = req.get('host');
-                    ogImage = `${protocol}://${host}${imageUrl}`;
+            if (recipeDoc.exists && !usersSnapshot.empty) {
+                const recipe = recipeDoc.data();
+                const author = usersSnapshot.docs[0].data();
+                
+                // Extract preview text from recipe content 
+                let contentPreview = extractPreview(recipe.content || '', 300);
+                
+                // Remove recipe title from description if it starts with the title
+                const recipeTitle = recipe.title || 'Recipe';
+                if (contentPreview.toLowerCase().startsWith(recipeTitle.toLowerCase())) {
+                    contentPreview = contentPreview.substring(recipeTitle.length).trim();
                 }
+                
+                // Build OG tags
+                const ogTitle = `${recipeTitle} by ${author.username} - Sous`;
+                const ogDescription = contentPreview || 'A recipe shared on Sous';
+                
+                // Find first image in recipe content (if any)
+                const imageMatch = recipe.content?.match(/!\[.*?\]\((.*?)\)/);
+                let ogImage = null;
+                if (imageMatch && imageMatch[1]) {
+                    const imageUrl = imageMatch[1];
+                    if (imageUrl.startsWith('http')) {
+                        ogImage = imageUrl;
+                    } else if (imageUrl.startsWith('/')) {
+                        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+                        const host = req.get('host');
+                        ogImage = `${protocol}://${host}${imageUrl}`;
+                    }
+                }
+                
+                // Generate URLs
+                const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+                const host = req.get('host');
+                const baseUrl = `${protocol}://${host}`;
+                const recipeUrl = `${baseUrl}${req.path}`;
+                
+                // Read and modify the main SPA HTML
+                const indexPath = path.join(__dirname, 'public', 'index.html');
+                const html = fs.readFileSync(indexPath, 'utf8');
+                
+                // Replace the default meta tags with recipe-specific ones
+                const modifiedHtml = html
+                    .replace(/\{\{BASE_URL\}\}/g, baseUrl)
+                    .replace(/<title>.*?<\/title>/, `<title>${ogTitle}</title>`)
+                    .replace(/<meta property="og:title" content=".*?"[^>]*>/g, `<meta property="og:title" content="${ogTitle}">`)
+                    .replace(/<meta property="og:description" content=".*?"[^>]*>/g, `<meta property="og:description" content="${ogDescription}">`)
+                    .replace(/<meta property="og:url" content=".*?"[^>]*>/g, `<meta property="og:url" content="${recipeUrl}">`)
+                    .replace(/<meta name="twitter:title" content=".*?"[^>]*>/g, `<meta name="twitter:title" content="${ogTitle}">`)
+                    .replace(/<meta name="twitter:description" content=".*?"[^>]*>/g, `<meta name="twitter:description" content="${ogDescription}">`)
+                    .replace(/<meta name="twitter:card" content=".*?"[^>]*>/g, 
+                        `<meta name="twitter:card" content="${ogImage ? 'summary_large_image' : 'summary'}">`)
+                    .replace(/<meta property="twitter:card" content=".*?"[^>]*>/g, 
+                        `<meta property="twitter:card" content="${ogImage ? 'summary_large_image' : 'summary'}">`)
+                    // Handle image tags - remove existing and add new ones if needed
+                    .replace(/<meta property="og:image" content=".*?"[^>]*>\s*/g, '')
+                    .replace(/<meta name="twitter:image" content=".*?"[^>]*>\s*/g, '')
+                    .replace(/<meta property="twitter:image" content=".*?"[^>]*>\s*/g, '');
+                
+                // Add image tags if we have an image - insert after og:description
+                let finalHtml = modifiedHtml;
+                if (ogImage) {
+                    finalHtml = finalHtml.replace(
+                        /(<meta property="og:description"[^>]*>)/,
+                        `$1\n    <meta property="og:image" content="${ogImage}">\n    <meta property="twitter:image" content="${ogImage}">`
+                    );
+                }
+                
+                return res.send(finalHtml);
             }
-            
-            // Generate custom HTML with OG tags
-            const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-            const host = req.get('host');
-            const baseUrl = `${protocol}://${host}`;
-            const recipeUrl = `${baseUrl}${req.path}`;
-            
-            const customHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${ogTitle} - Sous</title>
-    
-    <!-- Open Graph tags for recipe sharing -->
-    <meta property="og:title" content="${ogTitle}">
-    <meta property="og:description" content="${ogDescription}">
-    <meta property="og:url" content="${recipeUrl}">
-    <meta property="og:type" content="article">
-    <meta property="og:site_name" content="Sous">
-    ${ogImage ? `<meta property="og:image" content="${ogImage}">` : ''}
-    
-    <!-- Twitter Card tags -->
-    <meta name="twitter:card" content="${ogImage ? 'summary_large_image' : 'summary'}">
-    <meta name="twitter:title" content="${ogTitle}">
-    <meta name="twitter:description" content="${ogDescription}">
-    ${ogImage ? `<meta name="twitter:image" content="${ogImage}">` : ''}
-    
-    <!-- Redirect real users to SPA -->
-    <script>
-        // Only redirect if this is a real browser, not a crawler
-        if (!navigator.userAgent.match(/bot|crawler|spider|crawling/i)) {
-            window.location.replace('${recipeUrl}');
-        }
-    </script>
-</head>
-<body>
-    <h1>${ogTitle}</h1>
-    <p>${ogDescription}</p>
-    ${ogImage ? `<img src="${ogImage}" alt="${recipe.title}" style="max-width: 100%; height: auto;">` : ''}
-    <p><a href="${recipeUrl}">View on Sous</a></p>
-</body>
-</html>`;
-            
-            return res.send(customHtml);
-            
         } catch (error) {
-            console.error('❌ Error generating OG tags:', error);
+            console.error('Error generating dynamic OG tags:', error);
             // Fall through to regular SPA serving
         }
     }
