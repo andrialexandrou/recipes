@@ -4,12 +4,15 @@ Future features and improvements for Sous.
 
 ## 🚀 GA Blockers (Must-Have Before Launch)
 
-- **Gravatar Avatar Indicator** - Add visual indicator to inform users that their avatar is pulled from Gravatar. Include a quick link with Font Awesome icon to gravatar.com for easy setup. This helps users understand where their profile picture comes from and how to customize it.
-- **Configure PWA and Open Graph for my-sous.com** - Update all PWA manifest settings, Open Graph meta tags, and related configuration to use my-sous.com as the primary domain. Remove or deprioritize Vercel app URLs. Ensure PWA behavior works correctly on the custom domain (currently broken—see Bugs section).
-- **Fix Image Upload in Markdown Editor** - Image paste-to-upload is not working in the markdown editor. Need to debug and fix the paste event handling, compression, and upload flow.
+_All GA blockers have been completed! Ready for launch._
 
 ## Recently Completed ✅
 
+- **Configure PWA and Open Graph for my-sous.com** - ✅ Updated PWA manifest settings, Open Graph meta tags, and domain configuration for my-sous.com. PWA behavior now works correctly on custom domain
+- **Fix Image Upload in Markdown Editor** - ✅ Fixed image paste-to-upload functionality in markdown editor. Paste event handling, compression, and upload flow now working properly
+- **Centralized Avatar System with Server-Side Optimization** - ✅ Unified avatar management with server-side Gravatar hash computation from emails, automatic email privacy protection, and consistent `getAvatarHtml()` rendering across all UI locations with graceful fallbacks to initials
+- **Comprehensive Admin Badge Coverage** - ✅ Added consistent staff markers (`getAdminBadge()`) across all username displays including profile pages, recipe metadata, follow modals, search results, and activity feeds for complete admin identification
+- **Mobile Touch Sensitivity Fix** - ✅ Implemented `TouchUtils` module with smart touch handling that distinguishes taps from scrolls. Prevents accidental card opening during mobile scrolling with touch duration tracking and movement detection while maintaining desktop compatibility
 - **Hide Sidebar Toggle for Logged Out Users** - ✅ The hamburger menu toggle button (left side of navbar) is now hidden when not logged in
 - **Scroll to Top on Navigation** - ✅ Added automatic scroll to top on all navigation events for better UX
 - **Profile Hero Skeleton UI** - ✅ Added skeleton loading states for profile hero section (avatar, username, stats, follow button)
@@ -38,7 +41,6 @@ Future features and improvements for Sous.
 - **Menu Detail Page Action Buttons Styling** - The edit/share/delete buttons on menu detail pages don't look good. Need to improve button layout, spacing, and visual hierarchy to match the rest of the app's design.
 - **Collection Detail Page Header Styling** - The header and subheader styles on collection detail pages are not as polished and don't match the styling used on menu and recipe detail pages. Need to standardize the typography, spacing, and visual hierarchy across all detail views.
 - **Sidebar Username Click on Mobile** - When clicking on the username in the sidebar to navigate to the user profile page, the sidebar should automatically close on mobile view. Currently it stays open, requiring users to manually close it.
-- **Touch Sensitivity on Mobile** - Touch interactions are too sensitive on mobile, making it difficult to scroll. Small finger movements trigger clicks instead of scrolls. Need to adjust touch event thresholds or add slight delay to distinguish between tap and scroll gestures.
 - **Custom Domain Does Not Trigger PWA Behavior** - When adding to home screen from my-sous.com (custom domain), iOS does not treat it as a native web app like it does with the Vercel URL. The custom domain opens in Safari instead of standalone mode. Works correctly on Vercel domain. Attempted fixes: dynamic manifest.json endpoint, proper MIME types, iOS-specific meta tags, cache headers. Needs deeper investigation into domain configuration, SSL certificates, or iOS-specific caching behavior.
 
 ## Quick Wins (Small Effort)
@@ -46,6 +48,17 @@ Future features and improvements for Sous.
 - **Improve Print Styling** - Make recipes and menus look professional and well-formatted when using browser print function (styling, page breaks, typography)
 
 ## Medium Effort
+
+- **Update Feed Whitespace Proportions (Twitter-Style Mobile)** - Improve the mobile activity feed layout to match Twitter's visual proportions for better readability and familiarity. Based on iPhone screenshot analysis:
+  - **Avatar size**: ~40px diameter (current matches)
+  - **Left margin**: 16px from screen edge to avatar
+  - **Content gap**: 12px between avatar and text content 
+  - **Top/bottom padding**: 16px between posts
+  - **Line height**: 1.4-1.5 for main text content
+  - **Secondary text spacing**: 8px gap between main content and metadata (timestamp, engagement)
+  - **Right margin**: 16px from content to screen edge
+  - **Overall vertical rhythm**: More generous padding creates breathing room, makes content easier to scan
+  - Consider increasing font sizes slightly for mobile (current may be too small)
 
 - **Mobile Bottom Navigation Bar** - Add fixed bottom navigation bar for mobile (similar to Instagram/Twitter mobile apps) with quick access to: Home/Feed, Search, New Recipe (+), Collections, Profile. This provides easier thumb-reach navigation on mobile devices and eliminates sidebar toggle issues. Should only appear on mobile viewport (max-width: 768px).
 - **Pull-to-Refresh for iOS Home Screen App** - Enable native iOS pull-to-refresh gesture when app is installed on iPhone home screen. Current fixed layout with `overflow: hidden` on body prevents native gesture. Options: (1) Restructure layout to make body scrollable instead of internal containers, or (2) Implement custom pull-to-refresh that works with current scrollable containers. Trade-off: Layout restructure (enables native iOS feature) vs. custom implementation (keeps current design intact).

@@ -144,6 +144,13 @@ const API = {
 - Public content viewing for logged-out users
 - Staff user flag (`isStaff: true`) for special features
 
+**Admin Badge System:**
+
+Visual indicators for staff users across all username displays:
+- `getAdminBadge(user)` function generates consistent staff markers
+- Applied to usernames in profile pages, recipe metadata, follow modals, search results, and activity feeds
+- Centralizes staff status display logic for maintainability
+
 **Permission Pattern:**
 
 ```javascript
@@ -246,6 +253,51 @@ No upload buttons or modals - just paste images directly into the editor.
 4. Fallback to base64 if Storage unavailable
 5. Automatic markdown insertion
 
+### Avatar System
+
+**Centralized Avatar Management:**
+
+All user avatars are handled through a unified system with server-side optimization.
+
+**Key Components:**
+- `addGravatarHash` middleware - Server-side function that automatically computes Gravatar hashes from email addresses
+- `getAvatarHtml` client function - Generates consistent avatar HTML with fallbacks
+- Automatic email privacy protection - Server removes email fields after hash computation
+
+**Flow:**
+1. Server endpoints use `addGravatarHash(user/users)` to process user data
+2. Gravatar hash computed from email using MD5
+3. Email field removed for privacy before sending to client
+4. Client uses `getAvatarHtml()` for consistent rendering with initials fallback
+
+**Benefits:**
+- Centralized hash computation (no client-side crypto needed)
+- Email privacy protection
+- Consistent avatar rendering across all UI locations
+- Graceful fallbacks to initials when Gravatar unavailable
+
+### Mobile Touch Optimization
+
+**TouchUtils Module:**
+
+Smart touch handling system that distinguishes between taps and scrolls to prevent accidental card activation during mobile scrolling.
+
+```javascript
+TouchUtils.addTouchHandler(element, handler)
+```
+
+**Features:**
+- **Touch Duration Tracking** - Only triggers on short touches (< 300ms)
+- **Movement Detection** - Tracks finger movement; >10px movement = scrolling
+- **Passive Event Handling** - Uses `passive: true` for smooth scrolling performance
+- **Desktop Compatibility** - Maintains normal click behavior for mouse users
+
+**Implementation:**
+- Replaces problematic `addEventListener('touchstart', handler, {passive: false})` patterns
+- Applied to all card interactions (recipes, collections, menus)
+- Prevents cards from opening when user intends to scroll
+- Maintains keyboard accessibility
+
 ### Design Patterns
 
 **Data Flow:**
@@ -327,6 +379,8 @@ When working on this codebase:
 14. **Skeleton loading with CSS** - Use `::after` pseudo-elements for shimmer effects
 15. **Focus for scroll** - Use `element.focus()` instead of `window.scrollTo()`
 16. **Avatar load detection** - Always use `onload` handlers when removing skeleton from images
+17. **Comprehensive feature coverage** - When adding UI elements for one context, audit all similar contexts to ensure consistency (e.g., username displays, staff badges, avatar rendering)
+18. **Touch-aware interactions** - Use `TouchUtils.addTouchHandler()` for card interactions to distinguish taps from scrolls on mobile devices
 
 ## Feature Status
 
