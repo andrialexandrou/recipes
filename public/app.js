@@ -90,27 +90,25 @@ function hideFirebaseErrorBanner() {
  * @returns {string} The Gravatar URL
  */
 function getGravatarUrl(email, size = CONSTANTS.GRAVATAR_DEFAULT_SIZE) {
+    console.log('[Gravatar] Generating URL for email:', email, 'size:', size);
     if (!email) {
-        return `https://www.gravatar.com/avatar/${CONSTANTS.GRAVATAR_DEFAULT_AVATAR}?s=${size}&d=identicon`;
+        // Use Gravatar "mystery person" fallback for missing email
+        return `https://www.gravatar.com/avatar/${CONSTANTS.GRAVATAR_DEFAULT_AVATAR}?s=${size}&d=mp`;
     }
     const hash = SparkMD5.hash(email.toLowerCase().trim());
-    return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
+    // Use Gravatar "mystery person" fallback for provided email as well
+    return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=mp`;
 }
 
-function getAvatarHtml(username, gravatarHash, size = 40) {
+function getAvatarHtml(username, email, size = 40) {
     const initial = username ? username.charAt(0).toUpperCase() : '?';
-    
     // Use sidebar-specific class for larger avatars
     const fallbackClass = size > 40 ? 'sidebar-avatar-fallback' : 'feed-avatar-fallback';
     const imgClass = size > 40 ? 'sidebar-avatar' : 'feed-avatar';
-    
-    if (gravatarHash) {
-        // Try Gravatar first, fall back to initials if image fails
-        // Use d=identicon instead of d=404 to avoid 404 errors in console
-        const gravatarUrl = `https://www.gravatar.com/avatar/${gravatarHash}?s=${size}&d=identicon`;
+    if (email) {
+        const gravatarUrl = getGravatarUrl(email, size);
         return `<img src="${gravatarUrl}" class="${imgClass}" alt="${username}">`;
     } else {
-        // No Gravatar hash, use initials
         return `<div class="${fallbackClass}">${initial}</div>`;
     }
 }
@@ -1120,20 +1118,20 @@ function updateEditControls() {
     
     if (navMenuBtn && navMenuBtnWrapper) {
         navMenuBtnWrapper.style.display = isLoggedIn ? 'block' : 'none';
-        // Set Gravatar on navbar avatar button using cached gravatarHash
+        // Set Gravatar on navbar avatar button using email
         if (isLoggedIn && API.currentUser) {
             // Clear any existing fallback
             const existingFallback = navMenuBtnWrapper.querySelector('.nav-avatar-fallback');
             if (existingFallback) existingFallback.remove();
-            
-            const gravatarHash = API.currentUser.gravatarHash;
-            console.log('👤 Nav avatar gravatarHash:', gravatarHash ? 'has hash' : 'no hash');
-            
+
+            const email = API.currentUser.email;
+            console.log('👤 Nav avatar email:', email ? email : 'no email');
+
             // Helper function to create and attach fallback
             const createFallback = () => {
                 const existingFallback = navMenuBtnWrapper.querySelector('.nav-avatar-fallback');
                 if (existingFallback) return; // Already exists
-                
+
                 const initial = API.currentUser.username.charAt(0).toUpperCase();
                 const fallback = document.createElement('div');
                 fallback.className = 'nav-avatar-fallback';
@@ -1151,20 +1149,18 @@ function updateEditControls() {
                 });
                 navMenuBtnWrapper.appendChild(fallback);
             };
-            
-            if (gravatarHash) {
-                const gravatarUrl = `https://www.gravatar.com/avatar/${gravatarHash}?s=56&d=404`;
+
+            if (email) {
+                const gravatarUrl = getGravatarUrl(email, 56);
                 navMenuBtn.src = gravatarUrl;
                 navMenuBtn.style.display = 'block';
-                // Handle 404 - show initials fallback
                 navMenuBtn.onerror = () => {
-                    console.log('⚠️ Gravatar 404, showing fallback');
                     navMenuBtn.style.display = 'none';
                     createFallback();
                 };
             } else {
-                // No Gravatar hash, show initials directly
-                console.log('📝 No hash, creating fallback');
+                // No email, show initials directly
+                console.log('📝 No email, creating fallback');
                 navMenuBtn.style.display = 'none';
                 createFallback();
             }
@@ -1656,11 +1652,10 @@ async function loadAuthenticatedUserAvatar(avatarElement, usernameElement) {
             avatarElement.style.background = '#f5f5f5';
             
             if (userData.gravatarHash) {
-                const gravatarUrl = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=56&d=404`;
+                const gravatarUrl = getGravatarUrl(userData.gravatarHash, 56);
                 avatarElement.src = gravatarUrl;
                 avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
                 avatarElement.onerror = () => {
-                    // Fallback to initials
                     avatarElement.style.display = 'none';
                     const initial = API.currentUser.username.charAt(0).toUpperCase();
                     avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
@@ -2791,16 +2786,31 @@ async function renderProfilePage() {
     
     // Set avatar
     const profileAvatar = document.getElementById('profileAvatar');
-    if (profileAvatar && userData?.gravatarHash) {
-        // Keep skeleton until image loads
-        profileAvatar.onload = () => {
-            profileAvatar.classList.remove('skeleton-avatar');
-        };
-        profileAvatar.onerror = () => {
-            // Remove skeleton even if image fails to load
-            profileAvatar.classList.remove('skeleton-avatar');
-        };
-        profileAvatar.src = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=256&d=identicon`;
+    if (profileAvatar) {
+        if (userData?.gravatarHash) {
+            // Use gravatarHash if present (from server, never exposes email)
+            profileAvatar.onload = () => {
+                profileAvatar.classList.remove('skeleton-avatar');
+            };
+            profileAvatar.onerror = () => {
+                profileAvatar.classList.remove('skeleton-avatar');
+            };
+            profileAvatar.src = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=256&d=mp`;
+        } else if (userData?.email) {
+            // Fallback: compute hash client-side if email present
+            profileAvatar.onload = () => {
+                profileAvatar.classList.remove('skeleton-avatar');
+            };
+            profileAvatar.onerror = () => {
+                profileAvatar.classList.remove('skeleton-avatar');
+            };
+            profileAvatar.src = getGravatarUrl(userData.email, 256);
+        } else {
+            // No email or hash, show initials fallback
+            profileAvatar.src = '';
+            profileAvatar.classList.add('skeleton-avatar');
+            profileAvatar.alt = userData?.username ? userData.username.charAt(0).toUpperCase() : '?';
+        }
     }
     
     // Set username
@@ -3219,8 +3229,8 @@ async function loadFollowList(type, username, listElement) {
             item.className = 'follow-item';
             
             const gravatarUrl = user.gravatarHash 
-                ? `https://www.gravatar.com/avatar/${user.gravatarHash}?d=retro&s=88`
-                : `https://www.gravatar.com/avatar/00000000000000000000000000000000?d=retro&s=88`;
+                ? getGravatarUrl(user.gravatarHash, 88)
+                : getGravatarUrl('', 88);
             
             const isCurrentUser = API.currentUser && user.username === API.currentUser.username;
             const isFollowing = API.currentUser && State.users[user.username]?.isFollowing;
@@ -3497,10 +3507,17 @@ async function renderSearchResults(users) {
         const isSelf = user.username === API.currentUser?.username;
         const profileUrl = `/${user.username}`;
         const adminBadge = user.isStaff ? getAdminBadge({ isStaff: true }) : '';
-        
+
+        let avatarHtml = '';
+        if (user.gravatarHash) {
+            avatarHtml = `<img src="https://www.gravatar.com/avatar/${user.gravatarHash}?s=40&d=mp" class="feed-avatar" alt="${user.username}">`;
+        } else {
+            avatarHtml = `<div class="feed-avatar-fallback">${user.username ? user.username.charAt(0).toUpperCase() : '?'}</div>`;
+        }
+
         return `
             <a href="${profileUrl}" class="search-result-item" data-username="${user.username}">
-                ${getAvatarHtml(user.username, user.gravatarHash, 40)}
+                ${avatarHtml}
                 <div class="search-result-info">
                     <div class="search-result-username">@${user.username}${adminBadge}</div>
                     <div class="search-result-stats">${user.followersCount || 0} followers · ${user.followingCount || 0} following</div>
