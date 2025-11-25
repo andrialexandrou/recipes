@@ -3108,12 +3108,20 @@ input:checked + .toggle-slider:before {
 }
 
 .feed-item {
-    padding: 20px;
+    padding: 0;
     border-bottom: 1px solid var(--sage-border);
     display: flex;
-    gap: 16px;
+    gap: 12px;
     align-items: flex-start;
     transition: background-color 0.2s ease;
+}
+
+/* Mobile-first spacing for better readability */
+@media (max-width: 768px) {
+    .feed-item {
+        padding: 0;
+        gap: 12px;
+    }
 }
 
 .feed-item:hover {
@@ -3336,9 +3344,17 @@ input:checked + .toggle-slider:before {
 
 .feed-header-text {
     font-size: 15px;
-    line-height: 1.5;
+    line-height: 1.4;
     color: var(--text-primary);
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+}
+
+/* Larger text on mobile for better readability */
+@media (max-width: 768px) {
+    .feed-header-text {
+        font-size: 16px;
+        line-height: 1.4;
+    }
 }
 
 .feed-username {
@@ -3388,15 +3404,32 @@ input:checked + .toggle-slider:before {
 .feed-preview {
     font-size: 14px;
     color: var(--text-secondary);
-    line-height: 1.5;
-    margin-top: 6px;
-    margin-bottom: 4px;
+    line-height: 1.4;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+/* Improved preview text on mobile */
+@media (max-width: 768px) {
+    .feed-preview {
+        font-size: 15px;
+        line-height: 1.4;
+        margin-bottom: 8px;
+    }
 }
 
 .feed-timestamp {
     font-size: 13px;
     color: var(--text-tertiary);
-    margin-top: 2px;
+    margin-top: 8px;
+}
+
+/* Better timestamp spacing on mobile */
+@media (max-width: 768px) {
+    .feed-timestamp {
+        font-size: 14px;
+        margin-top: 8px;
+    }
 }
 
 .feed-empty {
