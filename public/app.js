@@ -1109,25 +1109,32 @@ document.addEventListener('click', (e) => {
     }
 });
 
-
-// Viewing user link (sidebar) - navigate to their home page
+// Sidebar authenticated user click handler
 const authenticatedUserLink = document.getElementById('authenticatedUser');
 if (authenticatedUserLink) {
     authenticatedUserLink.addEventListener('click', (e) => {
         e.preventDefault();
         // Navigate to authenticated user's home page
         if (API.currentUser) {
+            const wasAlreadyViewingOwnProfile = API.viewingUser === API.currentUser.username;
             API.viewingUser = API.currentUser.username;
             navigate({
                 url: `/${API.currentUser.username}`,
                 title: `@${API.currentUser.username} - Sous`,
                 state: null
             });
-            // Reload data to switch context back to own profile
-            loadAllData().then(() => showHomeView());
+            
+            // If we were already viewing our own profile, force a refresh
+            if (wasAlreadyViewingOwnProfile) {
+                showHomeView();
+            } else {
+                // Reload data to switch context back to own profile
+                loadAllData().then(() => showHomeView());
+            }
         }
     });
 }
+
 
 // Update edit controls visibility based on ownership
 function updateEditControls() {
@@ -1683,8 +1690,8 @@ async function loadAuthenticatedUserAvatar(avatarElement, usernameElement) {
         API.currentUser.username,
         API.currentUser.gravatarHash || API.currentUser.email,
         56,
-        // 'sidebar-avatar',
-        !!API.currentUser.gravatarHash
+        !!API.currentUser.gravatarHash,
+        'sidebar-avatar'
     );
     avatarElement.outerHTML = avatarHtml;
     
@@ -2767,7 +2774,9 @@ async function renderProfilePage() {
             !!userData?.gravatarHash,
             'profile-avatar'
         );
-        profileAvatar.outerHTML = avatarHtml;
+        // Replace img tag with one that includes the ID
+        const imgWithId = avatarHtml.replace('<img ', '<img id="profileAvatar" ');
+        profileAvatar.outerHTML = imgWithId;
         // Re-get the element after replacement and remove skeleton
         const newProfileAvatar = document.getElementById('profileAvatar');
         if (newProfileAvatar) {
