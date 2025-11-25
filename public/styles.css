@@ -93,6 +93,21 @@ body {
     letter-spacing: 2px;
     color: var(--warm-brown);
     margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.alpha-badge {
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    background: var(--deep-coral);
+    color: var(--white);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
 .sidebar-header {
