@@ -2365,7 +2365,10 @@ function updateRecipeMetadata(recipe) {
     // Update author
     const metadataAuthor = document.getElementById('metadataAuthor');
     if (metadataAuthor && recipe.username) {
-        metadataAuthor.textContent = `@${recipe.username}`;
+        // Get user data to check if staff
+        const isStaff = State.users[recipe.username]?.isStaff || false;
+        const adminBadge = isStaff ? getAdminBadge({ isStaff: true }) : '';
+        metadataAuthor.innerHTML = `@${recipe.username}${adminBadge}`;
     }
     
     // Update collections
@@ -2728,7 +2731,8 @@ async function renderProfilePage() {
     // Set username
     const profileUsername = document.getElementById('profileUsername');
     if (profileUsername) {
-        profileUsername.textContent = `@${API.viewingUser}`;
+        const adminBadge = userData?.isStaff ? getAdminBadge({ isStaff: true }) : '';
+        profileUsername.innerHTML = `@${API.viewingUser}${adminBadge}`;
         profileUsername.classList.remove('skeleton-text');
     }
     
@@ -3127,11 +3131,12 @@ async function loadFollowList(type, username, listElement) {
             
             const isCurrentUser = API.currentUser && user.username === API.currentUser.username;
             const isFollowing = API.currentUser && State.users[user.username]?.isFollowing;
+            const adminBadge = user.isStaff ? getAdminBadge({ isStaff: true }) : '';
             
             item.innerHTML = `
                 ${avatarHtml}
                 <div class="follow-item-info">
-                    <a href="/${user.username}" class="follow-item-username">@${user.username}</a>
+                    <a href="/${user.username}" class="follow-item-username">@${user.username}${adminBadge}</a>
                     ${user.bio ? `<div class="follow-item-bio">${escapeHtml(user.bio)}</div>` : ''}
                 </div>
                 ${!isCurrentUser ? `

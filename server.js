@@ -686,6 +686,7 @@ app.get('/api/users/search', async (req, res) => {
                             username: userData.username,
                             followersCount: userData.followersCount || 0,
                             followingCount: userData.followingCount || 0,
+                            isStaff: userData.isStaff || false,
                             ...addGravatarHash(userData)
                         });
                     }
@@ -1816,6 +1817,7 @@ app.get('/api/user/settings', async (req, res) => {
                 email: userData.email,
                 isSearchable: userData.isSearchable !== false,
                 bio: userData.bio || '',
+                isStaff: userData.isStaff || false,
                 createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt
             });
         } else {
@@ -2167,6 +2169,7 @@ app.get('/api/users/:username/connections', validateUsername, async (req, res) =
                         bio: data.bio || '',
                         followersCount: data.followersCount || 0,
                         followingCount: data.followingCount || 0,
+                        isStaff: data.isStaff || false,
                         ...addGravatarHash(data)
                     };
                 }
