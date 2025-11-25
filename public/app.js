@@ -605,6 +605,57 @@ const SkeletonUI = {
     }
 };
 
+// Touch utilities for mobile-friendly interactions
+const TouchUtils = {
+    // Track touch state to distinguish taps from scrolls
+    addTouchHandler(element, handler, clickHandler = null) {
+        let touchStartTime = 0;
+        let touchStartY = 0;
+        let touchStartX = 0;
+        let hasMoved = false;
+        
+        // Touch start - record initial position and time
+        element.addEventListener('touchstart', (e) => {
+            touchStartTime = Date.now();
+            const touch = e.touches[0];
+            touchStartY = touch.clientY;
+            touchStartX = touch.clientX;
+            hasMoved = false;
+        }, { passive: true });
+        
+        // Touch move - track if user is scrolling
+        element.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const moveX = Math.abs(touch.clientX - touchStartX);
+            const moveY = Math.abs(touch.clientY - touchStartY);
+            
+            // Consider it scrolling if moved more than 10px in any direction
+            if (moveX > 10 || moveY > 10) {
+                hasMoved = true;
+            }
+        }, { passive: true });
+        
+        // Touch end - only trigger if it was a tap (not scroll)
+        element.addEventListener('touchend', (e) => {
+            const touchDuration = Date.now() - touchStartTime;
+            
+            // Only trigger if:
+            // - Touch was short (< 300ms)
+            // - User didn't move much (not scrolling)
+            // - Prevent default click event from firing
+            if (touchDuration < 300 && !hasMoved) {
+                e.preventDefault(); // Prevent click event
+                handler(e);
+            }
+        }, { passive: false }); // Need passive: false to call preventDefault
+        
+        // Also add click handler for mouse users if provided
+        if (clickHandler || handler) {
+            element.addEventListener('click', clickHandler || handler);
+        }
+    }
+};
+
 // Modal utilities for reusable modal behavior
 const ModalUtils = {
     // Store active modal and its close callback
@@ -1811,8 +1862,7 @@ function renderCollectionsGrid() {
                 loadCollectionDetail(collectionId);
             }
         };
-        card.addEventListener('click', handler);
-        card.addEventListener('touchstart', handler, { passive: false });
+        TouchUtils.addTouchHandler(card, handler);
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1880,8 +1930,7 @@ function renderMenusGrid() {
                 loadMenuDetail(menuId);
             }
         };
-        card.addEventListener('click', handler);
-        card.addEventListener('touchstart', handler, { passive: false });
+        TouchUtils.addTouchHandler(card, handler);
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1935,8 +1984,7 @@ function renderCollectionsGridHome() {
             e.preventDefault();
             loadCollectionDetail(card.dataset.id);
         };
-        card.addEventListener('click', handler);
-        card.addEventListener('touchstart', handler, { passive: false });
+        TouchUtils.addTouchHandler(card, handler);
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1988,8 +2036,7 @@ function renderMenusGridHome() {
             e.preventDefault();
             loadMenuDetail(card.dataset.id);
         };
-        card.addEventListener('click', handler);
-        card.addEventListener('touchstart', handler, { passive: false });
+        TouchUtils.addTouchHandler(card, handler);
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -2889,8 +2936,7 @@ function renderProfileRecipesGrid() {
             e.preventDefault();
             loadRecipe(card.dataset.id);
         };
-        card.addEventListener('click', handler);
-        card.addEventListener('touchstart', handler, { passive: false });
+        TouchUtils.addTouchHandler(card, handler);
     });
 }
 
@@ -2945,8 +2991,7 @@ function renderProfileCollectionsGrid() {
             e.preventDefault();
             loadCollectionDetail(card.dataset.id);
         };
-        card.addEventListener('click', handler);
-        card.addEventListener('touchstart', handler, { passive: false });
+        TouchUtils.addTouchHandler(card, handler);
     });
 }
 
@@ -2998,8 +3043,7 @@ function renderProfileMenusGrid() {
             e.preventDefault();
             loadMenuDetail(card.dataset.id);
         };
-        card.addEventListener('click', handler);
-        card.addEventListener('touchstart', handler, { passive: false });
+        TouchUtils.addTouchHandler(card, handler);
     });
 }
 
