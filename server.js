@@ -2221,15 +2221,12 @@ app.get('/api/feed', async (req, res) => {
 
 // Dynamic manifest.json endpoint for PWA
 app.get('/manifest.json', (req, res) => {
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const host = req.get('host');
-    
     const manifest = {
         name: 'Sous',
         short_name: 'Sous',
         description: 'Recipes worth keeping',
-        start_url: '/',
-        scope: '/',
+        start_url: 'https://my-sous.com/',
+        scope: 'https://my-sous.com/',
         display: 'standalone',
         background_color: '#faf8f5',
         theme_color: '#6b5d52',
