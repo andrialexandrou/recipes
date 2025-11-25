@@ -3779,11 +3779,17 @@ input:checked + .toggle-slider:before {
         padding-bottom: 0;
     }
     
-    /* Content area should fill space between navbar and bottom nav */
+    /* Content area defaults to full height on mobile */
     .content-area {
-        height: calc(100vh - 64px - env(safe-area-inset-bottom));
-        max-height: calc(100vh - 64px - env(safe-area-inset-bottom));
+        height: 100vh;
+        max-height: 100vh;
         overflow-y: auto;
         padding-bottom: 24px;
+    }
+    
+    /* Adjust height when mobile nav is visible */
+    body.mobile-nav-visible .content-area {
+        height: calc(100vh - 64px - env(safe-area-inset-bottom));
+        max-height: calc(100vh - 64px - env(safe-area-inset-bottom));
     }
 }

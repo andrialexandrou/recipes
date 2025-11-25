@@ -5146,8 +5146,10 @@ function updateMobileBottomNav() {
     if (DOM.mobileBottomNav) {
         if (API.currentUser) {
             DOM.mobileBottomNav.classList.remove('hidden');
+            document.body.classList.add('mobile-nav-visible');
         } else {
             DOM.mobileBottomNav.classList.add('hidden');
+            document.body.classList.remove('mobile-nav-visible');
         }
     }
 }
