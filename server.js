@@ -351,18 +351,19 @@ async function fanOutActivity(authorUserId, activityData) {
         }
         
         const followers = authorDoc.data().followers || [];
-        if (followers.length === 0) {
-            console.log('📭 No followers to fan-out to');
-            return;
-        }
         
-        console.log(`📤 Fanning out activity to ${followers.length} followers`);
+        console.log(`📤 Creating activity (${followers.length} followers to fan-out to)`);
         
-        // Create activity in main activities collection
+        // Always create activity in main activities collection (needed for backfill)
         const activityRef = await db.collection('activities').add({
             ...activityData,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
+        
+        if (followers.length === 0) {
+            console.log('📭 No followers to fan-out to (activity created for future backfill)');
+            return;
+        }
         
         // Fan-out to each follower's feed using batched writes
         // Firestore batches support max 500 operations
@@ -530,7 +531,10 @@ async function backfillFeedForNewFollow(followerId, followedUserId) {
         
         // Fetch all existing content from followed user
         const [recipesSnap, collectionsSnap, menusSnap] = await Promise.all([
-            db.collection('recipes').where('userId', '==', followedUserId).get(),
+            db.collection('recipes')
+                .where('userId', '==', followedUserId)
+                .where('activityPublished', '==', true) // Only published recipes
+                .get(),
             db.collection('collections').where('userId', '==', followedUserId).get(),
             db.collection('menus').where('userId', '==', followedUserId).get()
         ]);
