@@ -3035,7 +3035,7 @@ input:checked + .toggle-slider:before {
 }
 
 .EasyMDEContainer .editor-toolbar i.separator {
-    border-left-color: var(--sage-border);
+    border-left-color: var(--text-tertiary);
     border-right-color: var(--sage-base);
 }
 

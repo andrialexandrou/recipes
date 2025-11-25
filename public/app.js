@@ -808,6 +808,7 @@ function initializeRecipeEditor() {
         spellChecker: false,
         status: false,
         toolbar: [
+            'preview', '|', 
             'bold', 'italic', 'strikethrough', '|',
             'heading-1', 'heading-2', 'heading-3', '|',
             'quote', 'unordered-list', 'ordered-list', '|',
@@ -836,7 +837,6 @@ function initializeRecipeEditor() {
                 className: 'fa fa-image',
                 title: 'Insert Image'
             }, '|',
-            'preview', 'side-by-side', 'fullscreen', '|',
             'guide'
         ],
         autoDownloadFontAwesome: false,
