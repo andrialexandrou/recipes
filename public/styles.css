@@ -3183,12 +3183,13 @@ input:checked + .toggle-slider:before {
     line-height: 1;
 }
 
-.sidebar-avatar {
+.sidebar-avatar,
+.user-avatar {
     width: 28px;
     height: 28px;
     border-radius: 50%;
     flex-shrink: 0;
-    display: block;
+    object-fit: cover;
 }
 
 .viewing-user {

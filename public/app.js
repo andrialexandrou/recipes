@@ -60,7 +60,6 @@ function navigate(options) {
         window.history.pushState(state, title, url);
     }
     
-    console.log(`🧭 Navigated to: ${url} (${title})`);
 }
 
 /**
@@ -90,7 +89,6 @@ function hideFirebaseErrorBanner() {
  * @returns {string} The Gravatar URL
  */
 function getGravatarUrl(email, size = CONSTANTS.GRAVATAR_DEFAULT_SIZE) {
-    console.log('[Gravatar] Generating URL for email:', email, 'size:', size);
     if (!email) {
         // Use Gravatar "mystery person" fallback for missing email
         return `https://www.gravatar.com/avatar/${CONSTANTS.GRAVATAR_DEFAULT_AVATAR}?s=${size}&d=mp`;
@@ -126,7 +124,6 @@ const API = {
     async initializeUsers() {
         return new Promise((resolve, reject) => {
             try {
-                console.log('👤 Initializing Firebase Auth...');
                 
                 // Get references to global auth and db (set in index.html)
                 const auth = window.auth;
@@ -144,18 +141,15 @@ const API = {
                     return;
                 }
                 
-                console.log('✅ Firebase Auth and Firestore references obtained');
                 
                 // Listen for auth state changes
                 auth.onAuthStateChanged(async (firebaseUser) => {
                     if (firebaseUser) {
-                        console.log('✅ User authenticated:', firebaseUser.email);
                         
                         try {
                             // Try Firestore first if available
                             if (db) {
                                 try {
-                                    console.log('🔍 Checking Firestore for user document...');
                                     const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
                                     
                                     if (userDoc.exists) {
@@ -175,13 +169,11 @@ const API = {
                                             following: userData.following || [],
                                             followers: userData.followers || []
                                         };
-                                        console.log('👤 Logged in as (Firestore):', this.currentUser.username, `(${this.currentUser.email})`, this.currentUser.isStaff ? '🛠️ Staff' : '', 'gravatarHash:', gravatarHash ? 'computed' : 'none');
                                         
                                         // Show sidebar for authenticated user
                                         const sidebar = document.getElementById('sidebar');
                                         if (sidebar) {
                                             sidebar.classList.remove('hidden');
-                                            console.log('✅ Sidebar shown (authenticated user)');
                                         }
                                         
                                         // Set viewing user
@@ -209,7 +201,6 @@ const API = {
                             }
                             
                             // If we get here, Firestore is not available (development mode)
-                            console.log('🔍 Fetching user from server...');
                             const users = await fetch('/api/users').then(r => r.json());
                             const matchedUser = users.find(u => u.email === firebaseUser.email);
                             
@@ -226,7 +217,6 @@ const API = {
                                     uid: firebaseUser.uid,
                                     gravatarHash: gravatarHash
                                 };
-                                console.log('👤 Logged in as (server match):', this.currentUser.username, `(${this.currentUser.email})`);
                             } else {
                                 // Extract username from email as fallback (development mode)
                                 const username = firebaseUser.email.split('@')[0].replace(/[^a-z0-9_-]/g, '');
@@ -237,14 +227,12 @@ const API = {
                                     uid: firebaseUser.uid,
                                     gravatarHash: gravatarHash
                                 };
-                                console.log('👤 Logged in as (email fallback):', this.currentUser.username, `(${this.currentUser.email})`);
                             }
                             
                             // Show sidebar for authenticated user
                             const sidebar = document.getElementById('sidebar');
                             if (sidebar) {
                                 sidebar.classList.remove('hidden');
-                                console.log('✅ Sidebar shown (authenticated user)');
                             }
                             
                             // Set viewing user (will be overridden by URL if needed)
@@ -259,7 +247,6 @@ const API = {
                             reject(error);
                         }
                     } else {
-                        console.log('❌ No user authenticated');
                         this.currentUser = null;
                         this.authInitialized = true;
                         
@@ -267,7 +254,6 @@ const API = {
                         const sidebar = document.getElementById('sidebar');
                         if (sidebar) {
                             sidebar.classList.add('hidden');
-                            console.log('🚫 Sidebar hidden (no authenticated user)');
                         }
                         
                         // Check if we're on a username-prefixed URL (e.g. /andri/recipe/...)
@@ -278,12 +264,10 @@ const API = {
                             // Allow viewing someone's content while logged out
                             const username = usernameMatch[1];
                             this.viewingUser = username;
-                            console.log('👁️  Viewing user while logged out:', username);
                             resolve();
                         } else {
                             // Only redirect to login if on root path or protected routes
                             if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
-                                console.log('↩️  Redirecting to login (no user context)');
                                 window.location.href = '/login';
                             }
                             resolve();
@@ -313,42 +297,34 @@ const API = {
     },
     
     async getRecipes() {
-        console.log('🔄 Fetching recipes...');
         const res = await fetch(`/api/${this.viewingUser}/recipes`);
         const data = await this.handleResponse(res);
-        console.log('✅ Received recipes:', data.length, 'items');
         return data;
     },
     
     async getAuthenticatedUserRecipes() {
         if (!this.currentUser) return [];
-        console.log('🔄 Fetching authenticated user recipes for sidebar...');
         const res = await fetch(`/api/${this.currentUser.username}/recipes`);
         const data = await this.handleResponse(res);
-        console.log('✅ Received authenticated user recipes:', data.length, 'items');
         return data;
     },
     
     async getRecipe(id) {
-        console.log('🔄 Fetching recipe:', id);
         const res = await fetch(`/api/${this.viewingUser}/recipes/${id}`);
         return this.handleResponse(res);
     },
     
     async createRecipe(data) {
-        console.log('🔄 Creating recipe:', data);
         const res = await fetch(`/api/${this.currentUser.username}/recipes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         const result = await this.handleResponse(res);
-        console.log('✅ Recipe created:', result);
         return result;
     },
     
     async updateRecipe(id, data) {
-        console.log('🔄 Updating recipe:', id, data);
         const res = await fetch(`/api/${this.currentUser.username}/recipes/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -358,7 +334,6 @@ const API = {
     },
     
     async deleteRecipe(id) {
-        console.log('🔄 Deleting recipe:', id);
         const res = await fetch(`/api/${this.currentUser.username}/recipes/${id}`, {
             method: 'DELETE'
         });
@@ -366,15 +341,12 @@ const API = {
     },
     
     async getCollections() {
-        console.log('🔄 Fetching collections...');
         const res = await fetch(`/api/${this.viewingUser}/collections`);
         const data = await this.handleResponse(res);
-        console.log('✅ Received collections:', data.length, 'items');
         return data;
     },
     
     async createCollection(data) {
-        console.log('🔄 Creating collection:', data);
         const res = await fetch(`/api/${this.currentUser.username}/collections`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -384,7 +356,6 @@ const API = {
     },
     
     async updateCollection(id, data) {
-        console.log('🔄 Updating collection:', id, data);
         const res = await fetch(`/api/${this.currentUser.username}/collections/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -394,7 +365,6 @@ const API = {
     },
     
     async deleteCollection(id) {
-        console.log('🔄 Deleting collection:', id);
         const res = await fetch(`/api/${this.currentUser.username}/collections/${id}`, {
             method: 'DELETE'
         });
@@ -402,7 +372,6 @@ const API = {
     },
     
     async removeRecipeFromCollection(collectionId, recipeId) {
-        console.log('🔄 Removing recipe from collection:', { collectionId, recipeId });
         const res = await fetch(`/api/${this.currentUser.username}/collections/${collectionId}/recipes/${recipeId}`, {
             method: 'DELETE'
         });
@@ -411,15 +380,12 @@ const API = {
     
     // Menu API methods
     async getMenus() {
-        console.log('🔄 Fetching menus...');
         const res = await fetch(`/api/${this.viewingUser}/menus`);
         const data = await this.handleResponse(res);
-        console.log('✅ Received menus:', data.length, 'items');
         return data;
     },
     
     async createMenu(data) {
-        console.log('🔄 Creating menu:', data);
         const res = await fetch(`/api/${this.currentUser.username}/menus`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -429,7 +395,6 @@ const API = {
     },
     
     async updateMenu(id, data) {
-        console.log('🔄 Updating menu:', id, data);
         const res = await fetch(`/api/${this.currentUser.username}/menus/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -439,7 +404,6 @@ const API = {
     },
     
     async deleteMenu(id) {
-        console.log('🔄 Deleting menu:', id);
         const res = await fetch(`/api/${this.currentUser.username}/menus/${id}`, {
             method: 'DELETE'
         });
@@ -448,7 +412,6 @@ const API = {
     
     // Photo API methods
     async uploadPhoto(file) {
-        console.log('🔄 Uploading photo:', file.name);
         const formData = new FormData();
         formData.append('photo', file);
         
@@ -457,12 +420,10 @@ const API = {
             body: formData
         });
         const data = await this.handleResponse(res);
-        console.log('✅ Photo uploaded:', data.url);
         return data;
     },
     
     async deletePhoto(id) {
-        console.log('🔄 Deleting photo:', id);
         const res = await fetch(`/api/${this.currentUser.username}/photos/${id}`, {
             method: 'DELETE'
         });
@@ -471,7 +432,6 @@ const API = {
     
     // Follow/Unfollow API methods
     async followUser(targetUserId, targetUsername) {
-        console.log('🔄 Following user:', targetUserId, targetUsername);
         const res = await fetch(`/api/users/${targetUserId}/follow`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -482,12 +442,10 @@ const API = {
         if (this.currentUser && !this.currentUser.following.includes(targetUserId)) {
             this.currentUser.following.push(targetUserId);
         }
-        console.log('✅ Followed user');
         return data;
     },
     
     async unfollowUser(targetUserId, targetUsername) {
-        console.log('🔄 Unfollowing user:', targetUserId, targetUsername);
         const res = await fetch(`/api/users/${targetUserId}/follow`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -498,16 +456,13 @@ const API = {
         if (this.currentUser) {
             this.currentUser.following = this.currentUser.following.filter(u => u !== targetUserId);
         }
-        console.log('✅ Unfollowed user');
         return data;
     },
     
     // Feed API method
     async getFeed() {
-        console.log('🔄 Fetching activity feed...');
         const res = await fetch(`/api/feed?userId=${this.currentUser.uid}`);
         const data = await this.handleResponse(res);
-        console.log('✅ Received feed:', data.length, 'activities');
         return data;
     }
 };
@@ -990,15 +945,12 @@ async function compressImage(file, maxWidth = 1200, quality = 0.8) {
 // Handle image paste in textarea
 async function handleImagePaste(e, textarea) {
     const items = e.clipboardData?.items;
-    console.log('📋 Paste detected, clipboard items:', items?.length || 0);
     
     if (!items) return false;
     
     for (const item of items) {
-        console.log('📋 Clipboard item type:', item.type);
         
         if (item.type.indexOf('image') !== -1) {
-            console.log('🖼️ Image detected in clipboard!');
             e.preventDefault();
             
             const file = item.getAsFile();
@@ -1007,7 +959,6 @@ async function handleImagePaste(e, textarea) {
                 continue;
             }
             
-            console.log('📁 Image file:', file.name, file.type, file.size, 'bytes');
             
             // Show loading indicator at cursor position
             const uploadingText = '![Uploading...](uploading)';
@@ -1049,7 +1000,6 @@ async function handleImagePaste(e, textarea) {
                 // Trigger change event to update preview if needed
                 textarea.dispatchEvent(new Event('input'));
                 
-                console.log('✅ Image pasted and uploaded successfully');
             } catch (error) {
                 console.error('❌ Failed to upload pasted image:', error);
                 // Remove placeholder on error
@@ -1142,22 +1092,11 @@ function updateEditControls() {
     const homeView = document.getElementById('homeView');
     const isOnHomePage = homeView && !homeView.classList.contains('hidden');
     
-    console.log('🔍 updateEditControls:', {
-        isOnHomePage,
-        isOwner,
-        isLoggedIn,
-        viewingUser: API.viewingUser,
-        currentUser: API.currentUser?.username,
-        homeViewHidden: homeView?.classList.contains('hidden')
-    });
-    
     if (DOM.profileTopBar && DOM.profileActions) {
         if (isLoggedIn && isOwner && isOnHomePage) {
-            console.log('✅ Showing profile actions');
             DOM.profileTopBar.classList.remove('hidden');
             DOM.profileActions.classList.remove('hidden');
         } else {
-            console.log('❌ Hiding profile actions');
             DOM.profileTopBar.classList.add('hidden');
             DOM.profileActions.classList.add('hidden');
         }
@@ -1199,7 +1138,6 @@ function updateEditControls() {
     const navSearchBtn = document.getElementById('navSearchBtn');
     const navSignInBtn = document.getElementById('navSignInBtn');
     
-    console.log('🔧 updateEditControls: isLoggedIn=', isLoggedIn, 'currentUser=', API.currentUser?.username);
     
     if (navSearchBtn) navSearchBtn.style.display = isLoggedIn ? 'block' : 'none';
     
@@ -1212,7 +1150,6 @@ function updateEditControls() {
             if (existingFallback) existingFallback.remove();
 
             const email = API.currentUser.email;
-            console.log('👤 Nav avatar email:', email ? email : 'no email');
 
             // Helper function to create and attach fallback
             const createFallback = () => {
@@ -1226,7 +1163,6 @@ function updateEditControls() {
                 fallback.setAttribute('aria-label', 'Menu');
                 fallback.setAttribute('aria-expanded', 'false');
                 fallback.addEventListener('click', (e) => {
-                    console.log('🖱️ Fallback avatar clicked');
                     e.stopPropagation();
                     const dropdown = document.getElementById('navbarDropdown');
                     if (dropdown) {
@@ -1247,7 +1183,6 @@ function updateEditControls() {
                 };
             } else {
                 // No email, show initials directly
-                console.log('📝 No email, creating fallback');
                 navMenuBtn.style.display = 'none';
                 createFallback();
             }
@@ -1299,7 +1234,6 @@ function updateEditControls() {
     if (newCollectionBtn) newCollectionBtn.style.display = isOwner ? 'inline-flex' : 'none';
     if (newMenuBtn) newMenuBtn.style.display = isOwner ? 'inline-flex' : 'none';
     
-    console.log(`🔒 Edit controls ${isOwner ? 'shown' : 'hidden'} (viewing: ${API.viewingUser}, owner: ${API.currentUser?.username}, logged in: ${isLoggedIn})`);
 }
 
 // Update user display in navbar
@@ -1330,8 +1264,6 @@ async function updateUserDisplay() {
             img.id = 'authenticatedUserAvatar';
             img.className = 'user-avatar';
             img.alt = 'Your recipes';
-            // Start with skeleton color to match ghost loading state
-            img.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; background: #f5f5f5;';
             // Set a 1x1 transparent placeholder to prevent broken image icon
             img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             authenticatedUserAvatar.parentNode.replaceChild(img, authenticatedUserAvatar);
@@ -1634,23 +1566,17 @@ function updateURL(type, id) {
 
 function loadFromURL() {
     const path = window.location.pathname;
-    console.log('🔗 Loading from URL:', path);
-    console.log('🔐 Current user:', API.currentUser?.username);
-    console.log('👀 Viewing user:', API.viewingUser);
     
     // Handle reserved paths
     if (path === '/login' || path === '/signup' || path === '/logout') {
-        console.log('🚫 Reserved path, not loading app');
         return;
     }
     
     // Handle search page
     if (path === '/search') {
-        console.log('🔍 Search page detected');
         if (API.currentUser) {
             showSearchView();
         } else {
-            console.log('⚠️ User not logged in, redirecting to login');
             window.location.href = '/login';
         }
         return;
@@ -1658,26 +1584,21 @@ function loadFromURL() {
     
     // Handle root path first
     if (path === '/') {
-        console.log('📍 Root path detected');
         if (API.currentUser) {
             // Logged-in users see feed at root
-            console.log('✅ User is logged in, showing feed');
             showFeedView();
         } else {
             // Logged-out users redirected to login
-            console.log('⚠️ User not logged in, redirecting to login');
             window.location.href = '/login';
         }
         return;
     }
     
-    console.log('📍 Non-root path, checking patterns...');
     
     // Match username-prefixed URLs (username can contain lowercase letters, numbers, hyphens, underscores)
     const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
     if (usernameMatch) {
         const username = usernameMatch[1];
-        console.log('👤 Username matched from URL:', username);
         // Set viewing user from URL (validation happens in loadAllData)
         API.viewingUser = username;
     }
@@ -1690,7 +1611,6 @@ function loadFromURL() {
     
     if (recipeMatch) {
         const id = recipeMatch[1];
-        console.log('📖 Recipe match:', id);
         const recipe = recipes.find(r => r.id === id);
         if (recipe) {
             loadRecipe(id, false);
@@ -1699,7 +1619,6 @@ function loadFromURL() {
         }
     } else if (collectionMatch) {
         const id = collectionMatch[1];
-        console.log('📚 Collection match:', id);
         const collection = collections.find(c => c.id === id);
         if (collection) {
             loadCollectionDetail(id, false);
@@ -1708,23 +1627,18 @@ function loadFromURL() {
         }
     } else if (menuMatch) {
         const id = menuMatch[1];
-        console.log('🍽️ Menu match found, ID:', id, 'Available menus:', menus.length);
         const menu = menus.find(m => m.id === id);
         if (menu) {
-            console.log('✅ Menu found, loading:', menu.name);
             loadMenuDetail(id, false);
         } else {
             console.warn('⚠️ Menu not found:', id, 'Available menu IDs:', menus.map(m => m.id));
         }
     } else if (collectionsPageMatch) {
-        console.log('📚 Collections page match');
         showCollectionsView(false);
     } else if (menusPageMatch) {
-        console.log('🍽️ Menus page match');
         showMenusView(false);
     } else {
         // Default to home view for username-only URLs
-        console.log('🏠 Defaulting to home view');
         showHomeView();
     }
 }
@@ -1732,79 +1646,51 @@ function loadFromURL() {
 async function loadAuthenticatedUserAvatar(avatarElement, usernameElement) {
     if (!API.currentUser) return;
     
-    try {
-        const res = await fetch(`/api/${API.currentUser.username}/user`);
-        if (res.ok) {
-            const userData = await res.json();
-            avatarElement.style.background = '#f5f5f5';
-            
-            if (userData.gravatarHash) {
-                const gravatarUrl = getGravatarUrl(userData.gravatarHash, 56);
-                avatarElement.src = gravatarUrl;
-                avatarElement.onload = () => { avatarElement.style.background = 'transparent'; };
-                avatarElement.onerror = () => {
-                    avatarElement.style.display = 'none';
-                    const initial = API.currentUser.username.charAt(0).toUpperCase();
-                    avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-                };
-            } else {
-                // No Gravatar, show initials
-                avatarElement.style.display = 'none';
-                const initial = API.currentUser.username.charAt(0).toUpperCase();
-                avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-            }
-            
-            usernameElement.textContent = `@${API.currentUser.username}`;
-            
-            // Add admin badge if user is staff
-            if (API.currentUser.isStaff) {
-                usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
-            }
-        } else {
-            // Fallback if user not found
+    // Clean up any existing fallback divs
+    const existingFallback = avatarElement.parentNode?.querySelector('.sidebar-avatar-fallback');
+    if (existingFallback) {
+        existingFallback.remove();
+    }
+    
+    if (API.currentUser.gravatarHash) {
+        const gravatarUrl = getGravatarUrl(API.currentUser.gravatarHash, 56);
+        avatarElement.src = gravatarUrl;
+        avatarElement.onload = () => { 
+            avatarElement.style.background = 'transparent'; 
+        };
+        avatarElement.onerror = () => {
             avatarElement.style.display = 'none';
             const initial = API.currentUser.username.charAt(0).toUpperCase();
             avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-            usernameElement.textContent = `@${API.currentUser.username}`;
-            
-            // Add admin badge if user is staff
-            if (API.currentUser.isStaff) {
-                usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
-            }
-        }
-    } catch (error) {
-        console.error('Failed to fetch authenticated user info:', error);
+        };
+    } else {
+        // No Gravatar, show initials
         avatarElement.style.display = 'none';
-        const initial = API.currentUser ? API.currentUser.username.charAt(0).toUpperCase() : '?';
+        const initial = API.currentUser.username.charAt(0).toUpperCase();
         avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-        usernameElement.textContent = `@${API.currentUser.username}`;
-        
-        // Add admin badge if user is staff
-        if (API.currentUser?.isStaff) {
-            usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
-        }
+    }
+    
+    usernameElement.textContent = `@${API.currentUser.username}`;
+    
+    // Add admin badge if user is staff
+    if (API.currentUser?.isStaff) {
+        usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
     }
 }
 
 function loadFromURL() {
     const path = window.location.pathname;
-    console.log('🔗 Loading from URL:', path);
-    console.log('🔐 Current user:', API.currentUser?.username);
-    console.log('👀 Viewing user:', API.viewingUser);
     
     // Handle reserved paths
     if (path === '/login' || path === '/signup' || path === '/logout') {
-        console.log('🚫 Reserved path, not loading app');
         return;
     }
     
     // Handle search page
     if (path === '/search') {
-        console.log('🔍 Search page detected');
         if (API.currentUser) {
             showSearchView();
         } else {
-            console.log('⚠️ User not logged in, redirecting to login');
             window.location.href = '/login';
         }
         return;
@@ -1812,26 +1698,21 @@ function loadFromURL() {
     
     // Handle root path first
     if (path === '/') {
-        console.log('📍 Root path detected');
         if (API.currentUser) {
             // Logged-in users see feed at root
-            console.log('✅ User is logged in, showing feed');
             showFeedView();
         } else {
             // Logged-out users redirected to login
-            console.log('⚠️ User not logged in, redirecting to login');
             window.location.href = '/login';
         }
         return;
     }
     
-    console.log('📍 Non-root path, checking patterns...');
     
     // Match username-prefixed URLs (username can contain lowercase letters, numbers, hyphens, underscores)
     const usernameMatch = path.match(/^\/([a-z0-9_-]+)/);
     if (usernameMatch) {
         const username = usernameMatch[1];
-        console.log('👤 Username matched from URL:', username);
         // Set viewing user from URL (validation happens in loadAllData)
         API.viewingUser = username;
     }
@@ -1844,7 +1725,6 @@ function loadFromURL() {
     
     if (recipeMatch) {
         const id = recipeMatch[1];
-        console.log('📖 Recipe match:', id);
         const recipe = recipes.find(r => r.id === id);
         if (recipe) {
             loadRecipe(id, false);
@@ -1853,7 +1733,6 @@ function loadFromURL() {
         }
     } else if (collectionMatch) {
         const id = collectionMatch[1];
-        console.log('📚 Collection match:', id);
         const collection = collections.find(c => c.id === id);
         if (collection) {
             loadCollectionDetail(id, false);
@@ -1862,23 +1741,18 @@ function loadFromURL() {
         }
     } else if (menuMatch) {
         const id = menuMatch[1];
-        console.log('🍽️ Menu match found, ID:', id, 'Available menus:', menus.length);
         const menu = menus.find(m => m.id === id);
         if (menu) {
-            console.log('✅ Menu found, loading:', menu.name);
             loadMenuDetail(id, false);
         } else {
             console.warn('⚠️ Menu not found:', id, 'Available menu IDs:', menus.map(m => m.id));
         }
     } else if (collectionsPageMatch) {
-        console.log('📚 Collections page match');
         showCollectionsView(false);
     } else if (menusPageMatch) {
-        console.log('🍽️ Menus page match');
         showMenusView(false);
     } else {
         // Default to home view for username-only URLs
-        console.log('🏠 Defaulting to home view');
         showHomeView();
     }
 }
@@ -2819,9 +2693,6 @@ function enterViewMode() {
 
 // Show home view (collections)
 function showHomeView() {
-    console.log('🏠 showHomeView called');
-    console.log('👀 Current viewing user:', API.viewingUser);
-    console.log('🔐 Current logged-in user:', API.currentUser?.username);
     
     // Clear sidebar active states
     document.querySelectorAll('.recipe-item').forEach(item => {
@@ -2842,7 +2713,6 @@ function showHomeView() {
     
     homeView.classList.remove('hidden');
     homeView.classList.add('active');
-    console.log('✅ Home view made visible');
     
     currentRecipeId = null;
     currentCollectionId = null;
@@ -2857,7 +2727,6 @@ function showHomeView() {
 
 // Render profile page
 async function renderProfilePage() {
-    console.log('📄 Rendering profile page for:', API.viewingUser);
     
     // Update profile action buttons visibility
     updateEditControls();
@@ -2949,7 +2818,6 @@ async function renderProfilePage() {
     const isOwner = API.viewingUser === API.currentUser?.username;
     const isFollowing = API.currentUser?.following?.includes(userData?.uid);
     
-    console.log('🔍 Setting up follow button - userData:', userData);
     
     if (profileFollowBtn) {
         if (isOwner || !API.currentUser) {
@@ -2967,9 +2835,7 @@ async function renderProfilePage() {
             // Capture userData values in closure
             const uid = userData?.uid;
             const username = userData?.username;
-            console.log('✅ Captured for closure - uid:', uid, 'username:', username);
             profileFollowBtn.onclick = () => {
-                console.log('🖱️ Follow button clicked - uid:', uid, 'username:', username);
                 toggleFollowFromProfile(uid, username);
             };
         }
@@ -2992,7 +2858,6 @@ async function renderProfilePage() {
 
 // Switch profile tabs
 function switchProfileTab(tabName) {
-    console.log('🔄 Switching to tab:', tabName);
     
     // Update tab buttons
     document.querySelectorAll('.profile-tab').forEach(tab => {
@@ -3025,11 +2890,8 @@ function switchProfileTab(tabName) {
 
 // Render profile recipes grid
 function renderProfileRecipesGrid() {
-    console.log('📄 renderProfileRecipesGrid called');
     const grid = document.getElementById('recipesGridProfile');
     const empty = document.getElementById('recipesEmpty');
-    console.log('Grid element:', grid);
-    console.log('Recipes count:', recipes.length);
     
     if (!grid) {
         console.warn('⚠️ recipesGridProfile element not found!');
@@ -3074,11 +2936,8 @@ function renderProfileRecipesGrid() {
 
 // Render profile collections grid
 function renderProfileCollectionsGrid() {
-    console.log('📦 renderProfileCollectionsGrid called');
     const grid = document.getElementById('collectionsGridProfile');
     const empty = document.getElementById('collectionsEmpty');
-    console.log('Grid element:', grid);
-    console.log('Collections count:', collections.length);
     
     if (!grid) {
         console.warn('⚠️ collectionsGridProfile element not found!');
@@ -3133,11 +2992,8 @@ function renderProfileCollectionsGrid() {
 
 // Render profile menus grid
 function renderProfileMenusGrid() {
-    console.log('🍽️ renderProfileMenusGrid called');
     const grid = document.getElementById('menusGridProfile');
     const empty = document.getElementById('menusEmpty');
-    console.log('Grid element:', grid);
-    console.log('Menus count:', menus.length);
     
     if (!grid) {
         console.warn('⚠️ menusGridProfile element not found!');
@@ -3189,41 +3045,31 @@ function renderProfileMenusGrid() {
 
 // Toggle follow from profile page
 async function toggleFollowFromProfile(userIdToFollow, usernameToFollow) {
-    console.log('🔄 toggleFollowFromProfile called', { userIdToFollow, usernameToFollow });
-    console.log('👤 API.currentUser:', API.currentUser);
     
     if (!API.currentUser) {
-        console.log('❌ Missing currentUser');
         return;
     }
     
     if (!userIdToFollow) {
-        console.log('❌ Missing userIdToFollow');
         return;
     }
     
     const profileFollowBtn = document.getElementById('profileFollowBtn');
     if (!profileFollowBtn) {
-        console.log('❌ profileFollowBtn not found');
         return;
     }
     
     const isFollowing = profileFollowBtn.classList.contains('following');
-    console.log('📊 Current state - isFollowing:', isFollowing, 'classList:', profileFollowBtn.className);
     
     try {
         if (isFollowing) {
-            console.log('🔄 Unfollowing user...');
             await API.unfollowUser(userIdToFollow, usernameToFollow);
             profileFollowBtn.classList.remove('following');
             profileFollowBtn.textContent = 'Follow';
-            console.log('✅ Unfollowed - new classList:', profileFollowBtn.className);
         } else {
-            console.log('🔄 Following user...');
             await API.followUser(userIdToFollow, usernameToFollow);
             profileFollowBtn.classList.add('following');
             profileFollowBtn.textContent = 'Following';
-            console.log('✅ Followed - new classList:', profileFollowBtn.className);
         }
         
         // Update follower count
@@ -3231,7 +3077,6 @@ async function toggleFollowFromProfile(userIdToFollow, usernameToFollow) {
         if (profileFollowersCount) {
             const currentCount = parseInt(profileFollowersCount.textContent) || 0;
             profileFollowersCount.textContent = isFollowing ? currentCount - 1 : currentCount + 1;
-            console.log('📊 Updated follower count:', profileFollowersCount.textContent);
         }
     } catch (error) {
         console.error('❌ Error toggling follow:', error);
@@ -3244,7 +3089,6 @@ async function toggleFollowFromProfile(userIdToFollow, usernameToFollow) {
 // =============================================================================
 
 async function showFollowModal(initialTab, username) {
-    console.log(`📋 Opening follow modal (${initialTab} tab) for ${username}`);
     
     // Clear previous content
     DOM.followingList.innerHTML = '';
@@ -3291,7 +3135,6 @@ async function showFollowModal(initialTab, username) {
 }
 
 async function loadFollowList(type, username, listElement) {
-    console.log(`📋 Loading ${type} list for ${username}`);
     
     try {
         // Fetch both lists from server in one request
@@ -3402,7 +3245,6 @@ async function handleFollowToggleInModal(button, userId, username) {
 
 function closeFollowModal() {
     // Modal closing handled by ModalUtils
-    console.log('📋 Follow modal closed');
 }
 
 function escapeHtml(text) {
@@ -3447,7 +3289,6 @@ function showNotFoundView() {
 }
 
 function showFeedView() {
-    console.log('📰 showFeedView called');
     
     // Clear sidebar active states
     document.querySelectorAll('.recipe-item').forEach(item => {
@@ -3470,7 +3311,6 @@ function showFeedView() {
     if (feedView) {
         feedView.classList.remove('hidden');
         feedView.classList.add('active');
-        console.log('✅ Feed view made visible');
     } else {
         console.error('❌ Feed view element not found!');
     }
@@ -3492,7 +3332,6 @@ function showFeedView() {
 }
 
 async function showSearchView() {
-    console.log('🔍 showSearchView called');
     
     // Clear sidebar active states
     document.querySelectorAll('.recipe-item').forEach(item => {
@@ -3513,7 +3352,6 @@ async function showSearchView() {
     if (searchView) {
         searchView.classList.remove('hidden');
         searchView.classList.add('active');
-        console.log('✅ Search view made visible');
     } else {
         console.error('❌ Search view element not found!');
     }
@@ -3723,14 +3561,6 @@ async function renderFeed(activities) {
         const actionText = getActionText(activity.type);
         const icon = getActivityIcon(activity.type);
         
-        // Debug: Log what we're getting
-        console.log('🔍 Activity:', {
-            type: activity.type,
-            entityId: activity.entityId,
-            entitySlug: activity.entitySlug,
-            entityTitle: activity.entityTitle
-        });
-        
         // Build URL based on entity type
         let entityUrl = '';
         if (activity.type === 'recipe_created') {
@@ -3741,7 +3571,6 @@ async function renderFeed(activities) {
             entityUrl = `/${activity.username}/menu/${activity.entitySlug}`;
         }
         
-        console.log('🔗 Generated URL:', entityUrl);
         
         // Get avatar HTML (Gravatar with initials fallback)
         const avatarHtml = getAvatarHtml(activity.username, userGravatars[activity.username], 40);
@@ -3861,7 +3690,6 @@ function showNormalHomeView(skeleton, content) {
 
 // Load all data
 async function loadAllData() {
-    console.log('🚀 Loading all data...');
     try {
         // Initialize users first
         await API.initializeUsers();
@@ -3871,7 +3699,6 @@ async function loadAllData() {
         
         // Skip loading data for special routes but still handle routing
         if (path === '/search' || path === '/login' || path === '/signup' || path === '/logout') {
-            console.log('🚫 Special route detected, skipping data load but handling routing:', path);
             // For search, set viewing user to current user if logged in
             if (path === '/search' && API.currentUser) {
                 API.viewingUser = API.currentUser.username;
@@ -3886,13 +3713,11 @@ async function loadAllData() {
             const username = usernameMatch[1];
             // Set viewing user from URL - trust the URL
             API.viewingUser = username;
-            console.log('👁️  Setting viewing user from URL:', username);
         } else if (API.currentUser) {
             // No username in URL, use current user if logged in
             API.viewingUser = API.currentUser.username;
         } else {
             // Not logged in and no username in URL - bail out
-            console.log('⚠️ No viewing context (not logged in, no username in URL)');
             return;
         }
         
@@ -3957,7 +3782,6 @@ async function loadAllData() {
         collections = collectionsData;
         menus = menusData;
         
-        console.log('📊 Data loaded - Recipes:', recipes.length, 'Collections:', collections.length, 'Menus:', menus.length);
         
         renderRecipeList();
         updateUserDisplay();
@@ -3967,7 +3791,6 @@ async function loadAllData() {
         
         // Check if it's a user not found error
         if (error.userNotFound) {
-            console.log('🚫 User not found - showing 404 page');
             showNotFoundView();
             return;
         }
@@ -4174,7 +3997,6 @@ function copyRecipeContent(format) {
         content = `# ${recipe.title}\n\n${recipe.content}`;
         navigator.clipboard.writeText(content).then(() => {
             closeShareDropdown();
-            console.log('Recipe content copied:', format);
         });
     } else if (format === 'plaintext') {
         // Convert markdown to plain text (strip formatting)
@@ -4183,7 +4005,6 @@ function copyRecipeContent(format) {
         content = `${recipe.title}\n\n${tempDiv.textContent || tempDiv.innerText}`;
         navigator.clipboard.writeText(content).then(() => {
             closeShareDropdown();
-            console.log('Recipe content copied:', format);
         });
     } else if (format === 'html') {
         // Convert markdown to rich HTML for pasting into Google Docs, Word, etc.
@@ -4200,7 +4021,6 @@ function copyRecipeContent(format) {
         
         navigator.clipboard.write([clipboardItem]).then(() => {
             closeShareDropdown();
-            console.log('Recipe content copied as rich text:', format);
         }).catch(err => {
             console.error('Failed to copy rich text:', err);
             // Fallback to plain text
@@ -4229,7 +4049,6 @@ function copyMenuContent(format) {
         content = `# ${menu.name}\n\n${menu.description ? menu.description + '\n\n' : ''}${menu.content}`;
         navigator.clipboard.writeText(content).then(() => {
             closeMenuShareDropdown();
-            console.log('Menu content copied:', format);
         });
     } else if (format === 'plaintext') {
         // Convert markdown to plain text (strip formatting)
@@ -4239,7 +4058,6 @@ function copyMenuContent(format) {
         content = `${menu.name}\n\n${descText}${tempDiv.textContent || tempDiv.innerText}`;
         navigator.clipboard.writeText(content).then(() => {
             closeMenuShareDropdown();
-            console.log('Menu content copied:', format);
         });
     } else if (format === 'html') {
         // Convert markdown to rich HTML for pasting into Google Docs, Word, etc.
@@ -4259,7 +4077,6 @@ function copyMenuContent(format) {
         
         navigator.clipboard.write([clipboardItem]).then(() => {
             closeMenuShareDropdown();
-            console.log('Menu content copied as rich text:', format);
         }).catch(err => {
             console.error('Failed to copy rich text:', err);
             // Fallback to plain text
@@ -4429,14 +4246,10 @@ async function handleCollectionToggle(collectionId, isChecked) {
         
         if (isChecked && !col.recipeIds.includes(currentRecipeId)) {
             col.recipeIds.push(currentRecipeId);
-            console.log('🔄 Adding recipe to collection:', col.name);
             await API.updateCollection(col.id, col);
-            console.log('✅ Successfully added recipe to collection');
         } else if (!isChecked && col.recipeIds.includes(currentRecipeId)) {
             col.recipeIds = col.recipeIds.filter(id => id !== currentRecipeId);
-            console.log('🔄 Removing recipe from collection:', col.name);
             await API.updateCollection(col.id, col);
-            console.log('✅ Successfully removed recipe from collection');
         }
         
         // Update metadata sidebar
@@ -4482,7 +4295,6 @@ async function editCollection(collectionId) {
             updateURL('collection', collectionId);
         }
         
-        console.log('✅ Collection updated successfully');
     } catch (error) {
         console.error('❌ Error updating collection:', error);
         alert(`Error updating collection: ${error.message}`);
@@ -4508,7 +4320,6 @@ async function deleteCollection(collectionId) {
     
     try {
         await API.deleteCollection(collectionId);
-        console.log('✅ Collection deleted successfully');
         
         // Update local collections array
         const index = collections.findIndex(c => c.id === collectionId);
@@ -4540,7 +4351,6 @@ async function removeRecipeFromCollection(collectionId, recipeId) {
     
     try {
         await API.removeRecipeFromCollection(collectionId, recipeId);
-        console.log('✅ Recipe removed from collection successfully');
         
         // Update local collection data
         if (collection.recipeIds) {
@@ -4755,7 +4565,6 @@ async function deleteMenu(menuId) {
     
     try {
         await API.deleteMenu(menuId);
-        console.log('✅ Menu deleted successfully');
         
         // Update local menus array
         const index = menus.findIndex(m => m.id === menuId);
@@ -4938,7 +4747,6 @@ if (DOM.profileSettingsBtn) {
 
 if (DOM.profileMenuBtn) {
     DOM.profileMenuBtn.addEventListener('click', (e) => {
-        console.log('☰ Profile menu button clicked');
         e.stopPropagation();
         const dropdown = document.getElementById('navbarDropdown');
         if (dropdown) {
@@ -4950,7 +4758,6 @@ if (DOM.profileMenuBtn) {
 // Mobile sidebar toggle
 if (DOM.mobileSidebarToggle) {
     DOM.mobileSidebarToggle.addEventListener('click', () => {
-        console.log('📱 Mobile sidebar toggle clicked');
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
             sidebar.classList.toggle('collapsed');
@@ -4961,7 +4768,6 @@ if (DOM.mobileSidebarToggle) {
 // Desktop sidebar toggle
 if (DOM.desktopSidebarToggle) {
     DOM.desktopSidebarToggle.addEventListener('click', () => {
-        console.log('🖥️ Desktop sidebar toggle clicked');
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
             sidebar.classList.toggle('collapsed');
@@ -4975,7 +4781,6 @@ if (DOM.desktopSidebarToggle) {
 const innerSidebarToggle = document.getElementById('innerSidebarToggle');
 if (innerSidebarToggle) {
     innerSidebarToggle.addEventListener('click', () => {
-        console.log('📐 Inner sidebar toggle clicked');
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
             sidebar.classList.toggle('collapsed');
@@ -5323,14 +5128,12 @@ shortcutsModal?.addEventListener('keydown', (e) => {
 
 async function handleLogout() {
     try {
-        console.log('🔐 Logging out...');
         
         // Clear API state first
         API.currentUser = null;
         API.viewingUser = null;
         
         await auth.signOut();
-        console.log('✅ Logout successful');
         
         // Clear data
         recipes = [];
