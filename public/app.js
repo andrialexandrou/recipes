@@ -88,27 +88,22 @@ function hideFirebaseErrorBanner() {
  * @param {number} size - The size of the avatar in pixels
  * @returns {string} The Gravatar URL
  */
-function getGravatarUrl(email, size = CONSTANTS.GRAVATAR_DEFAULT_SIZE) {
-    if (!email) {
-        // Use Gravatar "mystery person" fallback for missing email
+function getGravatarUrl(emailOrHash, size = CONSTANTS.GRAVATAR_DEFAULT_SIZE, isHash = false) {
+    if (!emailOrHash) {
+        // Use Gravatar "mystery person" fallback for missing email/hash
         return `https://www.gravatar.com/avatar/${CONSTANTS.GRAVATAR_DEFAULT_AVATAR}?s=${size}&d=mp`;
     }
-    const hash = SparkMD5.hash(email.toLowerCase().trim());
-    // Use Gravatar "mystery person" fallback for provided email as well
+    
+    const hash = isHash ? emailOrHash : SparkMD5.hash(emailOrHash.toLowerCase().trim());
     return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=mp`;
 }
 
-function getAvatarHtml(username, email, size = 40) {
-    const initial = username ? username.charAt(0).toUpperCase() : '?';
-    // Use sidebar-specific class for larger avatars
-    const fallbackClass = size > 40 ? 'sidebar-avatar-fallback' : 'feed-avatar-fallback';
-    const imgClass = size > 40 ? 'sidebar-avatar' : 'feed-avatar';
-    if (email) {
-        const gravatarUrl = getGravatarUrl(email, size);
-        return `<img src="${gravatarUrl}" class="${imgClass}" alt="${username}">`;
-    } else {
-        return `<div class="${fallbackClass}">${initial}</div>`;
-    }
+function getAvatarHtml(username, emailOrHash, size = 40, isHash = false, customClass = null) {
+    // Use custom class if provided, otherwise determine based on size
+    const imgClass = customClass || (size > 40 ? 'sidebar-avatar' : 'feed-avatar');
+    
+    const gravatarUrl = getGravatarUrl(emailOrHash, size, isHash);
+    return `<img src="${gravatarUrl}" class="${imgClass}" alt="${username}">`;
 }
 
 // =============================================================================
@@ -1149,43 +1144,17 @@ function updateEditControls() {
             const existingFallback = navMenuBtnWrapper.querySelector('.nav-avatar-fallback');
             if (existingFallback) existingFallback.remove();
 
-            const email = API.currentUser.email;
-
-            // Helper function to create and attach fallback
-            const createFallback = () => {
-                const existingFallback = navMenuBtnWrapper.querySelector('.nav-avatar-fallback');
-                if (existingFallback) return; // Already exists
-
-                const initial = API.currentUser.username.charAt(0).toUpperCase();
-                const fallback = document.createElement('div');
-                fallback.className = 'nav-avatar-fallback';
-                fallback.textContent = initial;
-                fallback.setAttribute('aria-label', 'Menu');
-                fallback.setAttribute('aria-expanded', 'false');
-                fallback.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const dropdown = document.getElementById('navbarDropdown');
-                    if (dropdown) {
-                        dropdown.classList.toggle('hidden');
-                        fallback.setAttribute('aria-expanded', !dropdown.classList.contains('hidden'));
-                    }
-                });
-                navMenuBtnWrapper.appendChild(fallback);
-            };
-
-            if (email) {
-                const gravatarUrl = getGravatarUrl(email, 56);
-                navMenuBtn.src = gravatarUrl;
-                navMenuBtn.style.display = 'block';
-                navMenuBtn.onerror = () => {
-                    navMenuBtn.style.display = 'none';
-                    createFallback();
-                };
-            } else {
-                // No email, show initials directly
-                navMenuBtn.style.display = 'none';
-                createFallback();
-            }
+            // Replace the img element with new avatar HTML
+            const avatarHtml = getAvatarHtml(
+                API.currentUser.gravatarHash || API.currentUser.email,
+                56,
+                'nav-menu-btn',
+                !!API.currentUser.gravatarHash
+            );
+            navMenuBtn.outerHTML = avatarHtml;
+            // Re-get the element after replacement
+            const newNavMenuBtn = document.querySelector('.nav-menu-btn');
+            if (newNavMenuBtn) newNavMenuBtn.style.display = 'block';
         }
     }
     if (navSignInBtn) navSignInBtn.style.display = isLoggedIn ? 'none' : 'block';
@@ -1241,13 +1210,19 @@ async function updateUserDisplay() {
     // Update current user avatar in navbar (right side)
     const currentUserAvatar = document.getElementById('currentUserAvatar');
     if (currentUserAvatar && API.currentUser) {
-        // Show loading placeholder
-        currentUserAvatar.style.background = '#e0e0e0';
-        const gravatarUrl = getGravatarUrl(API.currentUser.email, 128);
-        currentUserAvatar.src = gravatarUrl;
-        currentUserAvatar.title = `Logged in as @${API.currentUser.username}`;
-        // Remove placeholder once loaded
-        currentUserAvatar.onload = () => { currentUserAvatar.style.background = 'transparent'; };
+        // Replace with avatar HTML
+        const avatarHtml = getAvatarHtml(
+            API.currentUser.gravatarHash || API.currentUser.email,
+            128,
+            'current-user-avatar',
+            !!API.currentUser.gravatarHash
+        );
+        currentUserAvatar.outerHTML = avatarHtml;
+        // Re-get the element and set title
+        const newCurrentUserAvatar = document.querySelector('.current-user-avatar');
+        if (newCurrentUserAvatar) {
+            newCurrentUserAvatar.title = `Logged in as @${API.currentUser.username}`;
+        }
     }
     
     // Update authenticated user in sidebar (shows your recipes)
@@ -1652,29 +1627,21 @@ async function loadAuthenticatedUserAvatar(avatarElement, usernameElement) {
         existingFallback.remove();
     }
     
-    if (API.currentUser.gravatarHash) {
-        const gravatarUrl = getGravatarUrl(API.currentUser.gravatarHash, 56);
-        avatarElement.src = gravatarUrl;
-        avatarElement.onload = () => { 
-            avatarElement.style.background = 'transparent'; 
-        };
-        avatarElement.onerror = () => {
-            avatarElement.style.display = 'none';
-            const initial = API.currentUser.username.charAt(0).toUpperCase();
-            avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-        };
-    } else {
-        // No Gravatar, show initials
-        avatarElement.style.display = 'none';
-        const initial = API.currentUser.username.charAt(0).toUpperCase();
-        avatarElement.insertAdjacentHTML('afterend', `<div class="sidebar-avatar-fallback">${initial}</div>`);
-    }
+    // Replace with avatar HTML
+    const avatarHtml = getAvatarHtml(
+        API.currentUser.username,
+        API.currentUser.gravatarHash || API.currentUser.email,
+        56,
+        // 'sidebar-avatar',
+        !!API.currentUser.gravatarHash
+    );
+    avatarElement.outerHTML = avatarHtml;
     
     usernameElement.textContent = `@${API.currentUser.username}`;
     
     // Add admin badge if user is staff
     if (API.currentUser?.isStaff) {
-        usernameElement.innerHTML = `@${escapeHtml(API.currentUser.username)} ${getAdminBadge(API.currentUser)}`;
+        usernameElement.innerHTML += ` ${getAdminBadge(API.currentUser)}`;
     }
 }
 
@@ -2743,29 +2710,18 @@ async function renderProfilePage() {
     // Set avatar
     const profileAvatar = document.getElementById('profileAvatar');
     if (profileAvatar) {
-        if (userData?.gravatarHash) {
-            // Use gravatarHash if present (from server, never exposes email)
-            profileAvatar.onload = () => {
-                profileAvatar.classList.remove('skeleton-avatar');
-            };
-            profileAvatar.onerror = () => {
-                profileAvatar.classList.remove('skeleton-avatar');
-            };
-            profileAvatar.src = `https://www.gravatar.com/avatar/${userData.gravatarHash}?s=256&d=mp`;
-        } else if (userData?.email) {
-            // Fallback: compute hash client-side if email present
-            profileAvatar.onload = () => {
-                profileAvatar.classList.remove('skeleton-avatar');
-            };
-            profileAvatar.onerror = () => {
-                profileAvatar.classList.remove('skeleton-avatar');
-            };
-            profileAvatar.src = getGravatarUrl(userData.email, 256);
-        } else {
-            // No email or hash, show initials fallback
-            profileAvatar.src = '';
-            profileAvatar.classList.add('skeleton-avatar');
-            profileAvatar.alt = userData?.username ? userData.username.charAt(0).toUpperCase() : '?';
+        const avatarHtml = getAvatarHtml(
+            userData?.username || API.viewingUser,
+            userData?.gravatarHash || userData?.email || '', 
+            256, 
+            !!userData?.gravatarHash,
+            'profile-avatar'
+        );
+        profileAvatar.outerHTML = avatarHtml;
+        // Re-get the element after replacement and remove skeleton
+        const newProfileAvatar = document.getElementById('profileAvatar');
+        if (newProfileAvatar) {
+            newProfileAvatar.classList.remove('skeleton-avatar');
         }
     }
     
@@ -3155,18 +3111,25 @@ async function loadFollowList(type, username, listElement) {
         
         // Render user list
         for (const user of users) {
+            console.log('Follow modal user data:', user);
             const item = document.createElement('div');
             item.className = 'follow-item';
             
-            const gravatarUrl = user.gravatarHash 
-                ? getGravatarUrl(user.gravatarHash, 88)
-                : getGravatarUrl('', 88);
+            // Use getAvatarHtml for consistent avatar rendering with fallback
+            const avatarHtml = getAvatarHtml(
+                user.username || '', 
+                user.gravatarHash || null, // Pass null instead of empty string for proper fallback
+                88, 
+                !!user.gravatarHash, 
+                'follow-item-avatar'
+            );
+            console.log('Generated avatar HTML:', avatarHtml);
             
             const isCurrentUser = API.currentUser && user.username === API.currentUser.username;
             const isFollowing = API.currentUser && State.users[user.username]?.isFollowing;
             
             item.innerHTML = `
-                <img src="${gravatarUrl}" alt="${user.username}" class="follow-item-avatar">
+                ${avatarHtml}
                 <div class="follow-item-info">
                     <a href="/${user.username}" class="follow-item-username">@${user.username}</a>
                     ${user.bio ? `<div class="follow-item-bio">${escapeHtml(user.bio)}</div>` : ''}
@@ -3433,12 +3396,12 @@ async function renderSearchResults(users) {
         const profileUrl = `/${user.username}`;
         const adminBadge = user.isStaff ? getAdminBadge({ isStaff: true }) : '';
 
-        let avatarHtml = '';
-        if (user.gravatarHash) {
-            avatarHtml = `<img src="https://www.gravatar.com/avatar/${user.gravatarHash}?s=40&d=mp" class="feed-avatar" alt="${user.username}">`;
-        } else {
-            avatarHtml = `<div class="feed-avatar-fallback">${user.username ? user.username.charAt(0).toUpperCase() : '?'}</div>`;
-        }
+        const avatarHtml = getAvatarHtml(
+            user.username || '',
+            user.gravatarHash || null, // Pass null instead of empty string for proper fallback
+            40,
+            !!user.gravatarHash
+        );
 
         return `
             <a href="${profileUrl}" class="search-result-item" data-username="${user.username}">
@@ -3573,7 +3536,7 @@ async function renderFeed(activities) {
         
         
         // Get avatar HTML (Gravatar with initials fallback)
-        const avatarHtml = getAvatarHtml(activity.username, userGravatars[activity.username], 40);
+        const avatarHtml = getAvatarHtml(activity.username, userGravatars[activity.username], 40, true);
         
         // Get admin badge if user is staff
         const adminBadge = userIsStaff[activity.username] ? getAdminBadge({ isStaff: true }) : '';

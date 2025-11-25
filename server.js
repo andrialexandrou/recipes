@@ -311,6 +311,30 @@ function extractPreview(content, maxLength = 150) {
     return text;
 }
 
+// Middleware to add computed Gravatar hash to user data
+function addGravatarHash(userData) {
+    if (!userData) return userData;
+    
+    // If it's an array of users, process each one
+    if (Array.isArray(userData)) {
+        return userData.map(user => addGravatarHash(user));
+    }
+    
+    // Compute Gravatar hash from email if available
+    let gravatarHash = null;
+    if (userData.email) {
+        const crypto = require('crypto');
+        gravatarHash = crypto.createHash('md5').update(userData.email.toLowerCase().trim()).digest('hex');
+    }
+    
+    // Return user data with computed gravatarHash, removing email for privacy
+    const { email, ...publicData } = userData;
+    return {
+        ...publicData,
+        gravatarHash
+    };
+}
+
 // Helper function to fan-out activity to all followers' feeds
 async function fanOutActivity(authorUserId, activityData) {
     if (!useFirebase || !db || firebaseFailureDetected) {
@@ -657,17 +681,12 @@ app.get('/api/users/search', async (req, res) => {
                     
                     // If no query, include all users; otherwise filter by substring match
                     if (!query || username.includes(query)) {
-                        // Compute Gravatar hash server-side
-                        const gravatarHash = userData.email 
-                            ? crypto.createHash('md5').update(userData.email.toLowerCase().trim()).digest('hex')
-                            : null;
-                        
                         matchedUsers.push({
                             uid: doc.id, // Add UID for follow functionality
                             username: userData.username,
-                            gravatarHash: gravatarHash,
                             followersCount: userData.followersCount || 0,
-                            followingCount: userData.followingCount || 0
+                            followingCount: userData.followingCount || 0,
+                            ...addGravatarHash(userData)
                         });
                     }
                 });
@@ -709,23 +728,18 @@ app.get('/api/:username/user', validateUsername, async (req, res) => {
                     const userDoc = usersSnapshot.docs[0];
                     const userData = userDoc.data();
                     
-                    // Compute Gravatar hash server-side (don't expose email)
-                    const gravatarHash = userData.email 
-                        ? crypto.createHash('md5').update(userData.email.toLowerCase().trim()).digest('hex')
-                        : null;
-                    
                     // Return public information including uid (needed for follow functionality)
                     res.json({
                         uid: userDoc.id, // Include uid from document ID
                         username: userData.username,
                         bio: userData.bio || '',
-                        gravatarHash: gravatarHash,
                         createdAt: userData.createdAt?.toDate?.()?.toISOString() || userData.createdAt,
                         following: userData.following || [],
                         followers: userData.followers || [],
                         followingCount: userData.followingCount || 0,
                         followersCount: userData.followersCount || 0,
-                        isStaff: userData.isStaff || false
+                        isStaff: userData.isStaff || false,
+                        ...addGravatarHash(userData)
                     });
                 } else {
                     res.status(404).json({ error: 'User not found' });
@@ -2146,13 +2160,14 @@ app.get('/api/users/:username/connections', validateUsername, async (req, res) =
                 const doc = await db.collection('users').doc(targetUserId).get();
                 if (doc.exists) {
                     const data = doc.data();
+                    
                     return {
                         userId: targetUserId,
                         username: data.username,
                         bio: data.bio || '',
-                        gravatarHash: data.gravatarHash || '',
                         followersCount: data.followersCount || 0,
-                        followingCount: data.followingCount || 0
+                        followingCount: data.followingCount || 0,
+                        ...addGravatarHash(data)
                     };
                 }
                 return null;
